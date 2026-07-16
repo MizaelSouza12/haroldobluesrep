@@ -1,0 +1,7311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Repertório Haroldo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23000'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23ff3b30' font-family='Arial'%3E♪%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#000000; --fg:#ffffff; --title:#ff3b30; --artist:#ffd60a;
+  --accent:#ff3b30; --bar:#111111; --muted:#8e8e93;
+  --lyr:22px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  user-select:none;-webkit-user-select:none;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:pointer}
+.view{position:fixed;inset:0;display:none;flex-direction:column;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.view.active{display:flex}
+
+/* ===== HOME ===== */
+#homeHead{padding:14px 16px 8px}
+#homeHead h1{font-size:22px;color:var(--title);font-weight:800;letter-spacing:.5px}
+#homeHead .sub{font-size:12px;color:var(--muted);margin-top:2px}
+#searchWrap{padding:8px 16px}
+#search{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #2c2c2e;
+  background:#1c1c1e;color:var(--fg);font-size:16px;outline:none}
+#chips{display:flex;gap:8px;overflow-x:auto;padding:8px 16px 10px;scrollbar-width:none}
+#chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:8px 14px;border-radius:20px;background:#1c1c1e;color:var(--fg);
+  font-size:14px;border:1px solid #2c2c2e;white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+#list{flex:1;overflow-y:auto;padding:0 8px 30px;-webkit-overflow-scrolling:touch}
+.item{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:13px 12px;border-bottom:1px solid #1c1c1e;border-radius:8px}
+.item:active{background:#1c1c1e}
+.item .t{font-size:17px;font-weight:600;line-height:1.25}
+.item .a{font-size:13px;color:var(--artist);margin-top:2px}
+.item .n{font-size:12px;color:var(--muted);flex:0 0 auto}
+.groupHead{padding:16px 12px 6px;font-size:13px;font-weight:800;color:var(--accent);
+  text-transform:uppercase;letter-spacing:1px}
+#empty{padding:40px 20px;text-align:center;color:var(--muted);display:none}
+#count{padding:4px 18px 6px;font-size:12px;color:var(--muted)}
+
+/* ===== SONG ===== */
+#songView{background:var(--bg)}
+#lyrics{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:center;
+  padding:20px 18px 0;scrollbar-width:none}
+#lyrics::-webkit-scrollbar{display:none}
+#songTitle{color:var(--title);font-size:calc(var(--lyr) * 1.25);font-weight:800;
+  line-height:1.2;padding:16px 6px 4px}
+#songArtist{color:var(--artist);font-size:calc(var(--lyr) * 0.75);font-weight:600;padding-bottom:22px}
+#songBody{font-size:var(--lyr);line-height:1.55;font-weight:500;white-space:pre-wrap;
+  color:var(--fg);padding-bottom:8px}
+#endMark{color:var(--muted);font-size:14px;letter-spacing:4px;padding:30px 0 55vh}
+#tapHint{position:absolute;left:0;right:0;top:46%;text-align:center;color:var(--muted);
+  font-size:13px;opacity:0;pointer-events:none;transition:opacity .4s}
+#tapHint.show{opacity:1}
+
+/* ===== BAR ===== */
+#bar{flex:0 0 auto;background:var(--bar);border-top:1px solid #262626;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:2px}
+body.barTop #songView{flex-direction:column-reverse}
+body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
+  padding:calc(6px + env(safe-area-inset-top)) 8px 6px}
+.bbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;
+  padding:7px 2px;border-radius:10px;font-size:22px;line-height:1}
+.bbtn small{font-size:9px;color:var(--muted);letter-spacing:.3px}
+.bbtn:active{background:#262626}
+#playBtn{font-size:30px;color:var(--accent)}
+#spdBox{flex:1.4;display:flex;align-items:center;justify-content:center;gap:2px}
+#spdBox button{font-size:22px;padding:7px 8px;border-radius:10px}
+#spdBox button:active{background:#262626}
+#spdVal{font-size:14px;font-weight:700;min-width:26px;text-align:center;color:var(--artist)}
+#spdBox small{position:absolute;visibility:hidden}
+
+/* ===== SETTINGS ===== */
+#setView{background:rgba(0,0,0,.55);display:none;position:fixed;inset:0;z-index:50}
+#setView.active{display:block}
+#setPanel{position:absolute;left:0;right:0;bottom:0;background:#161618;
+  border-radius:18px 18px 0 0;padding:18px 20px calc(24px + env(safe-area-inset-bottom));
+  max-height:82%;overflow-y:auto}
+#setPanel h2{font-size:18px;color:var(--fg);margin-bottom:14px}
+.setRow{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 0;border-bottom:1px solid #262628;font-size:15px}
+.setRow input[type=color]{width:44px;height:32px;border:none;background:none;border-radius:6px}
+.setRow input[type=range]{width:150px;accent-color:var(--accent)}
+.seg{display:flex;background:#2c2c2e;border-radius:9px;overflow:hidden}
+.seg button{padding:7px 14px;font-size:13px;color:var(--fg)}
+.seg button.on{background:var(--accent);font-weight:700}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:38px;height:34px;font-size:20px;background:#2c2c2e;border-radius:8px}
+.stepper span{min-width:44px;text-align:center;font-weight:700;color:var(--artist)}
+#resetBtn{margin-top:18px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
+  color:var(--title);font-size:15px;font-weight:600}
+#closeSet{margin-top:10px;width:100%;padding:13px;border-radius:12px;background:var(--accent);
+  color:#fff;font-size:16px;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<div id="homeView" class="view active">
+  <div id="homeHead">
+    <h1>♪ Repertório Haroldo</h1>
+    <div class="sub" id="subInfo"></div>
+  </div>
+  <div id="searchWrap">
+    <input id="search" type="search" placeholder="Buscar música ou artista..." autocomplete="off">
+  </div>
+  <div id="chips"></div>
+  <div id="count"></div>
+  <div id="list"></div>
+  <div id="empty">Nenhuma música encontrada.</div>
+</div>
+
+<!-- ============ SONG ============ -->
+<div id="songView" class="view">
+  <div id="lyrics">
+    <div id="songTitle"></div>
+    <div id="songArtist"></div>
+    <div id="songBody"></div>
+    <div id="endMark">● ● ●</div>
+  </div>
+  <div id="tapHint">toque na letra para tocar / pausar</div>
+  <div id="bar">
+    <button class="bbtn" id="menuBtn">☰<small>MENU</small></button>
+    <button class="bbtn" id="prevBtn">⏮<small>ANT.</small></button>
+    <button class="bbtn" id="playBtn">▶<small>PLAY</small></button>
+    <button class="bbtn" id="nextBtn">⏭<small>PRÓX.</small></button>
+    <div id="spdBox">
+      <button id="spdDown">−</button>
+      <span id="spdVal">30</span>
+      <button id="spdUp">+</button>
+    </div>
+    <button class="bbtn" id="setBtn">⚙<small>CONFIG.</small></button>
+  </div>
+</div>
+
+<!-- ============ SETTINGS ============ -->
+<div id="setView">
+  <div id="setPanel">
+    <h2>Configurações</h2>
+    <div class="setRow"><span>Tamanho da letra</span>
+      <div class="stepper"><button id="fMinus">−</button><span id="fVal"></span><button id="fPlus">+</button></div>
+    </div>
+    <div class="setRow"><span>Velocidade padrão</span>
+      <div class="stepper"><button id="dMinus">−</button><span id="dVal"></span><button id="dPlus">+</button></div>
+    </div>
+    <div class="setRow"><span>Posição da barra</span>
+      <div class="seg"><button id="posB">Embaixo</button><button id="posT">Em cima</button></div>
+    </div>
+    <div class="setRow"><span>Cor da letra</span><input type="color" id="cFg"></div>
+    <div class="setRow"><span>Cor do título</span><input type="color" id="cTitle"></div>
+    <div class="setRow"><span>Cor do artista</span><input type="color" id="cArtist"></div>
+    <div class="setRow"><span>Cor do fundo</span><input type="color" id="cBg"></div>
+    <button id="resetBtn">Restaurar padrões</button>
+    <button id="closeSet">Fechar</button>
+  </div>
+</div>
+
+<!-- ============ DADOS DO REPERTÓRIO ============ -->
+<script type="text/plain" id="songdata">
+### (Sittin' On) The Dock Of The Bay ;; Otis Redding ;; A
+Sittin in the morning sun,
+I`ll be sittin' when the evening come,
+Watching the ships roll in,
+And I'll watch 'em roll away again, yeah,
+I'm sittin' on the dock of the bay,
+Watching the tide roll away, ouh,
+I'm just …sittin' on the dock of the bay,
+Wasting time.
+
+I left my home in Georgia,
+Headed for the Frisco bay
+I have nothing to live for,
+Look like nothings gonna come my way,
+So I'm just go… sit on the dock of the bay
+Watching the tide roll away,
+I'm sittin' on the dock of the bay,
+Wasting time
+
+Look like nothings gonna change,
+Everything still remain the same,
+I can't do what ten people tell me to do,
+So I guess I'll remain the same, yes,
+
+Sittin' here resting my bones,
+And this loneliness won't leave me alone, yes,
+Two thousand miles I roam
+Just to make this dock my home
+
+Now I'm just go… sit at the dock of the bay
+Watching the tide roll away, ooh
+Sittin' on the dock of the bay
+Wasting time
+### 15 Anos ;; Ira! ;; A
+Quando me sinto assim
+Volto a ter quinze anos
+Começando tudo de novo
+Vou me apanhar sorrindo
+
+Seu amor hoje
+Me alimentará amanhã
+Eis o homem
+Que se apanha chorando
+
+Vivendo e não aprendendo
+Eis o homem, este sou eu
+Que se diz seguro
+Que se diz maduro
+
+Seu amor hoje
+Me alimentará amanhã
+Eis o homem
+Que se apanha chorando
+### Admirável Gado Novo ;; Zé Ramalho ;; A
+Vocês que fazem parte dessa massa
+Que passa nos projetos do futuro
+É duro tanto ter que caminhar
+E dar muito mais do que receber
+
+E ter que demonstrar sua coragem
+À margem do que possa parecer
+E ver que toda essa engrenagem
+Já sente a ferrugem lhe comer
+
+Êh, ô, ô, vida de gado
+Povo marcado
+Êh, povo feliz!
+
+Lá fora faz um tempo confortável
+A vigilância cuida do normal
+Os automóveis ouvem a notícia
+Os homens a publicam no jornal
+
+E correm através da madrugada
+A única velhice que chegou
+Demoram-se na beira da estrada
+E passam a contar o que sobrou!
+
+O povo foge da ignorância
+Apesar de viver tão perto dela
+E sonham com melhores tempos idos
+Contemplam esta vida numa cela
+
+Esperam nova possibilidade
+De verem esse mundo se acabar
+A arca de Noé, o dirigível
+Não voam, nem se pode flutuar
+### A Feira ;; O Rappa ;; A
+É dia de feira
+Quarta-feira
+Sexta-feira
+Não importa a feira
+É dia de feira
+Quem quiser pode chegar...
+
+Vem maluco, vem madame
+Vem Maurício, vem atriz
+Prá levar comigo...
+
+Tô vendendo ervas
+Que curam e acalmam
+Mas eu não sou autorizado
+Quando o Rappa chega
+Eu quase sempre escapo
+Quem me fornece
+É que ganha mais
+
+A clientela é vasta
+Eu sei!
+Porque os remédios normais
+Nem sempre
+Amenizam a pressão
+### A Letra A ;; Nando Reis ;; A
+A letra A do seu nome
+Abre essa porta e entra
+Na mesma casa onde eu moro
+Na mesa que me alimenta
+
+A telha esquenta e cobre
+Quando de noite ela deita
+A gente pensa que escolhe
+Se a gente não sabe inventa
+
+A gente só não inventa a dor
+A gente que enfrenta o mal
+Quando a gente fica em frente ao mar
+A gente se sente melhor
+
+A abelha nasce e morre
+E a cera que ela engendra
+Acende a luz quando escorre
+Da vela que me orienta
+
+Apenas os automóveis
+Centenas se movem e ventam
+Certeza é o chão de um imóvel
+Prefiro as pernas que me movimentam
+
+A gente movimenta o amor
+A gente que enfrenta o mal
+Quando a gente fica em frente ao mar
+A gente se sente melhor
+### A Whiter Shade of Pale ;; Procol Harum ;; A
+We skipped the light ….fandango
+Turned cartwheels 'cross the floor
+I was feeling kinda seasick
+But the crowd called out for more
+The room was humming harder
+As the ceiling flew away
+When we called out for another drink
+The waiter brought a tray
+
+And so it was that later
+As the miller told his tale
+That her face, at first just ghostly,
+Turned a whiter …shade of pale
+
+She said, 'there is no reason
+And the truth is plain to see.'
+But i wandered through my playing cards
+Would not let her be
+One of sixteen vestal virgins
+Who were leaving for the coast
+And although my eyes were open
+They might just as well've been closed
+### Águas de Março ;; Tom Jobim ;; A
+É pau, é pedra, é o fim do caminho
+É um resto de toco, é um pouco sozinho
+É um caco de vidro, é a vida, é o sol
+É a noite, é a morte, é o laço, é o anzol
+
+É pereba do campo, é o nó da madeira
+Caingá, candeia, é o Matita Pereira
+É madeira de vento, tombo da ribanceira
+É o mistério profundo, é o queira ou não queira
+
+É o vento ventando, é o fim da ladeira
+É a viga, é o vão, festa da cumueira
+É a chuva chovendo, é conversa ribeira
+Das águas de março, é o fim da canseira
+
+É o pé, é o chão, é a marcha estradeira
+Passarinho na mão, pedra de atiradeira
+É uma ave no céu, é uma ave no chão
+É um regato, é uma fonte, é um pedaço de pão
+
+É o fundo do poço, é o fim do caminho
+No rosto o desgosto, é um pouco sozinho
+É um estrepe, é um prego, é uma ponta, é um ponto
+É um pingo pingando, é a conta, é o conto
+
+É um peixe, é um gesto, é uma prata brilhando
+É a luz da manhã, é o tijolo chegando
+É a lenha, é o dia, é o fim da picada
+É a garrafa de cana, o estilhaço na estrada
+
+É o projeto da casa, é o corpo na cama
+É o carro enguiçado, é a lama, é a lama
+É um passo, é uma ponte, é um sapo, é uma rã
+É um resto de mato, na luz da manhã
+
+São as águas de março fechando o verão
+É a promessa de vida no teu coração
+
+-------------SOLO------------
+
+É uma cobra, é um pau, é João, é José
+É um espinho na mão, é um corte no pé
+São as águas de março fechando o verão,
+É a promessa de vida no teu coração
+
+É pau, é pedra, é o fim do caminho
+É um resto de toco, é um pouco sozinho
+É um passo, é uma ponte, é um sapo, é uma rã
+É um belo horizonte, é uma febre terçã
+São as águas de março fechando o verão
+É a promessa de vida no teu coração
+
+São as águas de março fechando o verão
+É a promessa de vida no teu coração.
+### Ain't No Sunshine ;; Bill Withers ;; AJ
+Ain't no sunshine ...when she's gone
+It's not warm ...when she's away
+Ain't no sunshine when she's gone
+And she's always gone too long
+Anytime she goes away
+
+Wonder this time ...where she's gone
+Wonder if ...she's gone to stay
+Ain't no sunshine when she's gone
+And this house just ain't no home
+Anytime she goes away
+
+And I know, I know, I know, I know, I know
+Hey, I ought to leave ...the young thing alone
+But ain't no sunshine ...when she's gone
+
+Ain't no sunshine ...when she's gone
+Only darkness ...everyday
+Ain't no sunshine when she's gone
+And this house just ain't no home
+Anytime she goes away (3x)
+### Ali ;; Skank ;; A
+Ela entrou e eu estava ali
+Ou será que fui eu que ali entrei
+Sem sequer pedir a menor licença?
+Ela de batom caqui
+Com os olhos olhava o quê? Eu não sei
+Olhos de águas vindas
+De outros oceanos
+
+Ela me olhou - Quem?
+Quem sabe com ela
+Eu teria as tardes
+Que sempre me passaram
+Como miragens, como invenção!
+Se eu não posso ter
+Fico imaginando
+Eu fico imaginando
+
+Virá com ela que entrega
+Virá, sim, assim virá que eu vi
+Virá ou ela me espera
+Virá, pois ela está ali
+
+Ela amou o que estava ali
+Ou será que foi dela o que eu já amei
+Como os laços fixos de uma residência?
+Ela: Alô!? E eu não reagi
+Com os olhos olhava o que eu lembrei
+Quando andava indo
+Em outra direção
+
+Ela me olhou - Vem!
+Quem sabe com ela
+Eu veria as tardes
+Que sempre me faltaram
+Como miragens, como ilusão!
+
+Ela andou e eu fiquei ali
+Ou será que fui eu que dali mudei
+Com uns passos mudos
+De uma reticência?
+Ela me olhou bem
+Quem sabe com ela
+Eu teria achado
+O que sempre me faltava
+Cores, colagens, sons, emoção!
+### Alívio Imediato ;; Engenheiros do Hawaii ;; A
+O melhor esconderijo,
+a maior escuridão
+Já não servem de abrigo,
+já não dão proteção
+A Líbia é bombardeada,
+a libido e o vírus
+O poder, o pudor,
+os lábios e o batom (2x)
+
+Que a chuva caia
+Como uma luva
+Um dilúvio
+Um delírio
+Que a chuva traga
+Alívio imediato
+
+Que a noite caia
+De repente caia
+Tão demente
+Quanto um raio
+Que a noite traga
+Alívio imediato
+
+Há espaço pra todos
+há um imenso vazio
+Nesse espelho quebrado
+por alguém que partiu
+A noite cai
+de alturas impossíveis
+E quebra o silêncio
+e parte o coração
+
+Há um muro de concreto
+entre nossos lábios
+Há um muro de Berlim
+dentro de mim
+Tudo se divide,
+todos se separam
+(Duas Alemanhas, duas Coreias)
+Tudo se divide, todos se separam
+### All Star ;; Nando Reis ;; A
+Estranho seria se eu não me apaixonasse por você
+O sal viria doce para os novos lábios
+Colombo procurou as índias, mas a terra avistou em você
+O som que eu ouço são as gírias do seu vocabulário
+
+Estranho é gostar tanto do seu All Star azul
+Estranho é pensar que o bairro das...
+Laranjeiras...
+
+Satisfeito sorri quando chego ali
+E entro no elevador
+Aperto o 12 que é o seu andar
+Não vejo a hora de te reencontrar
+E continuar aquela conversa
+Que não terminamos ontem
+Ficou pra hoje
+
+Estranho mas já me sinto como um velho amigo seu
+Seu All Star azul combina com o meu preto de cano alto
+Se o homem já pisou na lua, como eu ainda não tenho
+seu endereço?
+O tom que eu canto as minhas músicas
+Para a tua voz parece exato
+### All Your Love ;; Otis Rush ;; AJ
+All your love i miss lovin'
+All you kisses i miss kissin'
+Since i met you, baby
+I never knew what i was missin'
+
+All your love, pretty baby
+That i got in store for you
+When i tell ya, pretty baby
+Ya gotta say you love me, too
+
+All your lovin', pretty baby
+All your lovin', pretty baby
+When i first met ya, baby
+I never knew what i was missin'
+### Amor, Meu Grande Amor ;; Barão Vermelho ;; A
+Amor, meu grande amor
+Não chegue na hora marcada
+Assim como as canções
+Como as paixões
+E as palavras...
+
+Me veja nos seus olhos
+Na minha cara lavada
+Me venha sem saber
+Se sou fogo
+Ou se sou água...
+
+Amor, meu grande amor
+Me chegue assim
+Bem de repente
+Sem nome ou sobrenome
+Sem sentir
+O que não sente...
+
+Pois tudo o que ofereço
+É, meu calor, meu endereço
+A vida do teu filho
+Desde o fim, até o começo...
+
+Amor, meu grande amor
+Só dure o tempo que mereça
+E quando me quiser
+Que seja de qualquer maneira...
+
+Enquanto me tiver
+Que eu seja
+O último e o primeiro
+E quando eu te encontrar
+Meu grande amor
+Me reconheça...
+
+Amor, meu grande amor
+Que eu seja
+O último e o primeiro
+E quando eu te encontrar
+Meu grande amor
+Por favor, me reconheça...
+### Angie ;; The Rolling Stones ;; A
+Angie, angie,
+when will those clouds all ...disappear
+Angie, angie,
+where will it lead us ...from here
+
+With no loving in our souls
+and no money in our coats
+You can't say we're satisfied
+But angie, angie,
+you can't say we never tried
+
+Angie, you're beautiful,
+but ain't it time we said goodbye
+Angie, I still love you,
+remember all those nights we cried
+
+All the dreams we held so close
+seemed to all go up in smoke
+Let me whisper in your ear
+Angie, angie, where will it lead us ...from here
+
+Oh, angie, don't you weep,
+all your kisses still taste sweet
+I hate that sadness in your eyes
+But angie, angie, ain't it time we say good-bye
+
+With no loving in our souls
+and no money in our coats
+You can't say we're satisfied
+
+But angie, I still love you, baby,
+everywhere I look I see your eyes
+There ain't a woman that comes close to you
+Come on baby, dry your eyes
+
+But angie, angie,
+ain't it good to be alive
+Angie, angie,
+they can't say we never tried
+### Apenas Mais Uma de Amor ;; Lulu Santos ;; A
+Eu gosto tanto de você
+Que até prefiro esconder
+Deixo assim, ficar
+Subentendido
+Como uma idéia que existe na cabeça
+E não tem a menor obrigação de acontecer
+
+Eu acho tão bonito isso
+De ser abstrato, baby
+A beleza é mesmo tão fugaz
+É uma idéia que existe na cabeça
+E não tem a menor pretensão de acontecer
+
+Pode até parecer fraqueza
+Pois que seja fraqueza então
+A alegria que me dá
+Isso vai sem eu dizer
+
+Se amanhã não for nada disso
+Caberá só a mim esquecer
+O que eu ganho, o que eu perco
+Ninguém precisa saber
+### As Coisas Tão Mais Lindas ;; Cássia Eller ;; A
+Entre as coisas mais lindas que eu conheci
+Só reconheci
+suas cores belas
+quando eu te vi
+
+Entre as coisas bem-vindas que já recebi
+Eu reconheci
+minhas cores nela,
+então eu me vi
+
+Está em cima com o céu e o luar
+Hora dos dias, semanas, meses, anos,
+Décadas e séculos,
+milênios
+que vão passar
+
+Água-marinha põe estrelas no mar
+Praias, baías, braços, cabos, mares, golfos
+E penínsulas ....e oceanos
+que não vão secar
+
+E as coisas lindas são mais lindas
+Quando você está
+Hoje você está
+Onde você está
+
+As coisas são mais lindas
+Por que você está
+Onde você está
+Hoje você está
+Nas coisas tão mais lindas
+### Até Quando Esperar ;; Plebe Rude ;; A
+Não é nossa culpa
+Nascemos já com uma bênção
+Mas isso não é desculpa
+Pela má distribuição
+
+Com tanta riqueza por aí, onde é que está
+Cadê sua fração
+Com tanta riqueza por aí, onde é que está
+Cadê sua fração
+
+Até quando esperar
+
+E cadê a esmola
+que nós damos sem perceber
+que aquele abençoado
+Poderia ter sido você
+
+Até quando esperar
+a plebe ajoelhar
+Esperando a ajuda de Deus
+
+Posso
+Vigiar teu carro
+Te pedir trocados
+Engraxar seus sapatos
+### Avôhai ;; Zé Ramalho ;; A
+Um velho cruza a soleira
+De botas longas, de barbas longas
+De ouro o brilho do seu colar
+Na laje fria onde quarava
+Sua camisa e seu alforje
+De caçador...
+
+Oh! Meu velho e Invisível
+Avôhai!
+Oh! Meu velho e Indivisível
+Avôhai!
+
+Neblina turva e brilhante
+Em meu cérebro coágulos de sol
+Amanita matutina
+E que transparente cortina
+Ao meu redor...
+
+E se eu disser
+Que é meio sabido
+Você diz que é meio pior
+Mas e pior do que planeta
+Quando perde o girassol...
+
+É o terço de brilhante
+Nos dedos de minha avó
+E nunca mais eu tive medo
+Da porteira
+Nem também da companheira
+Que nunca dormia só...
+
+Avôhai!
+
+O brejo cruza a poeira
+De fato existe
+Um tom mais leve
+Na palidez desse pessoal
+Pares de olhos tão profundos
+Que amargam as pessoas
+Que fitar...
+
+Mas que bebem sua vida
+Sua alma na altura que mandar
+São os olhos, são as asas
+Cabelos de Avôhai...
+
+Na pedra de turmalina
+E no terreiro da usina
+Eu me criei
+Voava de madrugada
+E na cratera condenada
+Eu me calei
+
+E se eu calei foi de tristeza
+Você cala por calar
+Mas e calado vai ficando
+Só fala quando eu mandar...
+
+Rebuscando a consciência
+Com medo de viajar
+Até o meio da cabeça do cometa
+Girando na carrapeta
+No jogo de improvisar
+
+Entrecortando
+Eu sigo dentro a linha reta
+Eu tenho a palavra certa
+Prá doutor não reclamar..
+### Back To Black ;; Amy Winehouse ;; A
+He …left no time to regret
+Kept his dick wet
+With his same …old safe …bet
+Me …and my head high
+And my tears dry
+Get on without my guy
+
+You …went back …to what you know
+So far removed
+from all that we went …through
+And I tread …a troubled track
+My odds are stacked
+I'll go back …to black
+
+We only said good-bye with words
+I died a hundred times
+You go back to her
+And I go back to.....
+I go back to…
+
+Us …I love you much
+It's not enough
+You love blow and I love puff
+And life …is like a pipe
+And I'm a tiny penny rolling up the walls inside
+
+Black, black, black …I go back to
+### Bad To The Bone ;; George Thorogood ;; A
+On the day I was born
+The nurses all gathered 'round
+And they gazed in wide wonder
+At the joy they had found
+The head nurse spoke up
+And she said leave this one alone
+She could tell right away
+That I was bad to the bone
+
+Bad to the bone (2x)
+B-B-B-B-Bad (3x)
+Bad to the bone
+
+I broke a thousand hearts
+Before I met you
+I'll break a thousand more baby
+Before I am through
+I wanna be yours, pretty baby
+Yours and yours alone
+I'm here to tell ya, honey
+That I'm bad to the bone
+
+I make a rich woman beg
+I'll make a good woman steal
+I'll make an old woman blush
+And make a young woman squeal
+I wanna be yours, pretty baby
+Yours and yours alone
+I'm here to tell ya, honey
+That I'm bad to the bone
+
+coro
+
+Now when I walk the streets
+Kings and queens step aside
+Every woman I meet
+They all stay satisfied
+I wanna tell ya, pretty baby
+What I see I make my own
+And I'm here to tell ya, honey
+That I'm bad to the bone
+### Balada Do Amor Inabalável ;; Skank ;; A
+Leva essa canção
+De amor dançante
+Prá você lembrar de mim
+Seu coração lembrar de mim
+
+Na confusão do dia-a-dia
+No sufoco de uma dúvida
+Na dor de qualquer coisa
+
+É só tocar essa balada
+De swing inabalável
+Que é oásis pro amor
+Eu vou dizendo
+Na seqüência bem clichê
+Eu preciso de você
+
+coro
+
+É força antiga do espírito
+Virando convivência
+De amizade apaixonada
+Sonho, sexo, paixão
+Vontade gêmea de ficar
+E não pensar em nada
+
+Planejando
+Pra fazer acontecer
+Ou simplesmente
+Refinando essa amizade
+Eu vou dizendo
+Na sequência bem clichê
+Eu preciso de você
+
+coro
+
+Mesmo que a gente se separe
+Por uns tempos ou quando
+Você quiser lembrar de mim
+Toque a balada
+Do Amor Inabalável
+Swing de amor nesse planeta
+
+Mesmo que a gente se
+separe
+Por uns tempos ou quando
+Você quiser lembrar de mim
+Toque a balada
+Seja antes ou depois
+Eterna Love Song de nós dois
+### Bandeiras ;; Zeca Baleiro ;; A
+Eu não quero ver você cuspindo ódio
+E não quero ver você fumando ópio, pra sarar a dor
+Eu não quero ver você chorar veneno
+Não quero beber do seu café pequeno
+Eu não quero isso seja lá o que isso for...
+
+Eu não quero aquele, eu não quero aquilo
+Peixe na boca do crocodilo
+Braço da Vênus de Milo acenando tchau
+Não quero medir a altura do tombo
+Nem passar agosto esperando setembro,
+se bem me lembro
+
+O melhor futuro este hoje escuro
+O melhor desejo da boca é o beijo
+Eu não quero ter o Tejo me escorrendo das mãos...
+
+Quero a Guanabara, quero o rio Nilo
+Quero tudo ter, estrela, flor, estilo
+Tua língua em meu mamilo, água e sal
+Nada tenho, vez em quando tudo
+Tudo quero, mais ou menos quanto
+Vida, vida, noves fora zero
+Quero viver quero ouvir quero ver
+(Se é assim, quero sim, acho que vim pra te ver)
+### Bebendo Vinho ;; Ira! ;; A
+Eu vivo sozinho e apaixonado
+Não tenho ninguém aqui do meu lado
+Meu cachorro Vênus foi roubado
+Fiquei um pouco preocupado
+
+Vou me entorpecer bebendo vinho
+Eu sigo só o meu caminho
+Vou me entorpecer bebendo vinho
+Eu sigo só o meu caminho
+
+Chove pra caramba aqui no Rio
+Penso no sul aquele frio
+A TV diz que vai fazer sol
+Não sei se é bom ou é pior
+
+No rádio toca o velho rock 'n' roll
+Fico pensando aonde estou
+Nada satisfaz nesta hora
+Se é assim eu vou embora
+### Before You Accuse Me ;; Eric Clapton ;; A
+Before you accuse me,
+take a look at yourself
+You say I've been spending my money on other
+women
+You've been taking money
+from someone else
+
+I called your mama
+'bout three or four nights ago
+Well your mother said "Son"
+"Don't call my daughter no more"
+
+Come back home baby,
+try my love one more time
+If I don't go on and quit you
+I'm gonna lose my mind
+
+First Verse
+### Black ;; Pearl Jam ;; A
+Hey, oh…
+
+Sheets of empty canvas,
+untouched sheets of clay
+Were laid spread out before me
+as her body once did
+All five horizons
+revolved around her soul
+As the Earth to the Sun
+Now the air I tasted and breathed
+has taken a turn
+
+Oh, and all I taught that was …everything
+Oh, I know she gave me all …that she wore
+
+And now my bitter hands
+chafe beneath the clouds
+Of what was everything?
+Oh, the pictures have
+all been washed in black,
+tattooed everything
+
+I take a walk outside
+I'm surrounded by some kids at play
+I can feel their laughter,
+so why do I sear
+Oh, and twisted thoughts that spin
+round my head
+I'm spinning, oh, I'm spinning
+How quick the Sun can, …drop away
+
+And now my bitter hands
+cradle broken glass
+Of what was everything?
+All the pictures have
+all been washed in black,
+tattooed everything
+
+All the love gone bad
+turned my world to black
+Tattooed all I see,
+all that I am,
+all that I'll be, …yeah
+
+I know someday
+you'll have a beautiful life,
+I know you'll be a star
+In somebody else's sky,
+but why, why, why
+Can't it be,
+can't it be mine
+
+We, we, we, we, we belong together! Together!
+### Born To Be Wild ;; Steppenwolf ;; A
+Get your motor running
+Head out on the highway
+Looking for adventure
+In whatever comes our way
+
+Yeah, darling, gonna make it happen
+Take the world in a love embrace
+Fire all of your guns at once and
+Explode into space
+
+I like smoke and lightning
+Heavy metal thunder
+Racing with the wind
+And the feeling that I'm under
+
+…Like a true nature's child
+We were born, born to be wild
+We can climb so high
+I never want to die
+
+Born to be wild
+Born to be wild
+### Cada Um, Cada Um ;; Claudio Zoli ;; A
+Foi bom te ver
+Saber que você, é
+É feliz
+Impossível te esquecer
+Lembrar você
+Parece um dom
+
+Foi um lindo amor
+Pena não sobreviver
+Quando a vida
+Me iluminou
+A minha luz
+Era você
+
+A namoradeira
+No escuro da sala
+Sonhando e beijando
+De segunda a sexta
+No fim de semana
+De noite na Barra
+Procurando vaga
+De noite na Barra
+
+Agora é cada um
+Cada um
+### Cai A Noite ;; Capital Inicial ;; A
+Cai a noite na cidade
+Vinda de lugar nenhum
+E o dia vai embora
+Indo pra lugar algum...
+
+Não sentia fome
+Não sentia frio
+Sentado num canto
+De um quarto vazio...
+
+Quando a chuva cai
+Nas noites mais solitárias
+Lembre-se que sempre...
+
+Sombras e pensamentos
+De um sonho só esperança
+Nas paredes ecoavam
+O silêncio e a lembrança...
+
+Entre ruas desertas
+Ele está só de passagem
+Na vertigem e tontura
+Surgiam todo tipo de imagem...
+
+Se virou e alcançou o céu
+E a última estrela
+Nada deixava passar
+Tudo lembrava ela
+### Caleidoscópio ;; Os Paralamas do Sucesso ;; A
+Não é preciso apagar a luz
+Eu fecho os olhos e tudo vem
+Num Caleidoscópio sem lógica
+Eu quase posso ouvir a tua voz
+Eu sinto a tua mão a me guiar
+Pela noite a caminho de casa...
+
+Quem vai pagar as contas
+Desse amor pagão
+Te dar a mão
+Me trazer à tona prá respirar
+Vai chamar meu nome
+Ou te escutar...
+
+Me pedindo prá apagar a luz
+Amanheceu é hora de dormir
+Nesse nosso relógio sem órbita
+Se tudo tem que terminar assim
+Que pelo menos seja até o fim
+Prá gente não ter nunca mais
+Que terminar...
+### California Dreamin' ;; Rosa Maria ;; AJ
+All the leaves are brown
+And the sky is grey
+Ive been for a walk
+On a winters day
+Id be safe and warm
+If I was in l.a.
+California dreamin
+On such a winters day
+
+Stopped into a church
+I passed along the way
+Well, I got down on my knees
+Got down on my knees
+And I pretend to pray
+I pretend to pray
+
+You know the preacher likes the cold
+Preacher likes the cold
+He knows Im gonna stay
+Knows Im gonna stay
+California dreamin
+On such a winters day
+
+California dreamin
+On such a winters day
+### Carolina ;; Seu Jorge ;; A
+Carolina é uma menina bem difícil de esquecer
+Andar bonito e um brilho no olhar
+Tem um jeito adolescente que me faz enlouquecer
+E um molejo que não vou te enganar
+
+Maravilha feminina, meu docinho de pavê
+Inteligente, ela é muito sensual
+Te confesso que estou apaixonado por você
+Ô Carolina isso é muito natural
+
+Ô Carolina eu preciso de você
+Ô Carolina eu não vou suportar não te ver
+Carolina eu preciso te falar
+Ô Carolina eu vou amar você
+
+De segunda a segunda eu fico louco pra te ver
+Quanto eu te ligo você quase nunca está
+Isso era outra coisa que eu queria te dizer
+não temos tempo então melhor deixar pra lá
+
+A princípio no Domingo o que você quer fazer
+faça um pedido que eu irei realizar
+olha aí amigo eu digo que ela só me dá prazer
+Essa mina Carolina é de abalar, ô
+
+Carolina, preciso te encontrar
+Carolina, me sinto muito só
+Carolina, preciso te dizer
+Ô Carolina eu só quero amar você (3x)
+
+Carolina, Carolina....Carol, Carol, Carol, ...
+### Céu Azul ;; Charlie Brown Jr. ;; A
+Tão natural quanto a luz do dia
+Mas que preguiça boa, me deixa aqui a toa
+Hoje ninguém vai estragar meu dia
+Só vou gastar energia pra beijar sua boca
+Fica comigo então..., não me abandona não
+
+Alguém te perguntou como é que foi seu dia?
+Uma palavra amiga, uma noticia boa
+Isso faz falta no dia a dia
+A gente nunca sabe quem são essas pessoas
+
+Eu só queria te lembrar
+Que aquele tempo eu não podia fazer mais por nós
+Eu estava errado e você não tem que me perdoar
+Mas também quero te mostrar
+Que existe um lado bom nessa história
+Tudo que ainda temos a compartilhar
+
+E viver... e cantar
+Não importa qual seja o dia
+Vamos viver... vadiar
+O que importa é nossa alegria
+Vamos viver... e cantar
+Não importa qual seja o dia
+Vamos viver... vadiar
+O que importa é nossa alegria
+### Change The World ;; Eric Clapton ;; A
+If I could reach the stars
+Pull one down for you
+Shine it on my heart
+So you could see the truth
+That this love I have inside
+Is everything it seems
+But for now I find
+It's only in my dreams
+
+That I can…
+change the world
+I'd be the sunlight in your universe
+You'd think my love was really
+something good
+Baby, if I could
+change… the world
+
+If I could be king,
+even for a day
+I take you as my queen
+I have it no other way
+And our love would rule
+Kingdom we have made
+Till then I'd be a fool,
+wishin' for the day
+### Cidadão ;; Zé Geraldo ;; A
+Tá vendo aquele edifício moço?
+Ajudei a levantar
+Foi um tempo de aflição
+Eram quatro condução
+Duas pra ir, duas pra voltar
+
+Hoje depois dele pronto
+Olho pra cima e fico tonto
+Mas me chega um cidadão
+E me diz desconfiado, tu tá aí admirado
+Ou tá querendo roubar?...
+
+Meu domingo tá perdido
+Vou pra casa entristecido
+Dá vontade de beber
+E pra aumentar o meu tédio
+Eu nem posso olhar pro prédio
+Que eu ajudei a fazer
+
+Tá vendo aquele colégio moço?
+Eu também trabalhei lá
+Lá eu quase me arrebento
+Pus a massa fiz cimento
+Ajudei a rebocar
+
+Minha filha inocente
+Vem pra mim toda contente
+Pai vou me matricular
+Mas me diz um cidadão
+Criança de pé no chão
+Aqui não pode estudar...
+
+Esta dor doeu mais forte
+Por que que eu deixei o norte
+Eu me pus a me dizer
+Lá a seca castigava mas o pouco que eu plantava
+Tinha direito a comer
+
+Tá vendo aquela igreja moço?
+Onde o padre diz amém
+Pus o sino e o badalo
+Enchi minha mão de calo
+Lá eu trabalhei também
+
+Lá sim valeu a pena
+Tem quermesse, tem novena
+E o padre me deixa entrar
+Foi lá que cristo me disse
+Rapaz deixe de tolice
+Não se deixe amedrontar
+
+Fui eu quem criou a terra
+Enchi o rio fiz a serra
+Não deixei nada faltar
+Hoje o homem criou asas
+E na maioria das casas
+Eu também não posso entrar
+### Clandestino ;; Manu Chao ;; A
+Solo voy con mi pena
+Sola va mi condena
+Correr es mi destino
+Para burlar la ley
+Perdido en el corazón
+De la grande Babylon
+Me dicen el clandestino
+Por no llevar papel
+
+Pa' una ciudad del norte
+Yo me fui a trabajar
+Mi vida la dejé
+Entre Ceuta y Gibraltar
+Soy una raya en el mar
+Fantasma en la ciudad
+Mi vida va prohibida
+Dice la autoridad
+
+Mano Negra ...clandestina
+Peruano ...clandestino
+Africano ...clandestino
+Marihuana ...ilegal
+
+Argelino ...clandestino
+Nigeriano ...clandestino
+Boliviano ...clandestino
+Mano negra ...ilegal
+
+Solo, voy con mi pena
+Sola, va mi condena
+Correr es mi destino
+Para burlar la ley
+Perdido en el corazón
+De la grande Babylon
+Me dicen: El Clandestino
+Por no llevar papel
+
+Pa' una ciudad del norte
+Yo me fui a trabajar
+Mi vida la dejé
+Entre Ceuta y Gibraltar
+Soy una raya en el mar
+Fantasma en la ciudad
+Mi vida va prohibida
+Dice la autoridad
+
+Solo, voy con mi pena
+Sola, va mi condena
+Correr es mi destino
+Por no llevar papel
+Perdido en el corazón
+De la grande Babylon
+Me dicen: El Clandestino
+Yo soy el quiebra ley
+
+Mano Negra, clandestino (clandestino)
+Peruano, clandestino (clandestino)
+Africano, clandestino (clandestino)
+Marihuana, ilegal
+
+Solo, voy con mi pena
+Sola, va mi condena
+Correr es mi destino
+Para burlar la ley
+Perdido en el corazón
+De la grande Babylon
+Me dicen el clandestino
+Por no llevar papel
+
+Argelino, clandestino (clandestino)
+Nigeriano, clandestino (clandestino)
+Boliviano, clandestino (clandestino)
+Mano Negra, ilegal
+### Cocaine ;; Eric Clapton ;; A
+If you wanna hang out you've got to take her out
+Cocaine
+If you wanna get down, down on the ground
+Cocaine
+She don't lie
+Cocaine
+
+If you got bad news, you wanna kick them blues
+Cocaine
+When your day is done and you wanna run
+Cocaine
+She don't lie
+Cocaine
+
+If your thing is gone and you wanna ride on
+Cocaine
+Don't forget this fact, you can't get it back
+Cocaine
+She don't lie
+Cocaine
+
+She don't lie
+Cocaine
+### Come As You Are ;; Nirvana ;; A
+Come as you are, as you were,
+As I want you… to be,
+As a friend, as a friend, as an old… enemy
+
+Take your time, hurry up
+Choice is yours…, don't be late
+Take a rest, as a friend as an old,… memory
+Memory, memory…
+
+Come dowsed in mud,
+Soaked in bleach,
+As I want… you to be
+As a trend, as friend, as an old… memory
+
+And I swear that I…
+Don't have a gun
+No I don't have a gun, no I don't have a gun
+No I don't have a gun, no I don't have a gun
+### Come Together ;; Beatles ;; A
+Here come old flat top
+He come groovin' up slowly
+He got joo joo eyeballs
+He want holy rollers
+He got hair down to his knees
+Got to be a joker
+He just do what he please
+
+He wear no shoeshine
+He got toe jam football
+He got monkey finger
+He shoot Coca Cola
+He say I know you, you know me
+One thing I can tell you is
+You got to be free
+
+Come together, right now
+Over me
+
+He bag production
+He got walrus gumboot
+He got Ono sideboard
+He one spinal cracker
+He got feet down below his knees
+Hold you in his armchair
+You can feel his disease
+
+He roller coaster
+He got early warning
+He got muddy water
+He one Mojo filter
+He say one and one and one is three
+Got to be good looking
+'cause he's so hard to see
+### Comfortably Numb ;; Pink Floyd ;; A
+Hello…Is there anybody in there?
+Just nod if you can hear me
+Is there anyone at home?
+
+Come on now…I hear you're feeling …down
+Well, I can ease your pain
+And get you on your feet again
+
+Relax… I'll need some information first
+Just the basic facts
+Can you …show me where it hurts
+
+There is no pain, you are receding
+A distant ship's smoke …on the horizon
+You are only coming through in waves
+Your lips move… but I can't hear what you're saying
+
+When I was a child …I had a fever
+My hands… felt just like …two balloons
+Now I've got that feeling once again
+I can't explain, you would not understand
+This is not how I am
+
+Ihhh …have become… comfortably numb
+I have become comfortably numb
+
+O.K… Just a little pin prick
+There'll be no more...aaaaaaaah!
+But you might feel …a little sick
+Can you stand up?...I do belive it's working, good
+That'll keep you going, through the show
+Come on it's time to go.
+### Corazon Espinado ;; Carlos Santana ;; A
+Esa mujer me está matando
+Me ha espinado el corazón
+Por más que trato de olvidarla
+Mi alma... no da razón
+
+Mi corazón aplastado
+Herido y abandonado
+A ver a ver ...tu sabes ...dime mi amor
+Por favor
+Que dolor nos quedó
+
+Ah... corazon espinado
+(como duele me duele el amar)
+Ah... como me duele el amor
+
+¡Cómo duele! ¡cómo duele el corazón!
+Cuando nos tiene entregados
+Pero no olvides mujer
+que algún día dirás
+Hay ya yay cómo me duele el Amor
+
+¡Cómo me duele el olvido!
+¡Cómo duele el corazón!
+¡Cómo duele estar vivo!,
+Sin tenerte a un lado amor
+
+Corazón espinado
+### Corcovado ;; Tom Jobim ;; A
+Um cantinho e um violão
+Este amor, uma canção
+Pra fazer feliz a quem se ama
+
+Muita calma pra pensar
+E ter tempo pra sonhar
+Da janela vê-se o Corcovado
+O Redentor que lindo
+
+Quero a vida sempre assim
+Com você perto de mim
+Até o apagar da velha chama
+
+E eu que era triste
+Descrente deste mundo
+Ao encontrar você eu conheci
+O que é felicidade meu amor
+
+O que é felicidade, o que é felicidade
+Meu amor
+### Cotidiano ;; Chico Buarque ;; A
+Todo dia ela faz tudo sempre igual
+Me sacode às seis horas da manhã
+Me sorri um sorriso pontual
+E me beija com a boca de hortelã
+
+Todo dia ela diz que é pra eu me cuidar
+E essas coisas que diz toda mulher
+Diz que está me esperando pro jantar
+E me beija com a boca de café
+
+Todo dia eu só penso em poder parar
+Meio dia eu só penso em dizer não
+Depois penso na vida pra levar
+E me calo com a boca de feijão
+
+Seis da tarde como era de se esperar
+Ela pega e me espera no portão
+Diz que está muito louca pra beijar
+E me beija com a boca de paixão
+
+Toda noite ela diz pra eu não me afastar
+Meia-noite ela jura eterno amor
+E me aperta pra eu quase sufocar
+E me morde com a boca de pavor
+
+Todo dia ela faz tudo sempre igual
+Me sacode às seis horas da manhã
+Me sorri um sorriso pontual
+E me beija com a boca de hortelã
+### Crazy ;; Seal ;; A
+A man decides after seventy years,
+That what he goes there for, is to unlock the door.
+While those around him criticize and sleep...
+And through a fractal on a breaking wall,
+I see you my friend, and touch your face again.
+Miracles will happen as we trip.
+
+But we're never gonna survive, unless...
+We get a little crazy
+No we're never gonna survive, unless...
+We are a little... Crazy…
+
+Yellow people walking through my head.
+One of them's got a gun, to shoot the other one.
+And yet together they were friends at school
+Ohh, get it, get it, get it, get it no no!
+
+If all were there when we first took the pill,
+Then maybe, then maybe, then maybe, then maybe...
+Miracles will happen as we speak.
+No no, never survive, unless we get a little... bit...
+
+In a sky full of people,
+only some want to fly,
+Isn't that crazy?
+In a world full of people,
+only some want to fly,
+Isn't that crazy?
+Crazy...
+### Daughters ;; John Mayer ;; A
+I …know a girl
+She puts the color
+inside of my world
+she's …just like a maze
+Where all of the walls all
+continually change
+
+And I've …done all I can
+To stand on her steps
+with my heart in my hands
+Now … starting to see
+Maybe it's got nothing were all
+to do with me
+
+Fathers, be good to your daughters
+Daughters will love like you do
+Girls become lovers
+who turn into mothers
+So mothers, be good to your daughters too
+
+Oh, you see that skin?
+It's the same shes been
+standing in
+Since the day
+she saw him walking away
+Now she's left
+Cleaning up the mess he made
+
+So fathers, be good to your daughters
+Daughters will love like you do, yeah
+Girls become lovers
+who turn into mothers
+So mothers, be good to your daughters too
+
+Boys,.. you can break
+You'll find out how much they can take
+Boys will be strong
+And boys soldier on
+But boys would be gone without warmth from
+A woman's good, good heart
+
+On behalf of every man
+Looking out for every girl
+You are the god and the weight of her world
+### Depois ;; Pato Fu ;; A
+Não foi dessa vez
+Mas pode ter certeza
+Mal posso esperar
+Pra fugir da tristeza
+
+Amanhã talvez
+Vai ser um carnaval
+Vão falar de mim
+Pro bem ou pro mal
+
+Tomo um café e um guaraná pra me animar
+Mas ficou tão tarde
+Que é melhor deixar pra lá... Ahhhhh...
+
+Quando penso em nós dois
+Deixo tudo pra depois
+Quando penso em nós três
+Fica pra outra vez
+
+Juntei passos, palavras
+Não era bem o momento
+Fingi não querer nada
+Tem hora que não me agüento...
+
+Prometo, juro, garanto
+Vou resolver tudo isso
+Assim que tiver coragem
+E mais nenhum compromisso
+### Diamonds On The Inside ;; Ben Harper ;; A
+I knew a girl
+Her name was truth
+She was a horrible …liar.
+She couldnt spend
+One day alone
+But she couldnt be satisfied.
+
+When you have
+Everything,
+You have everything to lose.
+She made herself
+A bed of nails
+And shes plannin' on puttin' it to use.
+
+But she had diamonds on the inside
+She had diamonds on the inside
+She wore diamonds on the inside
+Diamonds
+
+Candle throws its light into the darkness
+In a nasty world,
+So shines the good deed
+Make sure the fortune,
+That you seek
+Is the fortune that, you need.
+
+So tell me why
+The first to ask,
+Is the last…to give, everytime
+What you say and
+Do not mean
+Follow too close behin
+
+Like the soldier long standing long under fire
+Any change
+Comes as a relief.
+Let the giver's name remain unspoken
+She is just a generous… thief.
+### Dias de Luta ;; Ira! ;; A
+Só depois de muito tempo
+Fui entender aquele homem
+Eu queria ouvir muito
+Mas ele me disse pouco...
+
+Quando se sabe ouvir
+Não precisam muitas palavras
+Muito tempo eu levei
+Prá entender que nada sei
+Que nada sei!...
+
+Só depois de muito tempo
+Comecei a entender
+Como será meu futuro
+Como será o seu...
+
+Se meu filho nem nasceu
+Eu ainda sou o filho
+Se hoje canto essa canção
+O que cantarei depois?
+Cantar depois!...
+
+Se sou eu ainda jovem
+Passando por cima de tudo
+Se hoje canto essa canção
+O que cantarei depois?...
+
+Só depois de muito tempo
+Comecei a refletir
+Nos meus dias de paz
+Nos meus dias de luta...
+### Dias de Luta, Dias de Glória ;; Charlie Brown Jr. ;; A
+Canto minha vida com orgulho
+Na minha vida nem tudo acontece
+Mas quanto mais a gente rala, mais a gente cresce
+Hoje estou feliz porque eu sonhei com você
+E amanhã posso chorar por não poder te ver mais
+
+O seu sorriso vale mais que um diamante
+Se você vier comigo, aí nóis vamo adiante
+Com a cabeça erguida e mantendo a fé em Deus
+O seu dia mais feliz vai ser o mesmo que o meu
+
+A vida me ensinou a nunca desistir
+Nem ganhar, nem perder, mas procurar evoluir
+Podem me tirar tudo que tenho
+Só não podem me tirar as coisas boas
+Que eu já fiz pra quem eu amo
+
+E eu sou feliz e canto
+O universo é uma canção
+E eu vou que vou
+
+História, nossas histórias
+Dias de luta, dias de glória
+Histórias, nossas histórias
+Dias de luta, dias de glória
+
+Oh, minha gata, morada dos meus sonhos
+Todo dia, se eu pudesse, eu ia estar com você
+Eu já te via muito antes nos meus sonhos
+Eu procurei a vida inteira por alguém como você
+
+Por isso eu canto minha vida com orgulho
+Com melodia, alegria e barulho
+Eu sou feliz e rodo pelo mundo
+Sou correria, mas também sou vagabundo
+
+Mas hoje dou valor de verdade
+Pra minha saúde e pra minha liberdade
+Que bom te encontrar nessa cidade
+Esse brilho intenso me lembra você
+
+Hoje estou feliz
+Acordei com o pé direito
+E eu vou fazer de novo
+E vou fazer muito bem feito
+
+Sintonia
+Telepatia
+Comunicação pelo córtex
+Boom
+Bye, bye
+### É Isso Aí ;; Ana Carolina ;; A
+É isso aí
+Como a gente achou que ia ser
+A vida tão simples é boa
+Quase sempre
+
+É isso aí
+Os passos vão pelas ruas
+Ninguém reparou na lua
+A vida sempre continua
+
+Eu não sei parar de te olhar
+Eu não sei parar de te olhar
+Não vou parar de te olhar
+Eu não me canso de olhar
+Não sei parar
+De te olhar
+
+É isso aí
+Há quem acredite em milagres
+Há quem cometa maldades
+Há quem não saiba dizer a verdade
+
+É isso aí
+Um vendedor de flores
+Ensinar seus filhos a escolher seus amores
+### Easy ;; Lionel Richie ;; A
+I know it sounds funny
+But I just can't stand the pain
+Girl, I'm leaving you tomorrow
+Seems to me girl
+You know I've done all I can
+You see, I begged, stole and I borrowed! (yeah)
+
+Ooh, that's why I'm easy
+I'm easy like sunday morning
+That's why I'm easy
+I'm easy like sunday morning
+
+Why in the world would anybody put chains on me?
+I've paid my dues to make it
+Everybody wants me to be
+What they want me to be
+I'm not happy when I try to fake it, no.
+
+CORO
+
+I wanna be high, so high
+I wanna be free to know the things I do are right
+I wanna be free
+Just me! Whoa, oh! Babe!
+### Eduardo e Mônica ;; Legião Urbana ;; A
+Quem um dia irá dizer
+Que existe razão
+Nas coisas feitas pelo coração?
+E quem irá dizer
+Que não existe razão?
+
+Eduardo abriu os olhos, mas não quis se levantar
+Ficou deitado e viu que horas eram
+Enquanto Mônica tomava um conhaque
+No outro canto da cidade, como eles disseram
+
+Eduardo e Mônica um dia se encontraram sem querer
+E conversaram muito mesmo pra tentar se conhecer
+Um carinha do cursinho do Eduardo que disse
+"Tem uma festa legal, e a gente quer se divertir"
+
+Festa estranha, com gente esquisita
+"Eu não tô legal, não agüento mais birita"
+E a Mônica riu, e quis saber um pouco mais
+Sobre o boyzinho que tentava impressionar
+
+E o Eduardo, meio tonto, só pensava em ir pra casa
+"É quase duas, eu vou me ferrar"
+Eduardo e Mônica trocaram telefone
+Depois telefonaram e decidiram se encontrar
+
+O Eduardo sugeriu uma lanchonete
+Mas a Mônica queria ver o filme do Godard
+Se encontraram, então, no parque da cidade
+A Mônica de moto e o Eduardo de camelo
+
+O Eduardo achou estranho e melhor não comentar
+Mas a menina tinha tinta no cabelo
+Eduardo e Mônica eram nada parecidos
+Ela era de Leão e ele tinha dezesseis
+
+Ela fazia Medicina e falava alemão
+E ele ainda nas aulinhas de inglês
+Ela gostava do Bandeira e do Bauhaus
+Van Gogh e dos Mutantes, de Caetano e de Rimbaud
+E o Eduardo gostava de novela
+E jogava futebol-de-botão com seu avô
+
+Ela falava coisas sobre o Planalto Central
+Também magia e meditação
+E o Eduardo ainda tava no esquema
+Escola, cinema, clube, televisão
+
+E mesmo com tudo diferente, veio mesmo, de repente
+Uma vontade de se ver
+E os dois se encontravam todo dia
+E a vontade crescia, como tinha de ser
+
+Eduardo e Mônica fizeram natação, fotografia
+Teatro, artesanato, e foram viajar
+A Mônica explicava pro Eduardo
+Coisas sobre o céu, a terra, a água e o ar
+
+Ele aprendeu a beber, deixou o cabelo crescer
+E decidiu trabalhar (não!)
+E ela se formou no mesmo mês
+Que ele passou no vestibular
+
+E os dois comemoraram juntos
+E também brigaram juntos muitas vezes depois
+E todo mundo diz que ele completa ela
+E vice-versa, que nem feijão com arroz
+
+Construíram uma casa há uns dois anos atrás
+Mais ou menos quando os gêmeos vieram
+Batalharam grana, seguraram legal
+A barra mais pesada que tiveram
+
+Eduardo e Mônica voltaram pra Brasília
+E a nossa amizade dá saudade no verão
+Só que nessas férias, não vão viajar
+Porque o filhinho do Eduardo tá de recuperação
+### Enquanto Ela Não Chegar ;; Barão Vermelho ;; A
+Quantas drogas eu ainda vou provar?
+E quantas vezes para a porta eu vou olhar?
+Quantos carros nessa rua vão passar
+Enquanto ela não chegar?
+
+Quantos dias eu ainda vou esperar?
+E quantas estrelas eu vou tentar contar?
+E quantas luzes na cidade vão se apagar
+Enquanto ela não chegar?
+
+Eu tenho andado tão sozinho
+Que eu nem sei no que acreditar
+E a paz que busco agora
+Nem a dor vai me negar
+
+Não deixe o sol morrer
+Errar é aprender
+Viver é deixar viver
+
+Quantas besteiras eu ainda vou pensar?
+E quantos sonhos no tempo vão se esfarelar?
+Quantas vezes eu vou me criticar
+Enquanto ela não chegar?
+### Enquanto Houver Sol ;; Titãs ;; A
+Quando não houver saída
+Quando não houver mais solução
+Ainda há de haver saída
+Nenhuma idéia vale uma vida...
+
+Quando não houver esperança
+Quando não restar nem ilusão
+Ainda há de haver esperança
+Em cada um de nós
+Algo de uma criança...
+
+Enquanto houver sol
+Enquanto houver sol
+Ainda haverá
+
+Quando não houver caminho
+Mesmo sem amor, sem direção
+A sós ninguém está sozinho
+É caminhando
+Que se faz o caminho...
+
+Quando não houver desejo
+Quando não restar nem mesmo dor
+Ainda há de haver desejo
+Em cada um de nós
+Aonde Deus colocou...
+### Epitáfio ;; Titãs ;; A
+Devia ter amado mais
+Ter chorado mais
+Ter visto o sol nascer
+Devia ter arriscado mais
+E até errado mais
+Ter feito o que eu queria fazer...
+
+Queria ter aceitado
+As pessoas como elas são
+Cada um sabe a alegria
+E a dor que traz no coração...
+
+O acaso vai me proteger
+Enquanto eu andar distraído
+O acaso vai me proteger
+Enquanto eu andar...
+
+Devia ter complicado menos
+Trabalhado menos
+Ter visto o sol se pôr
+Devia ter me importado menos
+Com problemas pequenos
+Ter morrido de amor...
+
+Queria ter aceitado
+A vida como ela é
+A cada um cabe alegrias
+E a tristeza que vier...
+
+Devia ter complicado menos
+Trabalhado menos
+Ter visto o sol se pôr...
+### Espelhos D'água ;; Dalto ;; A
+Os...
+seus olhos são espelhos d'água
+Brilhando você pra qualquer um
+
+Humm...
+Por onde esse amor andava
+Que não quis você de jeito algum
+
+Ahhh...
+Que vontade de ter você
+Que vontade de perguntar
+Se ainda é cedo
+
+Ahhh...
+Que vontade de merecer
+Um cantinho do seu olhar
+Mas tenho medo
+### Espere Por Mim, Morena ;; Gonzaguinha ;; A
+Espere por mim, morena,
+Espere que eu chego já
+O amor por você morena
+Faz a saudade me apressar.
+
+Tire um sono na rede
+Deixa a porta encostada
+Que o vento da madrugada
+Já me leva pra você.
+
+E antes de acontecer o Sol
+A barra vir quebrar
+Estarei nos teus braços
+Para nunca mais voar.
+
+E nas noites de frio
+Serei o teu cobertor,
+Quentarei o teu corpo
+Com meu calor
+
+Ah, minha santa, te juro
+Por Deus Nosso Senhor,
+Nunca mais, minha morena,
+Vou fugir do teu amor.
+### Every Breath You Take ;; The Police ;; A
+Every breath you take
+Every move you make
+Every bond you break
+Every step you take
+I'll be watching you
+
+Every single day
+Every word you say
+Every game you play
+Every night you stay
+I'll be watching you
+
+O, can't you see
+You belong to me
+How my poor heart aches
+With every step you take
+
+Every move you make
+Every vow you break
+Every smile you fake
+Every claim you stake
+I'll be watching you
+
+Since you've gone I've been lost without a trace
+I dream at night I can only see your face
+I look around, but it's you I can't replace
+I feel so cold and I long for your embrace
+I keep crying baby, baby, please
+
+Oh can't you see…
+
+Every move you make
+Every vow you break
+Every smile you fake
+I'll be watching you
+Every claim you stake
+Every move you make
+Every step you take
+### Exagerado ;; Cazuza ;; A
+Amor da minha vida
+Daqui até a eternidade
+Nossos destinos
+Foram traçados na maternidade
+
+Paixão cruel desenfreada
+Te trago mil rosas roubadas
+Pra desculpar minhas mentiras
+Minhas mancadas
+
+Exagerado
+Jogado aos teus pés
+Eu sou mesmo exagerado
+Adoro um amor inventado
+
+Eu nunca mais vou respirar
+Se você não me notar
+Eu posso até morrer de fome
+Se você não me amar
+
+E por você eu largo tudo
+Vou mendigar, roubar, matar
+Até nas coisas mais banais
+Prá mim é tudo ou nunca mais
+
+E por você eu largo tudo
+Carreira, dinheiro, canudo
+Até nas coisas mais banais
+Prá mim é tudo ou nunca mais
+### Eyes Without A Face ;; Billy Idol ;; A
+I'm all out of hope
+One more bad break
+could bring a fall
+When I'm far from home
+Don't call me on the phone
+To tell me you're alone
+It's easy to deceive
+It's easy to tease
+But hard to get release
+
+Les yeux sans visage
+Eyes without a face
+Got no human waste
+Your eyes without a face
+Such a human waste
+Your eyes without a face
+
+You know it's getting worse
+I spend so much time
+Believing all the lies
+To keep the dream alive
+Now it makes me sad
+It makes me mad at truth
+For loving what was you
+
+When you
+hear the music
+you make a dip
+Into someone else's pocket
+then make a slip
+Steal a car and go to Las Vegas
+Oh…, the gigolo pool
+
+Hanging out
+by the State Line
+Turning holy water
+into wine
+Bringing it down, oh…
+
+I'm on a bus
+on a psychedelic trip
+Reading murder books
+tryin' to stay hip
+I'm thinkin' of you
+you're out there so
+Say your prayers…
+
+Now I close my eyes
+And I wonder why
+I don't despise
+Now all I can do
+Is love what was once
+So alive and new
+But it's gone from your eyes
+I'd better realize
+### Fico Assim Sem Você ;; Adriana Calcanhotto ;; A
+Avião sem asa, fogueira sem brasa
+Sou eu assim sem você...
+Futebol sem bola,
+Piu-piu sem Frajola
+Sou eu assim sem você
+
+Por que é que tem que ser assim
+Se o meu desejo não tem fim
+Eu te quero a todo instante
+Nem mil alto-falantes
+Vão poder falar por mim
+
+Amor sem beijinho
+Buchecha sem Claudinho
+Sou eu assim sem você...
+Circo sem palhaço
+Namoro sem amasso
+Sou eu assim sem você
+
+Tô louca pra te ver chegar
+Tô louca pra te ter nas mãos
+Deitar no teu abraço
+Retomar o pedaço
+Que falta no meu coração
+
+Eu não existo longe de você
+E a solidão é o meu pior castigo
+Eu conto as horas
+Pra poder te ver
+Mas o relógio tá de mal comigo
+Por quê? Por quê?
+
+Neném sem chupeta
+Romeu sem Julieta
+Sou eu assim sem você
+Carro sem estrada...
+Queijo sem goiabada
+Sou eu assim sem você
+
+Por que é que tem que ser assim
+Se o meu desejo não tem fim
+Eu te quero a todo instante
+Nem mil alto-falantes
+vão poder falar por mim
+
+Eu não existo longe de você
+E a solidão é o meu pior castigo
+Eu conto as horas
+pra poder te ver
+Mas o relógio tá de mal comigo
+### Fields Of Gold ;; The Police ;; A
+You'll remember me …when the west wind moves
+Upon the fields of barley
+You'll forget the sun …in his jealous sky
+As we walk in the fields of gold
+
+So she took her love…for to gaze awhile
+Upon the fields of barley
+In his arms she fell …as her hair came down
+Among the fields of gold
+
+Will you stay with me, …will you be my love
+Among the fields of barley
+We'll forget the sun …in his jealous sky
+As we lie in the fields of gold
+
+See the west wind move …like a lover so
+Upon the fields of barley
+Feel her body rise …when you kiss her mouth
+Among the fields of gold
+
+I never made promises lightly
+And there have been …some that I've broken
+But I swear …in the days still left
+We'll walk in the fields of gold
+
+Many years have passed …since those summer days
+Among the fields of barley
+See the children run …as the sun goes down
+Among the fields of gold
+### Flores do Mal ;; Barão Vermelho ;; A
+Não me atire no mar de solidão
+Você tem a faca, o queijo e meu coração nas mãos
+Não me retalhe em escândalos
+Nem tão pouco cobre o perdão
+Deixe que eu cure a ferida dessa louca paixão
+
+Que acabou feito um sonho
+Foi o meu inferno, foi o meu descanso
+
+...A mesma mão que acaricia, fere e sai furtiva
+Faz do amor uma história triste
+...O bem que você me fez nunca foi real
+Da semente mais rica, nasceram flores do mal
+Huummm....
+
+Não me atire no mar de solidão
+Você tem a faca, o queijo e meu coração nas mãos
+Não me retalhe em escândalos
+Nem tão pouco cobre o perdão
+Deixe que eu cure a ferida dessa louca paixão
+
+Não me esqueça por tão pouco
+Nem diga adeus por engano
+Mas é sempre assim
+
+...A mesma mão que acaricia, fere e sai furtiva
+Faz do amor uma história triste
+...O bem que você me fez nunca foi real
+Da semente mais rica, nasceram flores do mal
+### Flores Em Você ;; Ira! ;; A
+De todo o meu passado
+Boas e más recordações
+Quero viver meu presente
+E lembrar tudo depois...
+
+Nessa vida passageira
+Eu sou eu, você é você
+Isso é o que mais me agrada
+Isso é o que me faz dizer...
+
+Que vejo flores em você!...
+### Fogo ;; Capital Inicial ;; A
+Você é tão acostumada
+A sempre ter razão
+Você é tão articulada
+Quando fala não pede atenção
+
+O poder de dominar é tentador
+Eu já não sinto nada
+Sou todo torpor
+
+É tão certo quanto calor do fogo
+É tão certo quanto calor do fogo
+Eu já não tenho escolha
+E participo do seu jogo, participo
+
+Não consigo dizer se é bom ou mau
+Assim como o ar me parece vital
+Onde quer que eu vá o que quer que eu faça
+Sem você não tem graça
+
+Você sempre surpreende
+E eu tento entender
+Você nunca se arrepende
+Você gosta e sente até prazer
+
+Mas se você me perguntar
+Eu digo sim, eu continuo
+Porque a chuva não cai
+Só sobre mim
+Vejo os outros,
+Todos estão tentando
+
+E é tão certo quanto calor do fogo
+Eu já não tenho escolha
+E participo do seu jogo, participo
+### Free Fallin' ;; John Mayer ;; A
+She's a good girl,
+loves her mama
+Loves Jesus
+and America too
+She's a good girl,
+crazy 'bout Elvis
+Loves horses
+and her boyfriend too
+Yeah, Yeah
+
+It's a long day
+living in Reseda
+There's a freeway
+runnin' through the yard
+And I'm a bad boy
+cuz I don't even miss her
+I'm a bad boy
+for breakin' her heart
+
+And I'm free, …free fallin', fallin'
+And I'm free, …free fallin', Fallin'
+
+All the vampires
+walkin' through the valley
+The move west
+down Ventura Boulevard
+And all the bad boys
+are standing in the shadows
+And the good girls
+are home with broken hearts
+
+And I'm free, …free fallin', fallin'
+And I'm free, …free fallin', fallin'
+Free fallin' Now I'm
+Free fallin'
+
+I wanna glide down
+over Mulholland
+I wanna write her,
+her name in the sky
+I wanna free fall
+out into nothin'
+Oh, I'm gonna leave this
+world for a while
+
+Now I'm free, …free fallin', fallin'
+Free Fallin', …fallin'
+### Go Back ;; Titãs ;; A
+Aun que me llames
+Aun que vayamos al cine
+Aun que reclames
+Aun que ese amor no camine
+
+Aun que eran planes y hoy yo lo siento
+Si casi nada quedó
+Fue solo un cuento
+Fue nuestra historia de amor
+
+Y no te voy a decir si fue lo mejor
+Pues...
+
+Solo quiero saber lo que puede dar cierto
+No tengo tiempo a perder
+Solo quiero saber lo que puede dar
+cierto...
+### Handy Man ;; James Taylor ;; A
+Hey girls gather round
+Listen to what I'm puttin' down
+Hey baby I'm you handyman
+
+I'm not the kind to use a pencil or rule
+I'm handy with love …and I'm no fool
+I fix …broken hearts I know
+that I truly can
+
+If your …broken heart …should need repair
+then I am …the man to see
+I whisper sweet things …you tell all your friends
+They'll come runnin' to me....
+
+Here is the main thing that I want to say
+I'm busy twenty four hours a day
+I fix broken hearts, I know that I truly can
+
+Come a come a come a come a come come
+Yeah..... yeah yeah
+Come a come a come a come a come come
+They'll come runnin' to me.....
+### Happy ;; Pharrell Williams ;; A
+It might seem crazy
+...what I'm about to say
+Sunshine she's here,
+...you can take a break
+I'm a hot air balloon
+...that could go to space
+With the air, like I don't care, baby, by the way
+
+Because I'm happy
+Clap along, if you feel like a room without a roof
+Because I'm happy
+Clap along, if you feel like happiness is the truth
+Because I'm happy
+Clap along, if you know what happiness is to you
+Because I'm happy
+Clap along, if you feel like that's what you wanna do
+
+Here come bad news
+...talking this and that
+give me all you got,
+...don't hold me back
+I should probably
+warn you ...I'll be just fine
+no offense to you
+....don't waste your time ...Here's why
+
+Bring me down, can't none
+Bring me down, my level's too high
+Bring me down, can't none
+Bring me down
+I said
+Bring me down
+### Have You Ever Seen The Rain? ;; Creedence Clearwater Revival ;; A
+Someone told me long ago
+There's a calm before the storm
+I know, it's been comin' for some time
+
+When it's over, so they say
+It will rain a sunny day
+I know, shinin' down like water
+
+I want to know, have you ever seen the rain?
+I want to know, have you ever seen the rain?
+Comin' down on a sunny day
+
+Yesterday, and days before
+Sun is cold and rain is hard
+I know, been that way for all my time
+
+And forever, on it goes
+Through the circle, fast and slow
+I know, it can't stop, I wonder
+### Hey Hey ;; Eric Clapton ;; A
+Hey hey. Hey hey, baby, hey.
+Hey hey. Hey hey, baby, hey.
+I love you baby,
+Sure ain't gonna be your dog.
+
+Hey hey. Hey hey, baby, hey.
+Hey hey. Hey hey, baby, hey.
+My arms around you baby,
+All I can say is hey.
+
+Hey hey. You lost your good thing now.
+Hey hey. You lost your good thing now.
+You had me fooled,
+I found it out somehow.
+### Hey Joe ;; O Rappa ;; A
+Hey joe
+Onde é que você vai
+Com essa arma aí na mão
+Hey joe
+Esse não é o atalho
+Pra sair dessa condição
+
+Meu irmão, é...
+Só desse jeito consegui impor minha moral
+Eu sei...
+Que sou caçado e visto sempre como um animal
+
+Hey joe...
+Assim você não curte o brilho
+Intenso da manhã
+Hey joe...
+O que o teu filho vai pensar
+Quando a fumaça baixar
+
+Meu irmão, aqui estou por causa dele
+E vou te dizer
+Talvez eu não tenha vida
+Mas é assim que vai ser
+
+Hey joe
+Muitos castelos já caíram e você ta na mira
+Também Morre quem atira...
+### Hit The Road Jack ;; Ray Charles ;; AJ
+Hit the road, Jack
+And don't you come back no more,
+no more, no more, no more
+What you say?
+
+Woah, Woman, oh woman, don't treat me so mean
+You're the meanest old woman that I've ever seen
+I guess if you said so
+I'd have
+Have to pack my things and go
+That's right
+
+Hit the road Jack
+
+Now baby, listen, baby, don't ya treat me this-a way
+Cause I'll be back on my feet some day
+Don't care if you do 'cause it's understood
+You ain't got no money you just ain't no good
+Well, I guess if you say so
+I'd have
+Have to pack my things and go (That's right)
+
+Hit the road Jack
+
+Well …Uh, what you say?
+I didn't understand you!
+You can't mean that!
+Oh, now baby, please!
+### Hoochie Coochie Man ;; Muddy Waters ;; A
+Gypsy woman told my mother
+'fore I was born,
+You got a boy-child coming,
+gonna be a son of a gun.
+Gonna make pretty womens
+jump and shout,
+And then the world gonna know
+what this all about…but you know I'm him.
+
+Everybody knows I'm him.
+Well, I'm the hoochie coochie man.
+Everybody knows I'm him.
+
+I got the black cat bone
+and I got a mojo, too.
+I got the John the Conquerer Root,
+gonna mess with you.
+I'm gonna make you girls
+lead me by my hand,
+And then the world will know
+the hoochie coochie man…but you know I'm him.
+
+On the seventh hour,
+On the seventh day,
+On the seventh month,
+Seven doctors say,
+He was born for good luck,
+That you'll see."
+I got seven hundred dollars;
+Don't you mess with me!...but you know I'm him.
+### Hotel California ;; Eagles ;; A
+On a dark desert highway, cool wind in my hair
+Warm smell of colitas, rising up through the air
+Up ahead in the distance, I saw a shimmering light
+My head grew heavy and my sight grew dim
+I had to stop for the night
+
+There she stood in the doorway
+I heard the mission bell
+And I was thinking to myself
+"This could be heaven or this could be hell"
+Then she lit up a candle and she showed me the
+way
+There were voices down the corridor
+I thought I heard them say
+
+Welcome to the Hotel Califórnia
+Such a lovely place
+Such a lovely place
+Such a lovely face
+Plenty of room at the Hotel Califórnia
+Any time of year
+Any time of year
+You can find it here
+
+Her mind is tiffany-twisted,
+she got the Mercedes-Benz
+She got a lot of pretty, pretty boys, that she calls friends
+How they dance in the courtyard, sweet summer sweat
+Some dance to remember, some dance to
+forget
+
+So I called up the captain
+"Please, bring me my wine"
+He said, "We haven't
+Had that spirit here since nineteen sixty-nine"
+And still those voices are calling from far away
+Wake you up in the middle of the night
+Just to hear them say
+
+Welcome to the Hotel Califórnia
+Such a lovely place
+Such a lovely place
+Such a lovely face
+We're livin' it up at the Hotel Califórnia
+What a nice surprise
+What a nice surprise
+Bring your alibis
+
+Mirrors on the ceiling
+The pink champagne on ice
+And she said
+"We are all just prisoners here,
+of our own device"
+And in the master's chambers
+They gathered for the feast
+They stab it with their steely knives
+But they just can't kill the beast
+
+Last thing I remember, I was
+Running for the door
+I had to find the passage back
+To the place I was before
+"Relax", said the night man
+"We are programmed to receive
+You can check out any time you like
+But you can never leave!"
+### Hound Dog ;; Elvis Presley ;; A
+You ain't nothin' but a hound dog
+Just cryin' …all the time
+You ain't nothin' but a hound dog
+Cryin' …all the time
+Well, you ain't never caught a rabbit and you
+ain't no friend of mine
+
+Well they said you was high classed
+Well, that …was just a lie
+Yeah! they said you was high classed
+Well, that …was just a lie
+Girl you ain't never caught a rabbit and you
+ain't no friend of mine
+
+Well, you ain't never caught a rabbit and you
+ain't no friend of mine
+### I Heard It Through The Grapevine ;; Marvin Gaye ;; A
+Ooh, I bet you're wond'rin' how I knew
+'bout your plans …to make me blue
+With some other guy …you knew before
+Between the two of us guys …you know I love you more
+It took me by surprise …I must say
+When I found out …yesterday
+Dontcha know that I
+
+Heard… it through the grapevine
+Not much longer …would you be mine
+Oh I heard… it through the grapevine
+Oh I'm just about to lose my mind
+Honey, honey yeah
+Heard it through …the grapevine not
+much longer …would you be my baby, ooh
+
+I know a man …ain't supposed to cry
+But these tears… I can't hold inside
+Losin' you would …end my life you see
+cause you mean …that much to me
+You could hav told… me yourself
+That you love …someone else
+I Dontcha know that I
+
+People say believe half …of what you see
+Son, and none… of what you hear
+But I can't help …bein' confused
+If it's true …please tell me dear
+Do you plan … let me go
+For the other guy you… loved before?
+Dontcha know I
+### I Started A Joke ;; The Wallflowers ;; A
+I started a joke.
+Which started the whole ,,,world crying.
+But I didn't see
+that the joke was on me.
+Oh, no,
+
+I started to cry.
+Which started the whole world laughing.
+Oh, if I'd only seen
+that the joke was on me.
+
+I...
+looked at the skies.
+Running my hands
+over my eyes.
+And I admi
+fell out of bed.
+Hurting my heads
+from things that I said.
+
+Till I finally died.
+Which started the whole world living.
+Oh, if I'd only seen
+that the joke was on me.
+
+I...
+looked at the skies.
+Running my hands
+over my eyes.
+And I fell out of bed.
+Hurting my head
+from things that I said.
+
+Till I finally died.
+Which started the whole world living.
+Oh, if I'd only seen
+that the joke was on me.
+Oh, no, that the joke was on me.
+Oh, oh, oh, oh, oh, oh
+### I'd Rather Go Blind ;; Beyoncé ;; A
+Something told me:
+"it was over"
+When I saw you… and her
+talking
+Something deep down
+In my soul
+said "Cry Girl"
+When I saw you
+and that girl …walking out
+
+Ooooo
+I would rather,
+I would rather go blind boy
+Than to see you walk away from me …chile
+
+Ooooo
+So you see, I love you so much
+That I don't want to watch you leave me
+baby
+Most of all, I just don't
+I just don't want to be free no
+
+Ooooo, Ooooo
+I was just, I was just
+I was just …sitting here thinking
+Of your kisses
+and your warm …embrace, Yeah
+
+When The reflection …in the glass
+That I held …to my lips now, Baby
+Revealed the tears
+that was on …my face,
+
+Ooooo
+And baby, baby
+baby I rather be blind boy
+Than to see you …walk away,
+Walk away from me, yeah
+### I'm Yours ;; Jason Mraz ;; A
+Well you done done me and you bet I felt it
+I tried beat but you're so hot that I melted
+I fell right through the cracks,
+now I'm trying to get back
+
+Before the cool done run out, I'll be giving it my bestest
+And Nothings going to stop me but divine intervention
+I reckon it's again my turn
+to win some or learn some
+
+But I won't hesitate no more, no more
+It cannot wait, I'm yours
+
+Well open up your mind and see like me
+Open up your plans and damn you're free
+Look into your heart and you'll find love, love, love
+Listen to the music of the moment people dance and
+sing
+We're just one big family, and
+It's our god-forsaken right to be loved, love, loved, love
+
+So I won't hesitate no more, no more
+It cannot wait I'm sure
+There's no need to complicate, our time is short
+This is our fate, I'm yours
+
+D-d-do you, but you, d-d-do
+But do you want to come on
+Scooch on over closer dear
+And I will nibble your ear
+
+I've been spending way too long checking my tongue in
+the mirror
+And bending over backwards just to try to see it clearer
+But my breath fogged up the glass
+And so I drew a new face and laughed
+
+I guess what I'm saying is there ain't no better reason
+To rid yourself of vanities and just go with the seasons
+It's
+What we aim to do,
+Our name is our virtue
+
+But I won't hesitate no more, no more
+It cannot wait I'm yours
+
+Come on and open up your mind and see like me
+Open up your plans and damn you're free
+Look into your heart and you'll find that the sky is yours
+So please don't, please don't, please don't
+There's no need to complicate
+Cause our time is short
+This is, this is, this is our fate, I'm yours!
+### Imunização Racional (Que Beleza) ;; Tim Maia ;; A
+Uh! Uh! Uh! Que Beleza!
+Uh! Uh! Uh! Que Beleza!
+
+Que beleza é sentir a natureza
+Ter certeza pr'onde vai
+E de onde vem
+
+Que beleza é vir da pureza
+E sem medo distinguir
+O mal e o bem
+
+Uh! Uh! Uh! Que Beleza!
+Uh! Uh! Uh! Que Beleza!
+
+Que beleza é saber seu nome
+Sua origem, seu passado
+E seu futuro
+
+Que beleza é conhecer
+O desencanto
+E ver tudo bem mais claro
+No escuro
+
+Uh! Uh! Uh! Que Beleza!
+Uh! Uh! Uh! Que Beleza!
+
+Abra a porta
+E vá entrando
+Felicidade vai
+Brilhar no mundo
+
+Que Beleza! Que Beleza!
+Uh! Uh! Uh! Que Beleza!
+Uh! Uh! Uh! Que Beleza!
+### In The Colors ;; Ben Harper ;; A
+When your whole world …is shaken
+From all the risks
+We have taken
+Dance with me …
+Dance with me
+Into the colors of the dusk
+
+When you have… awoken
+From all the dreams …broken
+Come and…
+Dance with me
+Dance with me
+into the colors of the dusk
+
+Dance with me
+Into the colors of the dusk
+
+The paths we're walking on
+They crumble
+Behind us
+But if we leave now
+They will never
+They will never find …us
+
+And if this crazy world spins itself down…
+To dust
+I want to be with you
+I'm gonna be with you
+In the colors
+
+When you again start hoping
+With your arms wide open
+Come on…
+Dance with me
+Dance with me
+Into the colors of the dusk
+
+And all… will be right
+Will be right
+Dancing
+Like water
+With the light
+
+Dance with me
+Dance with me
+Into the colors of the dusk
+Oh…
+Dance with me
+into the colors of the dusk
+Dance with me
+Into the colors of the dusk
+### Independência ;; Capital Inicial ;; A
+Toda essa curiosidade
+Que você tem pelo que eu faço
+Eu não gosto de me explicar
+Eu não gosto de me explicar...
+
+Toda essa intensidade
+Buscamos identidade
+Mas não sabemos explicar
+Mas não sabemos explicar...
+
+Se paro e me pergunto
+Será que existe alguma razão
+Prá viver assim
+Se não estamos
+De verdade juntos...
+
+Procuramos independência
+Acreditamos na distância entre nós
+Procuramos independência
+Acreditamos na distância entre nós...
+
+Toda essa meia verdade
+A qual temos nos conformado
+Só conseguimos nos afastar
+Nós aprendemos a aceitar...
+
+Tantas coisas pela metade
+Como essa imensa vontade
+Que não sabemos explicar
+Que não sabemos saciar...
+### Isn't She Lovely ;; Stevie Wonder ;; A
+Isn't she lovely?
+Isn't she wonderful?
+Isn't she precious?
+Less than one minute old
+I never thought through love we'd be
+Making one as lovely as she
+But isn't she lovely, made from love?
+
+Isn't she pretty?
+Truly the angels' best
+Boy, I'm so happy
+We have been heaven-blessed
+I can't believe what God has done
+Through us, He's given life to one
+But isn't she lovely, made from love?
+
+Isn't she lovely?
+Life and love are the same
+Life is Aisha, the meaning of her name
+Londie, it could have not been done
+Without you, who conceived the one
+That's so very lovely, made from love
+### Is This Love ;; Whitesnake ;; A
+I should have know better …than to let you go alone
+It's times like these …I can't make it on my own
+Wasted days and sleepless nights
+I can't wait to see you again
+
+I find I spend my time …waiting on your call
+How can I tell you baby …my back's against the wall
+I need you by my side ….to tell me it's all right
+'Cause I don't think I can take it anymore
+
+Is this love …that I'm feeling?
+Is this the love …
+That I've been searching for?
+Is this love …or am I dreaming?
+This must be love
+'Cause it's really got …a hold on me
+Can't stop the feeling
+I've been this way before
+
+But with you I've found the key
+Open any door
+I can feel my love for you
+Growing stronger day by day
+And I can't wait to see you again
+So I can hold you in my arms
+### Johnny B. Goode ;; Chuck Berry ;; A
+Deep down in Louisiana close to New Orleans
+Way back up in the woods among the evergreens
+There stood a log cabin made of earth and wood
+Where lived a country boy named Johnny B. Goode
+Who never ever learned to read or write so well
+But he could play a guitar just like a-ringin' a bell
+
+Go, go, go Johnny go
+Go, go Johnny go
+
+He used to carry his guitar in a gunny sack
+Go sit beneath the tree by the railroad track
+Oh! The engineers would see him sittin' in the shade
+Strummin' with the rhythm that the drivers made
+People passing by they would stop and say
+Oh, my but that little country boy can play
+
+His mama told him some day you will be a man
+And you will be the leader of a big old band
+Many people comin' from miles around
+To hear you play your music 'till the sun go down
+Maybe someday your name will be in lights
+Sayin' Johnny B. Goode tonight
+### Just Breathe ;; Pearl Jam ;; A
+Yes, I understand …that every life must end, uh-huh
+As we sit alone, ..I know someday we must go, uh-huh
+Oh I'm a lucky man, …to count on both hands the ones I love
+Some folks they've got one…, yeah, others, they've got none
+
+Stay with me…
+Let's just breathe…
+
+Practiced all my sins…, never gonna let me win, uh-huh
+Under everything,… just another human being, uh-huh
+I don't wanna hurt…, there's so much in this world …
+to make me bleed
+
+Stay with me…
+You're all I see…
+
+Did I say that I need you? Wooh ooh!
+Did I say that I want you?
+Oh, if I didn't I'm a fool you see
+No one knows this more than me
+As I come clean
+
+I wonder everyday,… as I look upon your face, uh-huh
+Everything you gave
+And nothing you would save, oh no
+Nothing you would take
+Every…thing you gave
+
+Nothing you would… take
+Every…thing you gave
+
+Hold me til I …die
+Meet you on the other… side
+### Just The Way You Are ;; Barry White ;; A
+Don't go changing,
+Trying to please me
+You never let me down before
+I don't imagine
+You're too familiar
+And I don't see you… Anymore
+
+I wouldn't leave you
+In times of trouble
+We never could have come
+This far
+I took the good times,
+I'll take the bad times
+I'll take you just the way you are
+
+Don't go trying
+Some new fashion
+Don't change the color
+Of your hair
+You always have my
+Unspoken passion
+Although I might not seem to care
+
+I don't want clever
+Conversation
+Don't want to work that hard
+I just want some
+Someone to talk to
+I want you just the way you are.
+
+I need to know that you will …always be
+The same old someone that I knew
+What will it take till you believe ... in me
+The way that I…I… I believe in you.
+
+I said I love you
+That's forever
+And this I promise from my heart
+I could not love you
+Any better
+I love you just the way you are.
+### Juvenar ;; Karnak ;; A
+Tá frio aqui
+Tá muito poluido
+Eu tô triste eu tô borrecido
+
+Tá feio aqui
+Tá muita poluição
+Tá fedido
+Fumaça de caminhão
+
+Eu tô cansado da cidade
+Eu quero ir pro mato
+tem de tudo lá
+porco galinha pato
+tem carroça
+tem cachorro
+tem carro de boi
+correguinho sempre tem
+
+Juvenar Juvenar
+Vem tirar o leite
+São 6 horas da manhã
+Juvenar Juvenar Juvenar Juvenar
+### Knockin' On Heaven's Door ;; Eric Clapton ;; A
+Mama, take this badge of me.
+I can't use it anymore.
+It's getting dark, too dark to see.
+Feel like I'm knockin' on heaven's door.
+
+Knock, knock, knockin' on heavens door.
+
+Mama, take these guns away from me.
+I can't shoot them any more.
+There's a long black cloud following me.
+Feel like I'm knockin' on heaven's door.
+### Lay, Lady, Lay ;; Bob Dylan ;; A
+Lay, lady, lay,
+lay across my big brass bed
+Lay, lady, lay,
+lay across my big brass bed
+
+Whatever colors you have
+in your mind
+I'll show them to you
+and you'll see them shine
+
+Lay, lady, lay,
+lay across my big brass bed
+Stay, lady, stay,
+stay with your man awhile
+Until the break of day,
+let me see you make him smile
+
+His clothes are dirty but his
+hands are clean
+And you're the best thing …that he's
+ever seen
+
+Stay, lady, stay,
+stay with your man awhile
+
+Why wait any longer for
+the world to begin
+You can have your cake and eat it too
+Why wait any longer for
+the one you love
+When he's standing
+in front of you
+
+Lay, lady, lay,
+lay across my big brass bed
+Stay, lady, stay,
+stay while the night is still ahead
+
+I long to see you in the morning light
+I long to reach for you in the night
+Stay, lady, stay, stay while the night is still ahead.
+### Layla ;; Eric Clapton ;; AJ
+What will you do when you get lonely
+and nobody´s waiting by your side?
+You've been running and hiding much too long
+You know it' just your foolish pride
+
+Layla
+You've got me on my knees, Layla
+Begging darling please, Layla
+Darling, won't you ease my worried mind?
+
+Tried to give you consolation
+When your old man, he let you down
+Like a fool, I fell in love with you
+You turned my whole world upside down
+
+Make the best of the situation
+Before I finally go insane
+Please don't say we'll never find a way
+Or tell me all my love's in vain
+### Learn To Fly ;; Foo Fighters ;; A
+Run and tell all of the angels
+This could take all night
+Think I need a devil
+To help me get things right
+
+Hook me up a new revolution
+'Cause this one is a lie
+We sat around laughing
+And watched the last one die
+
+I'm looking to the sky to save me
+Looking for a sign of life
+Looking for something to help me burn out bright
+I'm looking for complication
+Looking cause I'm tired of lying
+Make my way back home when I learn to fly high
+
+I think I'm done nursing the patience
+I can wait one night
+I'd give it all away
+If you give me one last try
+
+We'll live happily ever trapped
+If you just save my life
+Run and tell the angels
+That everything is alright
+
+I'm looking to the sky to save me
+Looking for a sign of life
+Looking for something to help me burn out bright
+I'm looking for a complication
+Looking cause I'm tired of trying
+Make My way back home when I learn to fly high
+Make my way back home when I learn to...
+
+Fly along with me
+I can't quite make it alone
+Try and make this life my own
+Fly along with me
+I can't quite make it alone
+Try to make this life my own
+
+I'm looking to the sky to save me
+Looking for a sign of life
+Looking for something to help me burn out bright
+I'm looking for a complication
+Looking cause I'm tired of trying
+Make my way back home when I learn to...
+### Lenha ;; Zeca Baleiro ;; A
+Eu não sei dizer
+O que quer dizer
+O que vou dizer
+Eu amo você
+Mas não sei o quê
+Isso quer dizer...
+
+Eu não sei por que
+Eu teimo em dizer
+Que amo você
+Se eu não sei dizer
+O que quer dizer
+O que vou dizer...
+
+Se eu digo: Pare!
+Você não repare
+No que possa parecer
+Se eu digo: Siga!
+O que quer que eu diga
+Você não vai entender
+
+Mas se eu digo: Venha!
+Você traz a lenha
+Pro meu fogo acender
+Mas se eu digo: Venha!
+Você traz a lenha
+Pro meu fogo acender...
+
+Eu não sei dizer
+O que quer dizer
+O que vou dizer
+Eu amo você
+Mas não sei o quê
+Isso quer dizer...
+
+Eu não sei por que
+Eu teimo em dizer
+Que amo você
+Se eu não sei dizer
+O que quer dizer
+O que vou dizer...
+
+Se eu digo: Pare!
+Você não repare
+No que possa parecer
+Se eu digo: Siga!
+O que quer que eu diga
+Você não vai entender
+
+Mas se eu digo: Venha!
+Você traz a lenha
+Pro meu fogo acender...
+Mas se eu digo: Venha!
+Você traz a lenha
+Pro meu fogo acender...(5x)
+### Let It Be ;; The Beatles ;; A
+When I find myself in times of trouble
+Mother Mary comes to me
+Speaking words of wisdom…Let it be
+
+And in my hour of darkness
+She is standing right in front of me
+Speaking words of wisdom: …Let it be
+
+Let it be, let it be
+Let it be, let it be
+Whisper words of wisdom:…Let it be
+
+And when the broken hearted people
+Living in the world agree
+There will be an answer: …Let it be
+
+For though they may be parted there is
+Still a chance that they will see
+There will be an answer: …Let it be
+
+Let it be, let it be
+Let it be, let it be
+There will be an answer: …Let it be
+
+And when the night is cloudy
+There is still a light that shines on me
+Shine on until tomorrow …Let it be
+
+I wake up to the sound of music
+Mother Mary comes to me
+Speaking words of wisdom …Let it be
+### Let's Get It On ;; Marvin Gaye ;; A
+I've been really tryin', baby
+Tryin' to hold back this feelin' for so long
+And if you feel
+like I feel, baby
+Then come on, oh come on
+
+Let's get it on, oh baby
+Let's get it on
+Let's love, baby
+Let's get it on
+Sugar..., let's get it on
+
+We're all sensitive people
+With so much to give
+Understand me, sugar
+Since we got to being
+Let's live
+I love you
+
+There's
+nothing wrong with me
+Lovin' you,
+baby no no
+And givin' yourself to me
+could never be wrong
+If the love is true, oh baby
+
+Don't you know how sweet and wonderful
+Life can be
+I'm asking you baby
+To get it on with me
+
+I ain't gonna worry
+I ain't gonna push
+I won't push you baby
+So come on, come on, come on, come on, come
+on baby
+Stop beatin' 'round the bush
+
+Let's get it on
+Let's get it on
+You know what I'm talkin' about
+Come on baby, hey hey
+Let your love come out
+If you believe in love
+
+Let's get it on
+Let's get it on, baby
+This minute, oh yeah
+Let's get it on
+Please get it on
+
+I know you know
+What I've been dreamin' of
+Don't you, baby?
+My whole body is in love
+
+Whoo
+I ain't gonna worry, no, I ain't gonna push
+I won't push you, baby, whoo
+Come on, come on, come on, come on, come
+on, darlin'
+Stop beatin' 'round the bush, hey
+
+Gonna get it on
+Beggin' you, baby, I want to get it on
+You don't have to worry that it's wrong
+If the spirit moves you, let me groove you good
+Let your love come down
+Oh, get it on, come on, baby
+
+Do you know I mean it?
+I've been sanctified
+Hey, hey
+Girl, you give me good feelings, so good
+
+Nothin' wrong with love
+If you want to love me
+Just let yourself go
+Oh, baby
+Let's get it on
+### Light My Fire ;; The Doors ;; A
+You know that it would be untrue
+You know that I would be a liar
+If I was to say to you
+Girl, we couldn't get much higher
+
+Come on baby, light my fire
+Come on baby, light my fire
+Try to set the night on fire
+
+The time to hesitate is through
+No time to wallow in the mire
+Try now we can only lose
+And our love become a funeral pyre
+### Like A Rolling Stone ;; Bob Dylan ;; A
+Once upon a time you dressed so fine
+You threw the bums a dime in your prime, …didn't you?
+People'd call, say, "Beware doll, you're bound to fall"
+You thought they were all …kiddin' you
+
+…You used to laugh about
+Everybody that was hangin' out
+Now you don't talk so loud
+Now you don't seem so proud
+About having to be scrounging …for your next meal.
+
+How does it feel
+How does it feel
+To be without a home
+Like a complete unknown
+Like a rolling stone?
+
+You've gone to the finest school all right, Miss Lonely
+But you know you only used to get …juiced in it
+And nobody has ever taught you how to live on the street
+And now you find out you're gonna have to get used to it
+
+…You said you'd never compromise
+With the mystery tramp, but now you realize
+He's not selling any …alibis
+As you stare into the vacuum …of his eyes
+And ask him do you want to, make a deal?
+
+You never turned around to see the frowns on the
+Jugglers and the clowns When they all did tricks for you
+You never understood that it ain't no good
+You shouldn't let other people get your kicks for you
+
+..You used to ride on the chrome horse with your diplomat
+Who carried on his shoulder a …Siamese cat
+Ain't it hard when you discover that
+He really wasn't where it's at
+After he took from you everything he could steal.
+
+Princess on the steeple and all the pretty people
+They're drinkin', thinkin' that they …got it made
+Exchanging all kinds of precious gifts and things
+But you'd better lift your diamond ring,
+You'd better pawn it babe
+
+…You used to be so amused
+At Napoleon in rags and the language that he used
+Go to him now, he calls you, you can't refuse
+When you ain't got nothing, you got nothing to lose
+You're invisible now, you got no secrets to conceal.
+### Losing My Religion ;; R.E.M. ;; A
+Oh, life is bigger
+It's bigger than you
+And you are not me
+The lengths that I will go to
+The distance in your eyes
+Oh, no I've said too much
+I set it up
+
+That's me in the corner
+That's me in the spot light
+Losing my religion
+Trying to keep up with you
+And I don't know if I can do it
+Oh no, I've said too much
+I haven't said enough
+
+I thought that I heard you laughing
+I thought that I heard you sing
+I think I thought I saw you try
+But that was just a dream
+That was just a dream
+
+Every whisper
+Of every waking hour
+I'm choosing my confessions
+Trying to keep an eye on you
+Like a hurt, lost and blinded fool (fool)
+Oh, no I've said too much
+I set it up
+
+Consider this (2x)
+The hint of the century
+Consider this…The slip
+That brought me
+To my knees failed
+What if all these fantasies
+Come… flailing around
+Now I've said …too much
+### Love Me Two Times ;; The Doors ;; A
+Love me two times, baby
+Love me twice today
+Love me two times, girl
+I'm goin' away
+Love me two times, girl
+One for tomorrow
+One just for today
+Love me two times
+I'm goin' away
+
+Love me one time
+I could not speak
+Love me one time
+Yeah, my knees got weak
+Love me two times, girl
+Last me all through the week
+Love me two times
+I'm goin' away
+Love me two times
+I'm goin' away
+### Luz Dos Olhos ;; Cássia Eller ;; A
+Ponho os meus olhos em você
+Se você está
+Dona dos meus olhos é você
+Avião no ar
+
+Dia pra esses olhos sem te ver
+É como o chão do mar
+Liga o rádio a pilha à tv
+Só pra você escutar
+
+A nova música que eu fiz agora
+Lá fora a rua vazia chora
+
+Os meus olhos vidram ao te ver
+São dois fãs, um par
+Pus no olhos vidros pra poder
+Melhor te enxergar
+
+Luz nos olhos para anoitecer
+É só você se afastar
+Pinta os lábios para escrever
+A tua boca em mim
+
+Que a nossa música eu fiz agora
+Lá fora a lua irradia a glória
+
+E eu te chamo
+Eu te peço vem
+Diga que você me quer
+Porque eu te quero também
+
+Faço as pazes lembrando
+Passo as tardes tentando
+Te telefonar
+Cartazes te procurando
+Aeronaves seguem pousando
+Sem você desembarcar
+
+Pra eu te dar a mão nessa hora
+Levar as malas pro Fusca lá fora
+
+E eu vou guiando
+Eu te espero vem
+Siga aonde vão meus pés
+Porque eu te sigo também
+
+Eu te amo
+Eu te peço vem
+Diga que você me quer
+Porque eu te
+Quero também
+### Mais Uma Vez ;; Legião Urbana ;; A
+Mas é claro que o sol
+Vai voltar amanhã
+Mais uma vez, eu sei
+
+Escuridão já vi pior
+De endoidecer gente sã
+Espera que o sol já vem
+
+Tem gente que está
+Do mesmo lado que você
+Mas deveria estar do lado de lá
+
+Tem gente que machuca os outros
+Tem gente que não sabe amar
+Tem gente enganando a gente
+Veja nossa vida como está
+
+Mas eu sei que um dia
+A gente aprende
+Se você quiser alguém
+Em quem confiar
+Confie em si mesmo
+Quem acredita
+Sempre alcança
+
+Mas é claro que o sol
+Vai voltar amanhã
+Mais uma vez, eu sei
+
+Escuridão já vi pior
+De endoidecer gente sã
+Espera que o sol já vem
+
+Nunca deixe que lhe digam
+Que não vale a pena
+Acreditar no sonho que se tem
+Ou que seus planos
+Nunca vão dar certo
+Ou que você nunca
+Vai ser alguém
+
+Tem gente que machuca os outros
+Tem gente que não sabe amar
+Mas eu sei que um dia
+A gente aprende
+Se você quiser alguém
+Em quem confiar
+Confie em si mesmo
+Quem acredita sempre alcança!
+### Mais Uma Vez ;; Jota Quest ;; A
+Te tenho com a certeza
+De que você pode ir
+Te amo com a certeza
+De que irá voltar
+Pra gente ser feliz
+
+Você surgiu e juntos
+Conseguimos ir mais longe
+Você dividiu comigo a sua história
+E me ajudou a construir a minha
+
+Hoje mais do que nunca somos dois
+A nossa liberdade é o que nos prende
+
+Viva todo o seu mundo
+Sinta toda liberdade
+E quando a hora chegar, volta
+Que o nosso amor está acima das coisas
+Desse mundo
+
+Vai dizer que o tempo
+Não parou naquele momento
+Eu espero por você
+O tempo que for
+Pra ficarmos juntos
+Mais uma vez!
+### Malted Milk ;; Eric Clapton ;; A
+I keep drinking malted milk,
+Trying to drive my blues away.
+I keep drinking malted milk,
+Trying to drive my blues away.
+Baby, you're just as welcome to my loving
+As the flowers is in May.
+
+Malted milk, malted milk,
+Keep rushing to my head.
+Malted milk, malted milk,
+Keep rushing to my head.
+And I have a funny, funny feeling
+And I'm talking all out my head.
+
+Baby, fix me one more drink
+And hug your daddy one more time.
+Baby, fix me one more drink
+And hug your daddy one more time.
+Keep on stirring my malted milk, mama,
+Until I change my mind.
+
+My doorknob keeps on turning,
+There must be spooks around my bed.
+My doorknob keeps on turning,
+There must be spooks around my bed.
+And I have a funny, funny feeling
+And the hair's rising on my head.
+### Man On The Moon ;; R.E.M. ;; A
+Mott the Hoople and the game of Life.
+Andy Kaufman in the wrestling match.
+Monopoly, Twenty one, checkers, and chess.
+Mister Fred Blassie in a breakfast mess
+
+Let's play Twister, let's play Risk
+See you in heaven if you make the list.
+
+Hey, Andy did you hear about this one?
+Tell me, are you locked in the punch?
+Hey Andy are you goofing on Elvis?
+Hey, baby. Are we losing touch?
+
+If you believed they put a man on the moon,
+Man on the moon.
+If you believe there's nothing up my sleeve,
+Then nothing is cool.
+
+Moses went walking with the staff of wood
+Newton got beaned by the apple good.
+Egypt was troubled by the horrible asp.
+Mister Charles Darwin had the gall to ask.
+
+Here's a little agit for the never-believer.
+Here's a little ghost for the offering
+Here's a truck stop instead of Saint Peter's.
+Mister Andy Kaufman's gone wrestling [wrestling bears
+### Manguetown ;; Chico Science ;; A
+Tô enfiado na lama
+É um bairro sujo
+Onde os urubus têm casas
+E eu não tenho asas
+
+Mas estou aqui em minha casa
+Onde os urubus têm asas
+Eu vou pintando, segurando as paredes
+No mangue do meu quintal e
+Manguetown
+
+Andando por entre os becos
+Andando em coletivos
+Ninguém foge ao cheiro sujo
+Da lama da manguetown (2x)
+
+Esta noite sairei,
+Vou beber com meus amigos... ha!
+E com as asas... que os urubus... me deram ...ao dia
+Eu...
+Voarei por toda a periferia
+
+Vou sonhando com a mulher
+Que talvez eu possa encontrar
+E ela também vai anda
+Na lama do meu quintal é
+Manguetown
+
+Fui no mangue catar lixo
+Pegar caranguejo
+Conversar com urubu
+### Maracatu Atomico ;; Chico Science ;; A
+No bico do beija-flor, beija-flor, beija-flor
+Toda fauna-flora grita de amor
+Quem segura o porta-estandarte
+Tem a arte, tem a arte
+E aqui passa com raça eletrônico maracatu atômico
+
+Anamauê, auêia, aê
+Anamauê, auêia, aê
+Anamauê, auêia, aê
+
+Atrás do arranha-céu tem o céu tem o céu
+E depois tem outro céu sem estrelas
+Em cima do guarda-chuva, tem a chuva tem a chuva,
+Que tem gotas tão lindas
+que até dá vontade de comê-las
+
+No meio da couve-flor tem a flor, tem a flor,
+Que além de ser uma flor tem sabor
+Dentro do porta-luva tem a luva, tem a luva
+Que alguém de unhas tão negras
+e tão afiadas esqueceu de pôr
+
+No fundo do para-raio tem o raio, tem o raio,
+Que caiu da nuvem negra do temporal
+Todo quadro negro é todo negro é todo negro
+Que eu escrevo seu nome nele
+só pra demonstrar o meu apego
+### Me And Bobby McGee ;; Janis Joplin ;; A
+Busted flat in Baton Rouge
+Waitin' for a train
+When I's feelin' near as faded as my jeans
+Bobby thumbed a diesel down
+Just before it rained
+He rode us all the way to New Orleans
+
+I pulled my harpoon
+Out of my dirty red bandana
+I was playin' soft while Bobby sang blues
+Windshield wipers slappin' time
+I was holdin' Bobby's hand in mine
+We sang every song that driver knew
+
+Freedom's just another word for nothin' left to lose
+Nothin', I mean nothin' hon' if it ain't free
+Yeah, feelin' good was easy Lord, when he sang the blues
+Yeah, feelin' good was good enough for me
+Good enough for me and my Bobby Mcgee
+
+From the Kentucky coal mines
+To the California sun
+Yeah, Bobby shared the secrets of my soul
+Through all kinds of weather
+Through everything that we done
+Hey, Bobby baby kept me from the cold
+
+One day up near Salinas, Lord
+I let him slip away
+He's lookin' for that home, and I hope he finds it
+Well, I'd trade all o' my tomorrows
+For one single yesterday
+To be holdin' Bobby's body next to mine
+### Me Liga ;; Os Paralamas do Sucesso ;; A
+Eu sei,
+jogos de amor são pra
+se jogar
+Ah por favor
+não vem me explicar
+O que eu já sei,
+e o que eu não sei
+
+O nosso jogo não tem regras nem juiz
+Você não sabe quantos planos eu já fiz
+Tudo que eu tinha pra perder eu já perdi
+O seu exército invadindo o meu país
+
+Se você lembrar,
+se quiser jogar
+Me liga, me liga
+
+Mas sei,
+que não se pode terminar assim
+O jogo segue e nunca chega ao fim
+E recomeça
+a cada instante ...a cada instante
+
+Eu não te peço muita coisa só uma chance
+Pus no meu quarto, seu retrato na estante
+Quem sabe um dia eu vou te ter ao meu alcance
+Ai como ia ser bom se você deixasse
+### Mercedes Benz ;; Janis Joplin ;; AJ
+Oh Lord… won't you buy me
+a Mercedes-Benz?
+My friends all drive Porsches,
+I must make amends
+Worked hard all my lifetime,
+no help from my friends
+So Lord, won't you buy me
+a Mercedes-Benz?
+
+Oh Lord… won't you buy me
+a color TV?
+'Dialing for Dollars'
+is trying to find me
+I wait for delivery
+each day until three
+So Lord, won't you buy me
+a color TV?
+
+Oh Lord…
+won't you buy me
+a night on the town?
+I'm counting on you, Lord,
+please don't let me down
+Prove that you love me
+and buy the next round
+Oh Lord, won't you buy me
+a night on the town?
+### Meu Novo Mundo ;; Charlie Brown Jr. ;; A
+Como se o silêncio dissesse tudo
+Um sentimento bom que me leva pra outro mundo
+A vontade de te ver já é maior que tudo
+Não existem distâncias no meu novo mundo
+
+Tipo coisas da sétima arte
+Aconteceu sem que eu imaginasse
+Sonho de consumo cantar na sua festa
+Vem dançar comigo
+Aproveita e me sequestra
+
+Amor vagabundo, intenso ou muita pressa
+Não sei como termina mas sei como começa
+Fiz essa canção pra dizer algumas coisas
+Cuidado com o destino
+Ele brinca com as pessoas
+
+Tipo uma foto com sorriso inocente
+Mas a vida tinha um plano e separou a gente
+
+Mas... se quem eu amo tem amor por mim
+Se quem eu amo tem amor por mim
+Eu sei que ainda estamos muito longe do fim
+
+A vontade de te ver ja é maior que tudo
+E não existem distâncias no meu novo mundo
+### Mina Do Condomínio ;; Seu Jorge ;; A
+Tô namorando aquela mina
+Mas não sei se ela me namora
+Mina maneira do condomínio
+Lá do bairro onde eu moro
+
+Seu cabelo me alucina
+Sua boca me devora
+Sua voz me ilumina
+Seu olhar me apavora
+
+Me perdi no seu sorriso
+Nem preciso me encontrar
+Não me mostre o paraíso
+Que se eu for, não vou voltar
+Pois eu vou...Eu vou
+
+Eu digo "oi" ela nem nada
+Passa na minha calçada
+Dou bom dia ela nem liga
+Se ela chega eu paro tudo
+Se ela passa eu fico doido
+Se vem vindo eu faço figa
+
+Eu mando um beijo ela não pega
+Pisco olho ela se nega
+Faço pose ela não vê
+Jogo charme ela ignora
+Chego junto ela sai fora
+Eu escrevo ela não lê
+
+Minha mina...Minha amiga...Minha namorada
+Minha gata....Minha sina ...Do meu condomínio
+Minha musa...Minha vida...Minha monalisa
+Minha vênus...Minha deusa...Quero seu fascínio
+### Mustang Sally ;; Buddy Guy ;; AJ
+Mustang Sally, baby, I
+guess you better slow your mustang down
+You been a runnin' all over town,
+I guess I'll better put your big feet on the ground
+
+All you wanna do is ride around, Sally
+ride Sally ride
+
+One of these early mornings,
+you gonna be wipin' your weepin' eyes, yes you will
+
+I bought you a vintage mustang,
+of nineteen sixty-five
+Now you comin' right
+signifyin' woman, no,
+you don't wanna …let me ride
+
+Mustang Sally, baby, yeah,
+I guess you better slow
+your mustang down
+you will darling, I hope you will
+I'm gonna put your big fat feet on the ground
+### More Than Words ;; Extreme ;; A
+Saying 'I Love you'
+Is not the words I want to hear from you
+It's not that I want you not to say
+But if you only know
+How easy …
+it would be to show me how you feel
+
+More than words
+Is all you have to do to make it real
+Then you wouldn't have to say
+That you love me 'cause I'd already know
+
+What would you do if my heart was torn in two?
+More than words to show you feel
+That your love for me is real
+What would you say if I took those words away?
+Then you couldn't make things new
+Just by saying 'I love you'
+
+Now that I've tried to
+Talk to you and …make you understand
+All you have to do is
+Close your eyes …
+and just reach… out your hands
+And touch me,
+Hold me close
+Don't ever let me go
+
+More than words
+Is all I ever needed you to show
+Then you wouldn't have to say
+That you love me 'cause I'd already know
+### Mother ;; Pink Floyd ;; A
+Mother, do you think they'll drop the bomb?
+Mother, do you think they'll like this song?
+Mother, do you think they'll try to break …my balls?
+Mother, should I build the wall?
+
+Mother, should I run for president?
+Mother, should I trust the government?
+Mother, will they put me in the fir…ing line?
+Is it just a waste of time?
+
+Hush now baby, baby, don't you cry
+Momma's gonna make all of your nightmares come true
+Momma's gonna put all of her fears into you
+Momma's gonna keep you right here under her wing
+She won't let you fly, but she might let you sing
+Momma's will keep baby cozy and warm
+Oh, baby…
+Of course Momma's gonna help build the wall
+
+Mother, do you think she's good enough
+For me?
+Mother, do you think she's dangerous
+To me?
+Mother will she tear your little boy apart?
+Mother, will she break my heart?
+
+Hush now baby, baby, don't you cry
+Momma's gonna check out all your girlfriends for you
+Momma won't let anyone dirty get through
+Momma's gonna wait up until you get in
+Momma will always find out where you've been
+Momma's gonna keep baby healthy and clean
+### Mudança de Comportamento ;; Ira! ;; A
+E aqui estou eu sozinho com o tempo.
+O tempo que você me pediu.
+Isso é orgulho do passado,
+um presente prá você
+
+Uma delicada lembrança
+Branca neve que nunca senti
+Solidão me deixe forte
+Talvez resolva meus problemas
+
+Eu morreria por você
+Na guerra ou na paz
+Eu morreria por você
+Sem saber como sou capaz
+
+Mudanças no meu comportamento
+Distância louca de mim mesmo
+Vontade de sentir o passado
+Presente prá você
+### Muito Estranho ;; Dalto ;; A
+Hum!
+Mas se um dia eu chegar
+Muito estranho
+Deixa essa água no corpo
+Lembrar nosso banho...
+
+Hum!
+Mas se um dia eu chegar
+Muito louco
+Deixa essa noite saber
+Que um dia foi pouco...
+
+Cuida bem de mim
+Então misture tudo
+Dentro de nós
+Porque ninguém vai dormir
+Nosso sonho...
+
+Hum!
+Minha cara prá que
+Tantos planos
+Se quero te amar e te amar
+E te amar muitos anos...
+
+Hum!
+Tantas vezes eu quis
+Ficar solto
+Como se fosse uma lua
+A brincar no teu rosto
+
+Cuida bem de mim
+Então misture tudo
+Dentro de nós
+Porque ninguém vai dormir
+Nosso sonho...(2x)
+### My Girl ;; Tiago Iorc ;; A
+I've got sunshine
+On a cloudy day
+When it's cold outside
+I've got the month of May
+
+Well,
+I guess you'll say
+What can make me feel this way?
+My girl
+Talkin' 'bout my girl, my Girl
+
+I've got so
+much honey
+The bees envy me
+I've got a sweetest …song
+Than the birds from the trees
+### Nega Do Cabelo Duro ;; Planet Hemp ;; A
+Ondulado, permanente
+Teu cabelo é de sereia
+E a pergunta que sai da mente
+Qual'é o pente que te penteia?...
+
+Quando tu entra na roda
+O teu corpo bamboleia
+Minha Nêga meu amor
+Qual'é o pente que te penteia?...
+
+Teu cabelo a couve flor
+Tem um "que" que me tonteia
+Minha nega, meu amor
+Qual'é o pente que te penteia?
+
+Misamplia a ferro e fogo
+Não desmancha nem na areia
+Toma banho em Botafogo
+Qual'é o pente que te penteia?...
+
+Nêga do Cabelo Duro
+Qual'é o pente que te penteia?
+### Nem 5 Minutos Guardados ;; Titãs ;; A
+Teus olhos querem me levar
+Eu só quero que você me leve
+Eu ouço as estrelas
+Conspirando contra mim
+Eu sei que as plantas me
+Vigiam do jardim...
+
+As luzes querem me ofuscar
+Eu só quero que essa luz me cegue
+Nem cinco minutos guardados dentro de cada cigarro
+Não há pára-brisa pra limpar, nem vidros no teu carro
+
+O meu corpo não quer descansar
+Não há guarda-chuva (não há guarda-chuva)
+Contra o amor...
+
+O teu perfume quer me envenenar
+Minha mente gira como um ventilador
+A chama do teu isqueiro quer incendiar a cidade
+Teus pés vão girando igual aos da porta estandarte
+
+Tanto faz qual é a cor da sua blusa
+Tanto faz a roupa que você usa
+Faça calor ou faça frio
+É sempre carnaval no Brasil
+
+Eu estou no meio da rua
+Você está no meio de tudo
+O teu relógio quer acelerar,
+Quer apressar os meus passos
+Não há pára-raio contra o que vem de baixo
+### Never Can Say Goodbye ;; Jackson 5 ;; A
+Never can say goodbye
+No no no no, I
+Even though the pain and heartache
+Seems to follow me wherever I go
+Though I try and try to hide my feelings
+They always seem to show
+Then you try to say you're leaving me
+And I always have to say no...
+
+Tell me why
+Is it so
+That I…
+
+Everytime I think I've had enough
+I start heading for the door
+There's a very strange vibration
+piercin me right to the core
+It says turn around you fool
+You know you love her more and more
+
+Tell me why
+Is it so…
+
+Don't wanna let you go!
+I can never can say goodbye girl
+I never can say goodbye
+### New Year's Day ;; U2 ;; A
+All is quiet
+On New Year's Day.
+A world in white
+Gets underway.
+I… want to be with you be
+With you night… and day.
+Nothing changes
+On New Year's Day.
+On New Year's Day.
+
+I... will be with you again.
+I... will be with you again.
+
+Under a blood-red …
+Sky
+A crowd has gathered…
+In black and white
+Arms entwined, …
+The chosen few
+The newspaper says,… says
+Say it's true, it's true...
+And we can break… through
+Though… torn in two
+We can be… one.
+### New York, New York ;; Frank Sinatra ;; A
+Start spreading the news
+I'm leaving today
+I want to be a part of it
+New York, New York
+
+These vagabond shoes
+Are longing to stray
+Right through the very heart of it
+New York, New York
+
+I wanna wake up in a city
+That doesn't sleep
+And find I'm king of the hill
+Top of the heap
+
+These little town blues
+Are melting a way
+I'll make a brand-new start of it
+In old New York
+
+If I can make it there
+I'll make it anywhere
+It's up to you
+New York, New York
+### No Woman No Cry ;; Bob Marley ;; A
+No, woman, no cry.
+Said - said - said:
+Say I remember …when we used to sit
+In the government yard …in trenchtown,
+Ob- observing the hypocrites
+As they would mingle with the good people we meet.
+
+Good friends we have, oh, good friends we have lost
+Along the way.
+In this great future, you can't forget your past
+So dry your tears, I said.
+
+No, woman, no cry.
+Oh, little darling, don't shed no tears
+
+I remember when …we used to sit
+In the government yard …in trenchtown.
+And then georgie …would make the fire lights,
+As it was logwood burning …through the nights.
+Then we would cook …cornmeal porridge,
+Of which I'll share with you;
+
+My feet is my only carriage,
+So I've got to push on through.
+But while Im gone, I mean:
+
+Everything gonna be alright!
+Everything gonna be alright!
+### Nós Dois ;; Tadeu Franco ;; A
+E nós que nem sabemos quanto nos queremos
+Que nem sabemos tudo que queremos
+Como é difícil o desejo de amar
+
+Você que nunca soube quanto eu quis
+Que não me coube, não me viu raiz
+Nascendo, crescendo nos terrenos seus
+
+Eu da janela olhando a lua, perguntando a lua
+Onde você foi amar?
+
+E nós que nem soubemos nos querer de vez
+Estamos sós, laçados em dois nós
+Um que é meu beijo o outro é o lábio seu
+
+Não sei sair cantando sem contar você
+Que eu sei cantar, mas conto com você
+Que eu vou seguir, mas vou seguir você
+
+Queria que assim sabendo se a gente se quer
+Queria me rimar no seu colo mulher
+Vencer a vida de onde ela vier
+Ganhar seu
+Chegar no chegar meu
+Dar de mim o homem que é seu
+### Nothing Else Matters ;; Metallica ;; A
+So close no matter how far
+Couldn't be much more from the heart
+Forever trusting who we are
+And nothing else matters
+
+Never opened myself this way
+Life is ours, we live it our way
+All these words I don't just say
+And nothing else matters
+
+Trust I seek and I find in you
+Every day for us something new
+Open mind for a different view
+And nothing else matters
+
+Never cared for what they do
+Never cared for what they know
+But I know
+
+Never cared for what they say
+Never cared for games they play
+Never cared for what they do
+Never cared for what they know
+And I know, yeah
+### Núcleo Base ;; IRA! ;; A
+Meu amor eu sinto muito, muito, muito,
+mas vou indo
+Pois é tarde, muito tarde
+e eu preciso ir embora
+
+Sinto muito meu amor
+mas acho que já vou andando
+Amanhã acordo cedo
+e preciso ir embora
+
+Eu queria ter você
+mas acho que já vou andando
+Outro dia pode ser
+mas não vai dar pra ser agora
+
+la lala lalalala
+
+Eu tentei fugir ...não queria me alistar
+Eu quero lutar ...mas não com essa farda
+
+E já está ficando tarde
+e eu estou muito cansado
+Minha mente está tão cheia
+e estou me transbordando
+
+Você pensa que sou louco
+mas estou só delirando
+Você pensa que sou tolo
+mas estou só te olhando
+### O Amor Não Sabe Esperar ;; Marisa Monte ;; A
+Sopra leve o vento leste
+E encrespa o mar
+Eu ainda te espero chegar
+
+Vem a noite
+Cai seu manto escuro devagar
+Eu ainda te espero chegar
+
+Não telefone, não mande carta
+Não mande alguém me avisar
+Não vá pra longe, não me desaponte
+O amor não sabe esperar
+
+Ficar só é a própria escravidão
+Ver você é ver na escuridão
+E quando o sol sair
+Pode te trazer pra mim
+
+Abro a porta, enfeito a casa
+Deixo a luz entrar
+Eu ainda te espero chegar
+
+Escrevo versos
+Rosas e incenso para perfumar
+Eu ainda te espero chegar
+### O Descobridor Dos Sete Mares ;; Tim Maia ;; A
+Uma luz azul me guia
+Com a firmeza e os lampejos do farol
+E os recifes lá de cima
+Me avisam dos perigos de chegar
+
+Angra dos Reis e Ipanema
+Iracema, Itamaracá
+Porto Seguro, São Vicente
+Braços abertos sempre a esperar
+
+Pois bem, cheguei
+Quero ficar bem à vontade
+Na verdade eu sou assim
+Descobridor dos sete mares
+Navegar eu quero
+
+Uma lua me ilumina
+Com a clareza e o brilho do cristal
+Transando as cores dessa vida
+Vou colorindo a alegria de chegar
+
+Boa Viagem, Ubatuba
+Grumari, Leme e Guarujá
+Praia Vermelha, Ilhabela
+Braços abertos sempre a esperar
+### O Girassol ;; Ira! ;; A
+Tento me erguer
+Às próprias custas
+E caio sempre nos seus braços
+Um pobre diabo é o que sou
+
+Um girassol sem sol
+Um navio sem direção
+Apenas a lembrança
+Do seu sermão
+
+Você é meu sol
+Um metro e sessenta e cinco de sol
+
+E quase o ano inteiro
+Os dias foram noites
+Noites para mim
+Meu sorriso se foi
+Minha canção também
+
+Eu jurei por Deus
+Não morrer por amor
+E continuar a viver
+Como eu sou um girassol
+
+Você é meu sol
+
+Morro de amor e vivo por aí
+Nenhum santo tem pena de mim
+Sou agora um frágil cristal
+Um pobre diabo
+Que não sabe esquecer...
+Que não sabe esquecer
+### O Mundo ;; Karnak ;; A
+O mundo é pequeno pra caramba
+Tem alemão, italiano e italiana
+O mundo filé milanesa
+Tem coreano, japonês e japonesa
+
+O mundo é uma salada russa
+Tem nego da Pérsia, tem nego da Prússia
+O mundo é uma esfiha de carne
+Tem nego do Zâmbia, tem nego do Zaire
+
+O mundo é azul lá de cima
+O mundo é vermelho na China
+O mundo tá muito gripado
+O açúcar é doce, o sal é salgado
+
+O mundo caquinho de vidro
+Tá cego do olho, tá surdo do ouvido
+O mundo tá muito doente
+O homem que mata, o homem que mente
+
+Por que você me trata mal
+Se eu te trato bem
+Por que você me faz o mal
+Se eu só te faço o bem
+
+Todos somos filhos de Deus
+Só não falamos as mesmas línguas
+Everybody is filhos de God
+Só não falamos as mesmas línguas
+### O Que Eu Também Não Entendo ;; Jota Quest ;; A
+Essa não é mais uma carta de amor
+São pensamentos soltos
+Traduzidos em palavras
+Pra que você possa entender
+O que eu também não entendo
+
+Amar não é ter que ter
+Sempre certeza
+É aceitar que ninguém
+É perfeito pra ninguém
+É poder ser você mesmo
+E não precisar fingir
+É tentar esquecer
+E não conseguir fugir, fugir
+
+Já pensei em te largar
+Já olhei tantas vezes pro lado
+Mas quando penso em alguém
+É por você que fecho os olhos
+
+Sei que nunca fui perfeito
+Mas com você eu posso ser
+Até eu mesmo
+Que você vai entender
+
+Posso brincar de descobrir
+Desenho em nuvens
+Posso contar meus pesadelos
+E até minhas coisas fúteis
+
+Posso tirar a tua roupa
+Posso fazer o que eu quiser
+Posso perder o juízo
+Mas com você
+Eu tô tranquilo, tranquilo
+
+Agora o que vamos fazer
+Eu também não sei
+Afinal, será que amar
+É mesmo tudo?
+Se isso não é amor
+O que mais pode ser?
+Tô aprendendo também
+### O Segundo Sol ;; Cássia Eller ;; A
+Quando o segundo sol chegar
+Para realinhar as órbitas dos planetas
+Derrubando com assombro exemplar
+O que os astrônomos diriam
+Se tratar de um outro cometa
+
+Não digo que não me surpreendi
+Antes que eu visse você disse
+E eu não pude acreditar
+
+Mas você pode ter certeza
+De que seu telefone irá tocar
+Em sua nova casa
+Que abriga agora a trilha
+Incluída nessa minha conversão
+
+Eu só queria te contar
+Que eu fui lá fora
+E vi dois sóis num dia
+E a vida que ardia sem explicação
+### O Vento ;; Los Hermanos ;; A
+Posso ouvir o vento passar
+Assistir à onda bater
+Mas o estrago que faz
+A vida é curta pra ver
+
+Eu pensei
+Que quando eu morrer
+Vou acordar para o tempo
+E para o tempo parar
+
+Um século, um mês
+Três vidas e mais
+Um passo pra trás
+...Por que será?
+...Vou pensar
+
+Como pode alguém sonhar
+O que é impossível saber?
+Não te dizer o que eu penso
+Já é pensar em dizer
+E isso, eu vi,
+O vento leva
+
+Não sei mais
+Sinto que é como sonhar
+Que o esforço pra lembrar
+É a vontade de esquecer
+E isso por quê?
+Diz mais!
+Huuuum...
+
+Se a gente já não sabe mais
+Rir um do outro meu bem,
+Então o que resta é chorar
+
+E talvez..
+Se tem que durar,
+Vem renascido o amor
+Bento de lágrimas
+
+Um século, três,
+Se as vidas atrás
+São parte de nós.
+...E como será?
+
+O vento vai dizer
+Lento o que virá,
+E se chover demais,
+A gente vai saber,
+Claro de um trovão,
+Se alguém depois
+Sorrir em paz
+...Só de encontrar
+### Old Love ;; Eric Clapton ;; AJ
+I can feel your body
+When I'm lying in bed
+There's too much confusion
+Going around through my head
+
+And it makes me so angry
+To know that the flame still burns
+Lord, why can't I get over?
+Man when will I ever learn?
+
+Old love, leave me alone
+Old love, just go on home
+
+I can see your face
+But I know that it ain´t real
+Just an illusion
+Caused by how I used to feel
+
+And it's making me so angry
+I know that the flame will always burn (flame will
+always burn)
+I ain't never gonna get over
+I know now that I'll never learn (never learn)
+### On The Turning Away ;; Pink Floyd ;; A
+On the turning away
+From the pale and downtrodden
+And the words they say
+Which we won't understand
+"Don't accept that what's happening
+Is just a case of others' suffering
+Or you'll find that you're joining in
+The turning away"
+
+It's a sin that somehow
+Light is changing to shadow
+And casting it's shroud
+Over all we have known
+Unaware how the ranks have grown
+Driven on by a heart of stone
+We could find that we're all alone
+In the dream of the proud
+
+On the wings of the night
+As the daytime is stirring
+Where the speechless unite
+In a silent accord
+Using words you will find are strange
+And mesmerised as they light the flame
+Feel the new wind of change
+On the wings of the night
+
+No more turning away
+From the weak and the weary
+No more turning away
+From the coldness inside
+Just a world that we all must share
+It's not enough just to stand and stare
+Is it only a dream that there'll be
+No more turning away?
+### One ;; U2 ;; A
+Is it getting better?
+Or do you feel the same?
+Will it make it easier on you now?
+You got someone to blame
+
+You say one love,…
+one life
+It's one need…
+in the night
+One love, …
+we get to share it
+Leaves you, darling if you
+Don't care for it.
+
+Did I disappoint you?
+Or leave a bad taste in your mouth?
+You act like you never had love
+And you want me to go without
+
+It's too late, …
+Tonight,
+To drag the past out …
+Into the light
+We're one,…
+But we're ..not the same… we get to
+Carry each other, carry each other….One!
+
+Have you come here for forgiveness?
+Have you come to raise the dead?
+Have you come here to play Jesus
+To the lepers in your head?
+
+Did I ask too much, …
+More than a lot?
+You gave me nothing, …
+Now it's all I got
+We're one,..
+But we're not the same.
+Well, we
+Hurt each other, then we do it again.
+
+You say:
+Love is a temple,
+Love the higher law
+You ask me to enter,
+But then you make me crawl
+And I can't keep holding on
+To what you got
+When all you got is hurt.
+
+One love, one blood
+One life you got to do what you should.
+One life with each other
+: sisters, brothers.
+One life, but we're…
+Not the same …we get to
+Carry each other,
+Carry each other……One! ….One!
+### Os Cegos Do Castelo ;; Titãs ;; A
+Eu não quero mais mentir
+Usar espinhos que só causam dor
+Eu não enxergo mais o inferno que me atraiu
+Dos cegos do castelo me despeço e vou
+
+A pé até encontrar
+Um caminho, o lugar
+Pro que eu sou
+
+Eu não quero mais dormir
+De olhos abertos me esquenta o sol
+Eu não espero que um revólver venha explodir
+Na minha testa se anunciou
+
+A pé a fé devagar
+Foge o destino do azar
+Que restou
+
+E se você puder me olhar
+E se você quiser me achar
+E se você trouxer o seu lar
+
+Eu vou cuidar, eu cuidarei dele
+Eu vou cuidar
+Do seu jardim
+Eu vou cuidar, eu cuidarei muito bem dele
+Eu vou cuidar
+Eu cuidarei do seu jantar
+Do céu e do mar, e de você e de mim
+### Paciência ;; Lenine ;; A
+Mesmo quando tudo pede
+Um pouco mais de calma
+Até quando o corpo pede
+Um pouco mais de alma
+A vida não para
+
+Enquanto o tempo
+Acelera e pede pressa
+Eu me recuso, faço hora
+Vou na valsa
+A vida é tão rara
+
+Enquanto todo mundo
+Espera a cura do mal
+E a loucura finge
+Que isso tudo é normal
+Eu finjo ter paciência
+
+O mundo vai girando
+Cada vez mais veloz
+A gente espera do mundo
+E o mundo espera de nós
+Um pouco mais de paciência
+
+Será que é tempo
+Que lhe falta pra perceber
+Será que temos esse tempo
+Pra perder?
+E quem quer saber?
+A vida é tão rara
+Tão rara
+
+Mesmo quando tudo pede
+Um pouco mais de calma
+Mesmo quando o corpo pede
+Um pouco mais de alma
+Eu sei, a vida não para
+A vida não para não...
+### Polly ;; Nirvana ;; A
+Polly wants a cracker
+I Think i should get off her first
+I think she wants some water
+Put "out-the-blow" torch
+
+Isn't me
+Have a seed
+Let me clip
+Dirty wings
+Let me take a ride
+Cut yourself
+Want some help
+Please myself
+Got some rope
+Have been told
+Promise you
+Have been true
+Let me take a ride
+Cut yourself
+Want some help
+Please myself
+
+Polly wants a cracker
+Maybe she would like some food
+She asked me to untie her
+A chase would be nice for a few
+
+Polly said...
+
+Polly says her back hurts
+She's just as bored as me
+She caught me off my guard
+Amazes me the will, …of instinct
+### Por Que a Gente é Assim? ;; Barão Vermelho ;; A
+Mais uma dose? É claro!
+É claro que eu tô a fim
+A noite nunca tem fim
+Por que quê a gente é assim?
+
+Agora fica comigo
+E não, não
+Não desgruda de mim
+Vê se ao menos me engole
+Não me mastigue assim...
+
+Canibais de nós mesmos
+Antes que a terra nos coma
+Cem gramas, sem dramas
+Por que quê a gente é assim?
+
+Mais uma dose? É claro!
+É claro que eu tô a fim
+A noite nunca tem fim
+Por que quê a gente é assim?
+
+Você tem exatamente,...
+Três mil horas, prá parar de me beijar
+Meu bem, você tem tudo ...prá me conquistar
+Você tem apenas um segundo
+Um segundo, prá aprender a me amar
+Você tem a vida inteira
+Prá me devorar... Pra me devorar!!!
+### Por Você ;; Barão Vermelho ;; A
+Por você
+Eu dançaria tango no teto
+Eu limparia
+Os trilhos do metrô
+Eu iria a pé
+Do Rio a Salvador
+
+Eu aceitaria
+A vida como ela é
+Viajaria a prazo
+Pro inferno
+Eu tomaria banho gelado
+No inverno
+
+Por você
+Eu deixaria de beber
+Por você
+Eu ficaria rico num mês
+Eu dormiria de meia
+Prá virar burguês
+
+Eu mudaria ...Até o meu nome
+Eu viveria ...Em greve de fome
+Desejaria todo o dia
+A mesma mulher
+
+Por você! Por você!
+
+Por você
+Conseguiria até ficar alegre
+Pintaria todo o céu
+De vermelho
+Eu teria mais herdeiros
+Que um coelho
+### Pra Dizer Adeus ;; Titãs ;; A
+Você apareceu do nada
+E você mexeu demais comigo
+Não quero ser só mais um amigo
+
+Você nunca me viu sozinho
+E você nunca me ouviu chorar
+Não dá pra imaginar quando
+
+É cedo ou tarde demais
+Pra dizer adeus
+Pra dizer jamais
+
+Às vezes fico assim pensando
+Essa distância é tão ruim
+Por que você não vem pra mim?
+
+Eu já fiquei tão mal sozinho
+Eu já tentei, eu quis chamar
+Não dá pra imaginar quando
+
+É cedo ou tarde demais
+Pra dizer adeus
+Pra dizer jamais
+
+Eu já fiquei tão mal... sozinho
+Eu já tentei, eu quis...
+Não dá pra imaginar ...quando
+### Primeiros Erros ;; Capital Inicial ;; A
+Meu caminho é cada manhã
+Não procure saber onde estou
+Meu destino não é de ninguém
+E eu não deixo os meus passos no chão
+
+Se você não entende não vê
+Se não me vê não entende
+Não procure saber onde estou
+Se o meu jeito te surpreende
+
+Se o meu corpo virasse sol
+Se a minha mente virasse sol
+Mas só chove, chove
+Chove, chove
+
+Se um dia eu pudesse ver
+Meu passado inteiro
+E fizesse parar de chover
+Nos primeiros erros
+
+Meu corpo viraria sol
+Minha mente viraria ar
+Mas só chove, chove
+Chove, chove
+### Proud Mary ;; Creedence Clearwater Revival ;; A
+Left a good job in the city,
+Working for The Man
+Every night and day,
+And I never lost
+One minute of sleeping,
+Worrying 'bout the way
+Things might have been.
+
+Big wheel keep on turning,
+Proud Mary keep on burning,
+Rolling, rolling, rolling on the river.
+
+Cleaned a lot of plates in Memphis,
+Pumped a lot of pain down
+In New Orleans,
+But I never saw
+The good side of the city,
+Until I hitched a ride
+On a river boat queen.
+
+If you come down to the river,
+Bet you gonna find
+Some people who live.
+You don't have to worry
+`Cause you have no money,
+People on the river
+Are happy to give.
+### Quando a Maré Encher ;; Nação Zumbi ;; A
+Fui na rua pra brigar,
+procurar o que fazer
+Fui na rua cheirar cola,
+arrumar o que comer
+Fui na rua jogar bola,
+ver os carros correr
+Tomar banho de canal quando a maré encher
+
+Quando a maré encher, quando a maré encher
+Tomar banho de canal quando a maré encher
+
+É pedra que apóia a tábua,
+madeira que apóia a telha
+Saco plástico
+prego, papelão
+Amarra corda, cava buraco
+Barraco: moradia popular em propagação
+
+Cachorro, gato, galinha, bicho de pé
+E a população real
+convive em harmonia normal
+Faz parte do dia dia
+banheiro, cama, cozinha no chão
+Esperança, fé em Deus,
+ilusão.
+### Quando Você Não Está Por Perto ;; Frejat ;; A
+Eu quero ficar nu diante dos seus olhos
+Falar bem perto do seu ouvido
+Decifrar tua alma e os gemidos
+Temos tempo pra viver
+
+Quero descobrir o amor de novo
+Encontrar em alguém o que eu procuro
+Livrar o amor do escuro
+E destruir o muro
+Que cerca meu coração
+
+Vai ser bom pra mim
+Ficar só é tão ruim
+
+A vida me sorriu, permitiu você nascer
+Estrela pra dar sorte
+Por tudo o que a gente fez
+É pura tua luz,
+teu rosto, teu olhar
+Quando você está longe
+A mim só resta lembrar
+
+...Quando você não está por perto
+Meu mundo é um deserto no frio
+### Quase Nada ;; Zeca Baleiro ;; A
+De você sei quase nada
+Pra onde vai ou porque veio
+Nem mesmo sei
+Qual é a parte da tua estrada
+No meu caminho
+
+Será um atalho
+Ou um desvio
+Um rio raso
+Um passo em falso
+Um prato fundo
+Pra toda fome
+Que há no mundo
+
+Noite alta que revele
+Um passeio pela pele
+Dia claro madrugada
+De nós dois não sei mais nada
+
+De você sei quase nada
+Pra onde vai ou porque veio
+Nem mesmo sei
+Qual é a parte da tua estrada
+No meu caminho
+
+Se tudo passa como se explica
+O amor que fica nessa parada
+Amor que chega sem dar aviso
+Não é preciso saber mais nada
+### Que Nem Maré ;; Jorge Vercillo ;; A
+Faz um tempão
+Que eu não dou trégua
+Ao meu coração
+É você o meu lugar
+Quando tudo
+Por um fio está...
+
+Nada vai me fazer
+Desistir do amor
+Nada vai me fazer
+Desistir de voltar
+Todo dia pro seu calor
+Nada vai me levar do amor...(2x)
+
+Faz um tempão
+Que eu não dou asas
+A minha emoção
+Passear, distrair
+E me achar lá no fundo de ti...
+
+A saudade bateu
+Foi que nem maré
+Quando vem de repente
+De tarde, invade
+E transborda esse bem me quer
+A saudade é que nem maré...(2x)
+### Queixa ;; Caetano Veloso ;; A
+Um amor assim delicado
+Você pega e despreza
+Não devia ter despertado
+Ajoelha e não reza
+Dessa coisa que mete medo
+Pela sua grandeza
+Não sou o único culpado
+Disso eu tenho a certeza
+
+Princesa, surpresa, você me arrasou
+Serpente, nem sente que me envenenou
+Senhora, e agora, me diga onde eu vou
+Senhora, serpente, princesa
+
+Um amor assim violento
+Quando torna-se mágoa
+É o avesso de um sentimento
+Oceano sem água
+Ondas, desejos de vingança
+Nessa desnatureza
+Batem forte sem esperança
+Contra a tua dureza
+
+Um amor assim delicado
+Nenhum homem daria
+Talvez tenha sido pecado
+Apostar na alegria
+Você pensa que eu tenho tudo
+E vazio me deixa
+Mas Deus não quer que eu fique mudo
+E eu te grito esta queixa
+### Rehab ;; Amy Winehouse ;; A
+They tried to make me go to rehab
+But I said: "No, no, no"
+Yes, I've been black,
+but when I come back
+You'll know-know-know
+I ain't got the time
+And if my daddy thinks I'm fine
+He's tried to make me go to rehab
+But I won't go, go, go
+
+I'd rather be at home with Ray
+I ain't got seventy days
+'Cause there's nothing
+There's nothing you can teach me
+That I can't learn from Mr. Hathaway
+I didn't get a lot in class
+But I know it don't come
+in a shot glass
+
+They tried to make me go to rehab
+But I said: No, no, no
+Yes, I've been black, but when I come back
+You'll know-know-know
+I ain't got the time
+And if my daddy thinks I'm fine
+He's tried to make me go to rehab
+But I won't go, go, go
+
+The man said:
+Why do you think you're here?
+I said: I got no idea
+I'm gonna, I'm gonna lose my baby
+So I always keep a bottle near
+He said: I just think you're depressed
+Kiss me here, baby, and go rest
+
+They tried to make me go to rehab
+But I said: No, no, no
+Yes, I've been black, but when I come back
+You'll know, know, know
+
+I don't ever want to drink again
+I just,
+ooh, I just need a friend
+I'm not going to spend ten weeks
+And have everyone think I'm on the mend
+It's not just my pride
+It's just 'til these tears have dried
+
+They tried to make me go to rehab
+But I said: No, no, no
+Yes, I've been black, but when I come back
+You'll know-know-know
+I ain't got the time
+And if my daddy thinks I'm fine
+He's tried to make me go to rehab
+But I won't go, go, go
+### Raindrops Keep Falling On My Head ;; B.J. Thomas ;; A
+Raindrops keep falling on my head
+And just like the guy whose feet are too
+big for his…
+Bed… Nothing seems to fit
+Those …raindrops keep falling on my head
+They keep falling
+
+So I just
+Did me some talking to the sun
+and I said I didn't like the way
+De got things…
+Done …Sleeping on the job
+Those …raindrops keep falling on my head
+They keep falling
+
+But there's one thing, …I know,
+The blues they sent to meet me
+Won't defeat me;
+
+Raindrops keep falling on my head,
+But that doesn't mean my eyes will soon
+Be turning…
+Red …Crying's not for me …cause
+I'm never gonna stop the rain
+By complaining
+### Redemption Song ;; Bob Marley ;; A
+Old pirates, yes, they rob I
+Sold I to the merchant ships
+Minutes after they took I
+From the bottomless pit
+But my hand was made strong
+By the hand of the Almighty
+We forward in this generation
+Triumphantly
+
+Won't you help to sing
+These songs of freedom?
+'Cause all I ever have:
+Redemption songs
+Redemption songs
+
+Emancipate yourselves from mental slavery
+None but ourselves can free our minds
+Have no fear for atomic energy
+'Cause none of them can stop the time
+How long shall they kill our prophets
+While we stand aside and look?
+Some say it's just a part of it
+We've got to fulfill the Book
+### Refrão de Bolero ;; Engenheiros do Hawaii ;; A
+Eu que falei nem pensar
+Agora me arrependo roendo as unhas
+Frágeis testemunhas
+De um crime sem perdão
+
+Mas eu falei nem pensar
+Coração na mão
+Como um refrão de um bolero
+Eu fui sincero como não se pode ser
+
+E um erro assim, tão vulgar
+Nos persegue a noite inteira
+E quando acaba a bebedeira
+Ele consegue nos achar...Num bar
+
+Com um vinho barato
+Um cigarro no cinzeiro
+E uma cara embriagada
+No espelho do banheiro
+
+Ana...
+Teus lábios são labirintos,
+Ana...
+Que atraem os meus instintos mais sacanas
+
+E o teu olhar sempre distante sempre me engana
+Eu entro sempre ...na tua dança de cigana
+É o fim do mundo todo dia da semana
+### Roda Viva ;; Chico Buarque ;; A
+Tem dias que a gente se sente
+Como quem partiu ou morreu
+A gente estancou de repente
+Ou foi o mundo então que cresceu...
+
+A gente quer ter voz ativa
+No nosso destino mandar
+Mas eis que chega a roda viva
+E carrega o destino prá lá ...
+
+Roda mundo, roda gigante
+Roda moinho, roda pião
+O tempo rodou num instante
+Nas voltas do meu coração...
+
+A gente vai contra a corrente
+Até não poder resistir
+Na volta do barco é que sente
+O quanto deixou de cumprir
+
+Faz tempo que a gente cultiva
+A mais linda roseira que há
+Mas eis que chega a roda viva
+E carrega a roseira prá lá...
+
+...A roda da saia mulata
+Não quer mais rodar não senhor
+Não posso fazer serenata
+A roda de samba acabou...
+
+A gente toma a iniciativa
+Viola na rua a cantar
+Mas eis que chega a roda viva
+E carrega a viola prá lá...
+
+O samba, a viola, a roseira
+Que um dia a fogueira queimou
+Foi tudo ilusão passageira
+Que a brisa primeira levou...
+
+...No peito a saudade cativa
+Faz força pro tempo parar
+Mas eis que chega a roda viva
+E carrega a saudade prá lá ...
+
+Roda mundo, roda gigante
+Roda moinho, roda pião
+O tempo rodou num instante
+Nas voltas do meu coração...(4x)
+### Roxanne ;; The Police ;; A
+Roxanne,
+You don't have to put on the red light
+Those days are over
+You don't have to sell your body to the night
+
+Roxanne,
+You don't have to wear that dress tonight
+Walk the streets for money
+You don't care if it's wrong or if it's right
+
+Roxanne,
+You don't have to put on the red light
+
+I loved you since I knew ya
+I wouldn't talk down to ya
+I have to tell you …just how I feel
+I won't share you with another boy
+I know my mind is made up
+So put away your make up
+Told you once I won't tell you again
+it's a bad way
+### Saber Amar ;; Os Paralamas do Sucesso ;; A
+A crueldade de que se é capaz
+Deixar pra trás os corações partidos
+Contra as armas do ciúme tão mortais
+A submissão às vezes é um abrigo
+
+Saber amar
+Saber deixar alguém te amar
+
+Há quem não veja a onda onde ela está
+E nada contra o rio
+Todas as formas de se controlar alguém
+Só trazem um amor vazio
+
+Saber amar
+Saber deixar alguém te amar
+
+O amor te escapa entre os dedos
+E o tempo escorre pelas mãos
+O sol já vai se pôr no mar
+### Sabotagem ;; Cássia Eller ;; A
+Lari lari lari lari
+
+Eu vou sabotar
+Você vai se azarar
+O que eu não ganho,
+eu leso
+Ninguém vai me gozar,
+não, jamais
+
+Eu vou sabotar
+Vou casar com ele
+Vou trepar na escada
+Pra pintar seu nome
+no céu
+
+Sabotagem
+
+Eu quero que você se uh!
+top, top, top, uh!
+
+Ninguém vai dizer
+Que eu deixei barato
+Vou me ligar em outra
+Te dizer bye, bye
+Até nunca, jam...é
+### Samba de Uma Nota Só ;; Tom Jobim ;; A
+Eis aqui este sambinha feito numa nota só.
+Outras notas vão entrar, mas a base é uma só.
+Esta outra é conseqüência do que acabo de dizer.
+Como eu sou a conseqüência inevitável de você.
+
+Quanta gente existe por aí que fala tanto e não diz nada,
+Ou quase nada.
+Já me utilizei de toda a escala e no final não sobrou nada,
+Não deu em nada.
+
+E voltei pra minha nota como eu volto pra você.
+Vou contar com uma nota como eu gosto de você.
+E quem quer todas as notas: ré, mi, fá, sol, lá, si, dó.
+Fica sempre sem nenhuma, fique numa nota só.
+### Samba Makossa ;; Planet Hemp ;; A
+Samba maioral
+Onde é que você se meteu
+antes de chegar na roda sangue bom?
+A responsabilidade de tocar o seu pandeiro
+É a responsabilidade de você com a dst
+É de vc manter-se inteiro
+
+Por isso chegou a hora, ...dessa roda começar
+Samba makossa da pesada ...vamos todos celebrar
+Celebrar!
+
+É assim que tem que ser,
+É na moral!
+Porque é assim que é
+Mão na cabeça e o foguete no pé,
+Samba makossa tem hora marcada,
+É da pesada, ...é da pesada
+
+Samba, samba, samba, samba, samba, samba
+
+Modernizar o passado, é uma evolução cultural
+Cadê as notas que estavam aqui?
+Não preciso delas, basta que soe bem os ouvidos
+Viva zapata!!! Viva zumbi!!! Viva santinho!!!
+Antonio conselheiro,
+Lampião, sua imagem e semelhança,
+Todos os panteras negras, eu sei que como chico,
+Eles também cantaram um dia
+### Scarborough Fair-Canticle ;; Simon & Garfunkel ;; A
+Are you going to Scarborough Fair?
+Parsley, sage, rosemary, and thyme
+Remember me to one who lives there
+She once was a true love of mine
+
+Tell her to make me a cambric shirt
+Parsley, sage, rosemary, and thyme
+Without no seams nor needlework
+Then she'll be a true love of mine
+
+Tell her to find me an acre of land
+Parsley, sage, rosemary, and thyme
+Between the salt water and the sea strand
+Then she'll be a true love of mine
+
+Tell her to reap it in a sickle of leather
+Parsley, sage, rosemary, and thyme
+And to gather it all in a bunch of heather
+Then she'll be a true love of mine
+### Segredos ;; Frejat ;; A
+Eu procuro um amor
+Que ainda não encontrei
+Diferente de todos que amei...
+
+Nos seus olhos quero descobrir
+Uma razão para viver
+E as feridas dessa vida
+Eu quero esquecer...
+
+Pode ser que eu a encontre
+Numa fila de cinema
+Numa esquina
+Ou numa mesa de bar...
+
+Procuro um amor
+Que seja bom prá mim
+Vou procurar
+Eu vou até o fim...
+
+E eu vou tratá-la bem
+Prá que ela não tenha medo
+Quando começar...
+a conhecer...
+Os meus segredos
+
+Eu procuro um amor
+Uma razão para viver
+E as feridas dessa vida
+Eu quero esquecer...
+
+Pode ser que eu gagueje
+Sem saber o que falar
+Mas eu disfarço
+E não saio sem ela de lá...
+### Show Me The Way ;; Peter Frampton ;; A
+I wonder how you're feeling
+There's ringing in my ears
+And no one to relate to 'cept the sea
+Who can I believe in?
+I'm kneeling on the floor
+There has to be a force
+Who do I phone?
+The stars are out and shining
+But all I really want to know
+
+Oh won't you …show me the way, everyday
+
+Well, I can see no reason
+You're living on your nerves
+When someone drops a cup and I submerge
+I'm swimming in a circle
+I feel I'm going down
+There has to be a fool to play my part
+Someone thought of healing
+But all I really want to know
+
+I wonder if I'm dreaming
+I feel so unashamed
+I can't believe this is happening to me
+I watch you when you're sleeping
+And then I want to take your love
+### Sitting, Waiting, Wishing ;; Jack Johnson ;; A
+Well, I was sittin', waitin', wishin'
+You believed in superstitions
+Then maybe you'd see the signs
+But Lord knows that this world is cruel
+and I ain't the Lord, no I'm just a fool
+learning loving somebody don't make them love you
+
+Must I always be waitin', waitin' on you
+Must I always be playin', playin' your fool
+
+I sang your songs, I danced your dance
+I gave your friends all a chance
+But putting up with them
+Wasn't worth ever having you
+Oh, Maybe you've been through this before
+But it's my first time so please ignore
+The next few lines cause they're directed at you
+
+I can't always be waitin', waitin' on you
+I can't always be playin', playin' your fool
+
+I keep playing your part
+But it's not my scene
+Want this plot to twist
+I've had enough mystery
+you keep building it up
+but then you are shooting me down
+But I'm already down
+Just wait a minute
+Just wait a minute
+Just wait a minute…
+
+Well, if I was in your position
+I'd put down all my ammunition
+I'd wonder why it had taken me so long
+But Lord knows that I'm not you
+And if I was, I wouldn't be so cruel
+Cause waitin' on love ain't so easy to do
+
+Must I always be waitin', waitin' on you
+Must I always be playin', playin' your fool
+No I can't always be waitin', waitin' on you
+I can't always be playin', playin' your fool
+Fool, huhumm...
+### Smooth ;; Carlos Santana ;; A
+Man it's a hot one
+Like seven inches from the midday sun
+I hear you whisper & the words
+Melt everyone
+But you stay so cool
+
+My muñequita,
+My Spanish harlem Mona Lisa
+Your my reason for reason
+The step in my groove
+
+And if you say
+This life ain't good enough
+I would give
+My world to lift you up I'd change
+My life
+To better suit your mood
+Cause you're so smooth
+
+Just like the ocean
+Under the moon
+That's the same as the emotion that
+Get from you
+You got the kind of lovin that can be
+So smooth
+Give me your heart, make it real
+Or else forget about it
+
+I'll tell you one thing
+If you would leave it would be a crying shame
+In every breath and every word
+I hear your name calling me out
+Out from the barrio,
+You hear my rhythm on the radio
+You feel the turning of the world
+So soft and slow
+Turning you round and round
+### Só Love ;; Claudinho e Buchecha ;; A
+Só love, só love ...só love, só love
+Só love, só love ...só love, só love
+
+Quero, de novo com você
+Me atracar com gosto
+Corpo, alma e coração
+
+Venero, demais o meu prazer
+Controlo o calendário
+Sem utilizar as mãos
+
+Amor vou esperar
+Prá ter o seu prazer seu corpo
+É mais quente que o sol
+Eu vivo a sonhar
+Pensando em você
+Delírios de jogar futebol
+
+Só love, só love...
+
+E mesmo que eu
+Arriscasse alguém
+Não seria tão bom
+Quanto é
+
+Eu não vou confiar
+Em ninguém
+E nem vou me envolver
+Com qualquer
+
+Prá despir toda essa, razão
+E a emoção, transparecer
+Deixarei que os momentos, se vão
+Prá amar tem que ser
+Com você...
+### Somos Quem Podemos Ser ;; Engenheiros do Hawaii ;; A
+Um dia me disseram
+Que as nuvens não eram de algodão
+Um dia me disseram
+Que os ventos às vezes erram a direção
+
+E tudo ficou tão claro...Um intervalo na escuridão
+Uma estrela de brilho raro...Um disparo para um coração
+
+A vida imita o vídeo
+Garotos inventam um novo inglês
+Vivendo num país sedento
+Um momento de embriaguez
+
+Nós...Somos quem podemos ser
+Sonhos que podemos ter
+
+Um dia me disseram
+Quem eram os donos da situação
+Sem querer eles me deram
+As chaves que abrem essa prisão
+
+E tudo ficou tão claro...O que era raro ficou comum
+Como um dia depois do outro...Como um dia, um dia comum
+
+Um dia me disseram
+Que as nuvens não eram de algodão
+Um dia me disseram
+Que os ventos às vezes erram a direção
+
+Quem ocupa o trono tem culpa
+Quem oculta o crime também
+Quem duvida da vida tem culpa
+Quem evita a dúvida também tem
+### Sowing The Seeds Of Love ;; Tears For Fears ;; A
+High time we made a stand
+And shook up the views of the common man
+And the lovetrain rides from coast to coast
+DJ is the man we love the most
+
+Could you be, could you be squeaky clean
+And smash any hope of democracy?
+As the headline says you're free to choose
+There's an egg on your face and mud on your shoes
+One of these days they're gonna call it the blues, yeah
+
+Sowing the seeds of love
+Seeds of love
+Sowing the seeds
+The birds and the bees
+My girlfriend and me in love
+
+I spy tears in their eyes
+They look to the skies for some kind of divine intervention
+Food goes to waste
+So nice to eat, so nice to taste
+Politician grannie with your high ideals
+Have you no idea how the majority feels?
+
+So without love and a promised land
+We're fools to the rules of a government plan
+Kick out the style: bring back the jam
+
+Feel the pain…Talk about it…If you're a worried man
+Then shout about it…Open hearts…Feel about it
+Open minds…Think about it…Everyone
+Read it in the books, in the crannies
+And the nooks, there are books to read
+### Stand By Me ;; Oasis ;; A
+Made a meal and threw it up on Sunday
+Gotta lot of things to learn
+Said I would and I'll be leaving one day
+Before my heart starts to burn.
+
+So what's the matter with you?
+Sing me something new...
+Don't you know
+Cold and wind
+Rain don't know
+They only seem
+To come and go away
+
+Times are hard
+When the things
+have got no meaning i've
+Found a key upon the floor
+Maybe you and I will not believe
+In the things we find behind the door
+
+Stand By Me - Nobody knows the way it's gonna be
+
+If you're leaving will you take me with you
+I'm tired of talking on my phone
+There is one thing I could never give you
+My heart will never be your home
+### Stand By Me ;; Marvin Gaye ;; A
+When the night ...has come
+And the land is dark
+And the moon …is the only… light we see
+No i won't be afraid
+Oh i won't be afraid
+Just as long
+As you stand, …
+Stand by me
+
+So darling darling…
+Stand by me
+Oh stand by me
+Stand by me, stand by me
+
+If the sky
+That we look upon
+Should tumble and fall
+And the mountains
+Should crumble
+To the sea
+I won't cry, …i won't cry
+No i won't…
+Shed a tear
+Just as long …as you stand,
+Stand by me
+### Summertime ;; Janis Joplin ;; A
+Summertime, time, time,
+Child, the living's easy.
+Fish are jumping out
+And the cotton, Lord,
+Cotton's high, Lord, so high.
+
+Your daddy's rich
+And your ma is so good-looking, baby.
+She's looking good now,
+Hush, baby, baby, baby, baby, baby,
+No, no, no, no, don't you cry.
+Don't you cry!
+
+One of these mornings
+You're gonna rise, rise up singing,
+You're gonna spread your wings,
+Child, and take, take to the sky,
+Lord, the sky.
+
+Until that morning
+Honey, n-n-nothing's going to harm you now,
+No, no, no, no, no, no, no, no, no, no, no, no, no, no,
+no, Don't you cry,
+### Sunday Bloody Sunday ;; U2 ;; A
+I can't believe the news today
+I can't close my eyes and make it go away
+How long, how long must we sing this song?
+How long, how long?
+
+'Cos tonight
+We can be as one, tonight
+
+Broken bottles under children's feet
+Bodies strewn across the dead-end street
+But I won't heed the battle call
+It puts my back up, puts my back up against the wall
+
+Sunday, bloody Sunday
+And the battle's just begun
+There's many lost, but tell me who has won?
+The trenches dug within our hearts
+And mothers, children, brothers, sisters torn apart
+
+Sunday, bloody Sunday
+
+How long, how long must we sing this song?
+How long, how long?
+
+'Cause tonight
+We can be as one, tonight
+Sunday, bloody Sunday
+Sunday, bloody Sunday
+### Suspicious Minds ;; Elvis Presley ;; A
+We're caught in a trap
+I can't walk out
+Because I love you too much baby
+
+Why can't you see
+What you're doing to me
+When you don't believe a word I say?
+
+We can't go on together
+With suspicious minds
+And we can't build our dreams
+On suspicious minds
+
+So, if an old friend I know
+Drops by to say hello
+Would I still see suspicion in your eyes?
+
+Here we go again
+Asking where I've been
+You can't see these tears are real
+I'm crying
+
+We can't go on together…
+
+Oh let our love survive
+Or dry the tears from your eyes
+Let's don't let a good thing die
+When honey, you know
+I've never lied to you
+Mmm yeah, yeah
+### Sutilmente ;; Skank ;; A
+E quando eu estiver triste
+Simplesmente me abrace
+Quando eu estiver louco
+Subitamente se afaste
+
+Quando eu estiver fogo
+Suavemente se encaixe
+E quando eu estiver triste
+Simplesmente me abrace
+
+E quando eu estiver louco
+Subitamente se afaste
+E quando eu estiver bobo
+Sutilmente disfarce
+
+Mas quando eu estiver morto
+Suplico que não me mate, não
+Dentro de ti,
+Dentro de ti...
+
+Mesmo que o mundo acabe, enfim
+Dentro de tudo que cabe em ti
+Mesmo que o mundo acabe, enfim
+Dentro de tudo que cabe em ti
+### Suzie Q ;; Creedence Clearwater Revival ;; A
+Oh, Susie Q,
+Oh, Susie Q,
+Oh, Susie Q, …Baby I love you,
+Susie Q.
+
+I like the way you walk,
+I like the way you talk;
+I like the way you walk, I like the way you talk,
+Susie Q.
+
+Well, say that you'll be true, well,
+Say that you'll be true,
+Well, say that you'll be true, and never leave me blue,
+Susie Q.
+
+Well, say that you'll be mine,
+Well, say that you'll be mine,
+Well, say that you'll be mine, baby all the time,
+Susie Q.
+### Sweet Child O' Mine ;; Guns N' Roses ;; A
+She's got a smile that it seems to me
+Reminds me of childhood memories
+Where everything was as fresh
+As the bright blue sky
+
+Now and then when I see her face
+She takes me away to that special place
+And if I stare too long
+I'd probably break down and cry
+
+Ohh! Ohh! Sweet love of' mine
+
+She's got eyes of the bluest skies
+As if they… thought of rain
+I hate to look into those eyes
+And see an ounce of pain
+
+Her hair reminds me of a warm safe place
+Where as a child I'd hide
+And pray for the thunder and the rain
+To quietly pass me by
+
+Ohh! Ohh! Sweet child o' mine
+
+Where do we go
+Where do we go now
+### Tão Bem ;; Lulu Santos ;; A
+Ela me encontrou
+Eu tava por aí
+Num estado emocional tão ruim
+Me sentindo muito mal
+Perdido, sozinho
+Errando de bar em bar
+Procurando não achar
+Oh! Yeh! Yeh! Yeh!
+
+Ela demonstrou tanto prazer
+De estar em minha companhia
+Eu experimentei uma sensação
+Que até então não conhecia
+
+De se querer bem
+De se querer quem se tem...
+
+E ela me faz tão bem
+E ela me faz tão bem
+Que eu também quero
+Fazer isso por ela...
+### Tarde Vazia ;; IRA! ;; A
+Pela janela
+Vejo fumaça
+Vejo pessoas...
+
+Na rua os carros
+No céu o sol e a chuva
+O telefone tocou
+Na mente fantasia...
+
+Você me ligou
+Naquela tarde vazia
+E me valeu o dia...(2x)
+
+Na mente fantasia...
+
+Podia ter
+Muitas garotas
+Mas você é diferente
+
+Você me ligou
+Naquela tarde vazia
+E me valeu o dia
+### Terra de Gigantes ;; Engenheiros do Hawaii ;; A
+Hey mãe!...Eu tenho uma guitarra elétrica
+Durante muito tempo isso foi tudo
+Que eu queria ter
+Mas, hey mãe!
+Alguma coisa ficou pra trás
+Antigamente eu sabia exatamente o que fazer
+
+Hey mãe!
+Tem uns amigos tocando comigo
+Eles são legais, além do mais,
+Não querem nem saber
+
+Pois agora, lá fora
+O mundo todo é uma ilha
+A milhas e milhas
+De qualquer lugar
+
+Nessa terra de gigantes
+Que trocam vidas por diamantes
+A juventude é uma banda
+Numa propaganda de refrigerantes
+
+Hey mãe! Já não esquento a cabeça
+Durante muito tempo
+Isso foi só o que eu podia fazer
+Mas, hey mãe!
+Por mais que a gente cresça
+Há sempre alguma coisa que a gente
+Não consegue entender
+
+Por isso, mãe
+Só me acorda quando o sol tiver se posto
+Eu não quero ver meu rosto
+Antes de anoitecer
+### The Lazy Song ;; Bruno Mars ;; A
+Today I don't feel like doing anything
+I just wanna lay in my bed
+Don't feel like picking up my phone
+So leave a message at the tone
+'Cause today I swear I'm not doing anything
+Nothing at all
+
+I'm gonna kick my feet up …then stare at the fan
+Turn the TV on, …throw my hand in my pants
+Nobody's gon' tell me I can't
+
+I'll be lounging on a couch, just chilling in my snuggie
+Click to MTV so they can teach me how to Dougie,
+'Cause in my castle I'm the freaking man
+
+…Oh yes I said it
+I said it
+I said it 'cause I can
+
+coro
+
+Tomorrow I'll wake up
+Do some P90X
+Meet a really nice girl
+Have some really nice sex
+And she's gonna scream out this is great
+(Oh my god, this is great)
+Yeah
+
+I might mess around
+And get my college degree
+I bet my old man will be so proud of me.
+But sorry pops you'll just have to wait
+
+…Oh yes I said it
+I said it
+I said it 'cause I can
+
+coro
+
+No I …ain't gonna comb my hair.
+'Cause I ain't going anywhere
+No no no no no no no no no
+
+I'll just strut in my birthday suit,
+And let everything hang loose
+Yeah yeah yeah yeah yeah yeah yeah yeah
+### The Scientist ;; Coldplay ;; A
+Come up to meet you, Tell you I'm sorry
+You don't know how lovely …you are
+I had to find you, Tell you I need you
+And tell you I set you …apart
+
+Tell me your secrets, And ask me your questions
+Oh let's go back to …the start
+Running in circles, coming tails
+Heads on a silence …apart
+
+Nobody said it was easy
+It's such a shame for us to part
+Nobody said it was easy
+No one ever said it would be this hard
+Oh take me back to the start
+
+I was just guessing, at numbers and figures
+Pulling the puzzles …apart
+Questions of science, science and progress
+Do not speak as loud as …my heart
+
+And tell me you love me, Come back and hold me
+Oh and I rush to the start
+Running in circles, Chasing tails
+Coming back as we are
+### The Thrill Is Gone ;; BB King ;; AJ
+The thrill is gone
+The thrill is gone away
+The thrill is gone baby
+The thrill is gone away
+
+You know you done me wrong
+Baby and you'll be sorry …someday
+
+The thrill is gone
+It's gone away from me
+The thrill is gone baby
+Is gone away from me
+
+Although, i'll still live on
+But so lonely …i'll be
+
+The thrill is gone
+It's gone away… for good
+The thrill is gone
+It's gone away …for good
+
+Someday i know i'll be open armed
+Just like i know
+A good man …should
+
+You know i'm free free now
+I'm free …from your spell
+Oh i'm free, free now
+I'm free …from your spell
+And now ….that it's all over
+All I can do ….is wish you well
+### Trac Trac ;; Os Paralamas do Sucesso ;; A
+Não, não passa o tempo
+Ao menos para mim
+Tomo comprimidos e sigo sem dormir
+Vejo tantos portos, não há onde atracar
+Já não existem laços, alguém cortou
+Trac, trac, trac
+
+Todos os perfumes, todo aquele lugar
+Todas as misérias e tudo mais que há
+Cada movimento do sol sobre você
+Cada móvel velho e cada anoitecer
+Yeah, yeah...
+
+Dá-me tu amor, solo tu amor
+Solo dá-me tu amor
+
+Poucas garantias há para nós dois
+Nada neste mundo tem tanto valor
+Todos os vizinhos parecem saber
+E lançam seus olhares sobre eu e você
+Yeah, yeah...
+
+Veio todo mundo, a Rádio e a TV
+Veio o comissário, anjos do céu também
+Todos querem algo, sangue ou não sei quê
+Em todo Universo nada lhes dá mais prazer
+Yeah, yeah...
+### Trem Do Amor ;; Sine Calmon & Morrão Fumegante ;; A
+Peguei o trem do amor
+A jerusalém
+Na mala não levo a dor, não
+E nem cabe no trem
+
+Cantando e tocando eu vou
+Vou para o além
+E o anjo condutor, meu Deus
+É músico também
+
+Canta Bahia reggae
+Nayambing Blues para você, meu rei
+Canta Bahia reggae, now
+Rabi vai ouvir mais uma vez
+
+A tristeza vai embora
+Alegria a toda hora
+
+Eu sei
+Que a semente já vai brotar
+Já sei
+Como é grande a vontade de cantar
+Eu sei
+"The Legalize" não vai negar
+"The Legalize" não vai negar
+
+Fogo na Babilônia...
+### Tudo Bem ;; Lulu Santos ;; A
+Já não tenho dedos pra contar
+De quantos barrancos despenquei
+E quantas pedras me atiraram
+Ou quantas atirei
+
+Tanta farpa tanta mentira
+Tanta falta do que dizer
+Nem sempre é "so easy" se viver
+
+Hoje eu não consigo mais me lembrar
+De quantas janelas me atirei
+E quanto rastro de incompreensão
+Eu já deixei
+
+Tantos bons quanto maus motivos
+Tantas vezes desilusão
+Quase nunca a vida é um balão
+
+Mas o teu amor me cura
+De uma loucura qualquer
+É encostar no seu peito
+E se isso for algum defeito
+Por mim tudo bem
+tudo bem
+### Tudo Que Vai ;; Capital Inicial ;; A
+Hoje é o dia
+E eu quase posso tocar o silêncio
+A casa vazia.
+Só as coisas que você não quis
+Me fazem companhia
+
+Eu fico à vontade com a sua ausência
+Eu já me acostumei a esquecer
+
+Tudo que vai
+Deixa o gosto, deixa as fotos
+Quanto tempo faz
+Deixa os dedos, deixa a memória
+Eu nem me lembro
+
+Salas e quartos
+Somem sem deixar vestígio
+Seu rosto em pedaços
+Misturado com o que não sobrou
+Do que eu sentia
+
+Eu lembro dos filmes que eu nunca vi
+Passando sem parar em algum lugar.
+Quanto tempo, eu já nem sei mais o que é meu
+Nem quando, nem onde
+### Último Romance ;; Los Hermanos ;; A
+Eu encontrei-a quando não quis
+Mais procurar o meu amor
+E quanto levou foi pr'eu merecer
+Antes um mês e eu já não sei
+
+E até quem me vê lendo o jornal
+Na fila do pão, sabe que eu te encontrei
+E ninguém dirá que é tarde demais
+Que é tão diferente assim
+Do nosso amor a gente é que sabe, pequena
+
+Ah, vai
+Me diz o que é o sufoco
+Que eu te mostro alguém
+A fim de te acompanhar
+E se o caso for de ir à praia
+Eu levo essa casa numa sacola
+
+Eu encontrei-a e quis duvidar
+Tanto clichê, deve não ser
+Você me falou pr'eu não me preocupar
+Ter fé e ver coragem no amor
+
+E só de te ver, eu penso em trocar
+A minha TV, num jeito de te levar
+A qualquer lugar que você queira
+E ir aonde o vento for
+Que pra nós dois
+Sair de casa já é se aventurar
+
+Ah, vai
+Me diz o que é o sossego
+Que eu te mostro alguém
+A fim de te acompanhar
+E se o tempo for te levar
+Eu sigo essa hora e pego carona
+Pra te acompanhar
+### Um Dia de Domingo ;; Tim Maia ;; A
+Eu preciso te falar
+Te encontrar de qualquer jeito
+Pra sentar e conversar
+Depois andar de encontro ao vento
+
+Eu preciso respirar
+O mesmo ar que te rodeia
+E na pele quero ter
+O mesmo sol que te bronzeia
+
+Eu preciso te tocar
+E outra vez te ver sorrindo
+Te encontrar num sonho lindo
+Já não dá mais pra viver
+Um sentimento sem sentido
+
+Eu preciso descobrir
+A emoção de estar contigo
+Ver o sol amanhecer
+E ver a vida acontecer
+Como um dia de domingo
+
+Faz de conta que ainda é cedo
+Tudo vai ficar por conta da emoção
+Faz de conta que ainda é cedo
+E deixar falar a voz do coração
+### Um Anjo Do Céu ;; Maskavo ;; A
+Um anjo do céu
+Que trouxe pra mim
+É a mais bonita
+A joia perfeita
+Que é pra eu cuidar
+Que é pra eu amar
+
+Gota cristalina
+Tem toda inocência
+Vem, ó, meu bem
+Não chore não
+Vou cantar pra você
+
+Um anjo do céu
+Que me escolheu
+Serei o seu porto
+Guardião da pureza
+Que é pra eu cuidar...
+### Unchain My Heart ;; Joe Cocker ;; A
+Unchain my heart
+Baby let me go
+Cause you don't care
+Well, …please, set me free
+
+Unchain my heart,
+baby let me go
+Unchain my heart,
+'cause you don't love me no more
+
+Every time I call you on the phone
+Some fella tells me that you're not at home
+Unchain my heart,
+Set me free
+
+Unchain my heart,
+baby let me be
+Unchain my heart,
+cause you don't care about me
+You got me sewed up like a pillow case
+But you let my love go to waist
+Unchain my heart, set me free
+
+I'm under your spell,
+like a man in a trance, baby
+You know darn well that
+I don't stand a chance
+### Under The Bridge ;; Red Hot Chili Peppers ;; A
+Sometimes I feel like I don't have a partner
+Sometimes I feel like my only friend
+Is the city I live in, the city of angels
+Lonely as I am, together we cry
+
+I drive on her streets 'cause she's my companion
+I walk through her hills 'cause she knows who I am
+She sees my good deeds and she kisses me windy
+Well, I never worry, now that is a lie
+
+I don't ever want to feel
+Like I did that day
+Take me to the place I love
+Take me all the way, yeah
+
+It's hard to believe that there's nobody out there
+It's hard to believe that I'm all alone
+At least I have her love, the city, she loves me
+Lonely as I am, together we cry
+
+(Under the bridge downtown)
+Is where I drew some blood
+I could not get enough
+Forgot about my love
+I gave my life away, yeah
+### Upside Down ;; Jack Johnson ;; A
+Who's to say
+What's impossible? Well they forgot
+This world keeps spinning
+And with each new day
+I can feel a change in everything
+And as the surface breaks
+Reflections fade
+But in some ways they
+Remain the same
+And as my mind begins
+To spread its wings
+There's no stopping in curiosity
+
+…I wanna turn the whole thing
+Upside down
+I'll find the things they say just
+Can't be found
+I'll share this love I find
+With everyone
+We'll sing and dance to mother
+Nature's songs
+I don't want this feeling to go away
+
+Who's to say
+I can't do everything?
+Well I can try,
+And as I roll along
+I begin to find
+Things aren't always Just
+What they seem…
+
+…I wanna turn the whole thing
+Upside down
+I'll find the things they say just
+Can't be found
+I'll share this love I find
+With everyone
+We'll sing and dance to mother
+Nature's songs…
+
+This world keeps spinning And there's no
+time to waste
+Well it all
+Keeps spinning spinning
+Round and round and
+Upside down
+Who's to say what's impossible and can't be found?
+I don't want this feeling to go away
+Please don't go away
+Is this how it's supposed to be?
+### Valerie ;; Amy Winehouse ;; A
+Well, sometime …I go out …by myself
+And I look across the water
+And I think of …all the things ...what you're doing
+In my head …I paint a picture
+
+…Since I've come home
+Well, my body's been a mess
+And I miss your ginger hair
+And the way you like to dress
+
+Won't you come on over?
+Stop making a fool …out of me
+Why don't you come on over, …Valerie!?
+
+Did you have to go to jail?
+Put your house out …up for sale?
+Did you get a good lawyer?
+I hope you didn't …catch a tan,
+Hope you find the …right man
+Who'll fix it for you
+
+Are you shopping …anywhere?
+Change the color …of your hair
+And are you busy?
+Did you have to …pay that fine
+That you were dodging …all the time?
+Are you still dizzy?
+### Ventura Highway ;; America ;; A
+Chewing on a piece of grass
+Walking down the road
+Tell me, how long you gonna stay …
+here Joe?
+Some people say
+this town don't look…Good in snow
+You don't care,
+I know
+
+Ventura Highway
+in the sunshine
+Where the days are longer
+The nights are stronger
+Than moonshine
+You're gonna go I know
+
+'Cause the free wind is blowin'
+Through your hair
+And the days surround
+your daylight there
+Seasons crying no despair
+Alligator lizards in the air
+
+Wishin' on a falling star
+Watchin' for the early train
+Sorry boy, but I've been hit by
+Purple rain
+Aw, come on Joe,
+you can always change your name
+Thanks a lot son,
+just the same
+### Viva La Vida ;; Coldplay ;; A
+I used to rule the world
+Seas would rise when I gave the word
+Now in the morning I sleep alone
+Sweep the streets I used to own
+
+I used to roll the dice
+Feel the fear in my enemy's eyes
+Listened as the crowd would sing
+"Now the old king is dead! Long live the king!"
+
+One minute I held the key
+Next the walls were closed on me
+And I discovered that my castles stand
+Upon pillars of salt and pillars of sand
+
+I hear Jerusalem bells are ringing
+Roman Cavalry choirs is singing
+Be my mirror, my sword and shield
+My missionaries in a foreign field
+
+…For some reason I can't explain
+Once you'd gone there was never
+Never an honest word
+That was when I ruled the world
+
+It was the wicked and wild wind
+Blew down the doors to let me in
+Shattered windows and the sound of drums
+People couldn't believe what I'd become
+
+Revolutionaries wait
+For my head on a silver plate
+Just a puppet on a lonely string
+Oh who would ever want to be king?
+### What's Going On ;; Marvin Gaye ;; A
+Mother, mother
+There's too many …of you crying
+Brother, brother, brother
+There's far too many …of you dying
+You know we've got to find a way
+To bring some lovin' …here today
+Yah…
+
+Father, father
+We don't need to …escalate
+You see, war is not the answer
+For only love can …conquer hate
+You know we've got to find a way
+To bring some lovin' here today
+Oooh…
+
+Picket lines …and picket signs
+Don't punish me …with brutality
+Talk to me, …so you can see
+Oh, what's going on
+What's going on
+
+Father, father,
+Everybody …thinks we're wrong
+Oh but, …who are they to judge us
+Simply because our …hair is long
+Oh, you know we've …got to find a way
+To bring some unders…tanding here today
+Oh…
+### While My Guitar Gently Weeps ;; The Beatles ;; A
+I look at you all see the love there that's sleeping
+While my guitar gently weeps
+I look at the floor and I see it needs sweeping
+Still my guitar gently weeps
+
+I don't know why nobody told you
+How to unfold your love
+I don't know how someone controlled you
+They bought and sold you
+
+I look at the world and I notice it's turning
+While my guitar gently weeps
+With every mistake we must surely be learning
+Still my guitar gently weeps
+
+I don't know how you were diverted
+You were perverted too
+I don't know how you were inverted
+No one alerted you
+
+I look at you all see the love there that's sleeping
+While my guitar gently weeps
+I look at you all
+Still my guitar gently weeps
+### White Room ;; Cream ;; A
+In the white room
+With black curtains
+Near the station.
+Black-roof country,
+No gold pavements,
+Tired starlings.
+
+Silver horses
+Run down moonbeams
+In your dark eyes.
+Dawn-light smiles
+On you leaving,
+My contentment.
+
+I'll wait in this place where the sun never shines,
+Wait in this place where the shadows run from themselves.
+
+You said no strings
+Could secure
+You at the station.
+Platform ticket,
+Restless diesels,
+Goodbye windows.
+
+I walked into
+Such a sad time
+At the station.
+As I walked out,
+Felt my own need
+Just beginning.
+
+I'll wait in the queue when the trains come back,
+Lie with you where the shadows run from themselves.
+
+At the party
+She was kindness
+In the hard crowd.
+Consolation
+For the old wound
+Now forgotten.
+
+Yellow tigers
+Crouched in jungles
+In her dark eyes.
+She's just dressing,
+Goodbye windows,
+Tired starlings.
+
+I'll sleep in this place with the lonely crowd;
+Lie in the dark where the shadows run from themselves.
+### Wish You Were Here ;; Pink Floyd ;; A
+So, so you think you can tell
+Heaven from hell
+Blue skies from pain
+Can you tell a green field
+From a cold steel rail?
+A smile from a veil?
+Do you think you can tell?
+
+Did they get you to trade
+Your heroes for ghosts?
+Hot ashes for trees?
+Hot air for a cool breeze?
+Cold comfort for change?
+Did you exchange
+A walk on part in the war
+For a lead role in a cage?
+
+How I wish
+How I wish you were here
+We're just two lost souls
+Swimming in a fish bowl
+Year after year
+Running over the same old ground
+What have we found?
+The same old fears
+Wish you were here
+### With Arms Wide Open ;; Creed ;; A
+Well i just heard the news today
+It seems my life is going to change
+I close my eyes, begin to pray
+Then tears of joy stream down my face
+
+With arms wide open
+Under the sunlight
+Welcome to this place
+I'll show you everything
+With arms wide open
+With arms wide open
+
+Well i don't know if i'm ready
+To be the man i have to be
+I'll take a breath, i'll take her by my side
+We stand in awe, we've created life
+
+With arms wide open
+Under the sunlight
+Welcome to this place
+I'll show you everything
+With arms wide open
+
+Now everything has changed
+I'll show you love
+I'll show you everything
+With arms wide open
+With arms wide open
+I'll show you everything
+Oh yeah
+With arms wide open
+Wide open
+
+If i had just one wish
+Only one demand
+I hope he's not like me
+I hope he understands
+That he can take this life
+And hold it by the hand
+And he can greet the world
+With arms wide open
+### With Or Without You ;; U2 ;; A
+See the stone set in your eyes
+See the thorn twist in your side
+I wait for you
+
+Sleight of hand and twist of fate
+On a bed of nails, she makes me wait
+And I wait without you
+
+With or without you
+With or without you
+
+Through the storm, we reach the shore
+You gave it all, but I want more
+And I'm waiting for you
+
+With or without you
+With or without you
+I can't live
+With or without you
+
+And you give yourself away
+And you give
+My hands are tied, my body bruised
+She's got me with
+Nothing to win and
+Nothing left to lose
+### Wonderwall ;; Oasis ;; A
+Today is gonna be the day
+That they're gonna throw it back to you
+By now you should've somehow
+Realized what you gotta do
+I don't believe that anybody
+Feels the way I do about you now
+
+Backbeat, the word was on the street
+That the fire in your heart is out
+I'm sure you've heard it all before
+But you never really had a doubt
+I don't believe that anybody
+Feels the way I do about you now
+
+And all the roads we have to walk are winding
+And all the lights that lead us there are blinding
+There are many things that I would like to say to you
+But I don't know how
+
+Because maybe (I said maybe)
+You're gonna be the one that saves me
+And after all
+You're my wonderwall
+### You Give Me Something ;; James Morrison ;; A
+You only stay with me in the morning
+You only hold me when I sleep,
+I was meant to tread the water
+Now I've gotten into deep
+For every piece of me that wants you
+Another piece backs away.
+
+'Cause you give me something
+That makes me scared, alright,
+This could be nothing
+But I'm willing to ...give it a try,
+Please give me something
+'Cause someday I might know ...my heart.
+
+You only waited up for hours
+Just to spend a little time alone with me,
+And I can say ...I've never bought you flowers
+I can't work out ...what they mean,
+I never thought that I'd love someone,
+That was someone else's dream.
+
+'Cause you give me something
+That makes me scared, alright,
+This could be nothing
+But I'm willing to... give it a try,
+Please give me something,
+'Cause someday I might call you from my heart,
+But it might be a second too late,
+And the words ....I could never say
+Gonna come out anyway.
+### You Know I'm No Good ;; Amy Winehouse ;; A
+Meet you downstairs in the bar and heard
+Your rolled up sleeves in your skull T-shirt
+You say "why did you do it with him today?"
+And sniffed me out like I was Tanqueray
+
+'Cause you're my fella, my guy
+Hand me your Stella and fly
+By the time I'm out the door
+You tear me down like Roger Moore
+
+I cheated myself
+Like I knew ...I would
+I told you... I was trouble
+You know that I'm no good
+
+Upstairs in bed with my ex-boy
+He's in a place, but I can't get joy
+Thinking on you... in the final throes
+This is when my buzzer goes
+
+Run out to meet your chips and pitta
+You say when "we're married",
+'Cause you're not bitter
+"There'll be none of him no more"
+I cried for you on the kitchen floor
+
+I cheated myself
+Like I knew ...I would
+I told you I was trouble
+You know ...that I'm no good
+
+Sweet reunion, Jamaica and Spain
+We're like how we were again
+I'm in the tub, you on the seat
+Lick your lips as I soak my feet
+
+Then you notice a likkle carpet burn
+My stomach drop and my guts churn
+You shrug and it's the worst
+Who truly stuck the knife in first
+
+I cheated myself
+Like I knew ...I would
+I told you I was trouble
+You know ...that I'm no good
+
+I cheated myself
+Like I knew I would
+I told you I was troubled
+Yeah, you know that I'm no good
+### Your Body Is a Wonderland ;; John Mayer ;; A
+We got the afternoon
+You got this room for two
+One thing I've left to do
+Discover me
+Discovering you
+
+One mile to every inch of
+Your skin like porcelain
+One pair of candy lips and
+Your bubblegum tongue
+
+...And if you want love
+We'll make it
+...Swimming a deep sea
+Of blankets
+...Take all your big plans
+And break 'em
+...This is bound to be a while
+
+Your body is a wonderland
+Your body is a wonder (I'll use my hands)
+Your body is a wonderland
+
+Something 'bout the way your hair falls in your
+face
+I love the shape you take when crawling towards
+the pillowcase
+You tell me where to go and
+Though I might leave to find it
+I'll never let your head hit the bed
+Without my hand behind it
+
+You want love?
+We'll make it
+Swimming a deep sea
+Of blankets
+Take all your big plans
+And break 'em
+This is bound to be a while
+
+Your body is a wonderland
+Your body is a wonder (I'll use my hands)
+Your body is a wonderland
+
+Damn, baby
+You frustrate me
+I know you're mine, all mine, all mine
+But you look so good it hurts sometimes
+
+Your body is a wonderland
+Your body is a wonder (I'll use my hands)
+Your body is a wonderland
+Your body is a wonderland
+### Fly Me To The Moon ;; Frank Sinatra ;; J
+Fly me to the Moon
+Let me play among the stars
+Let me see what spring is like
+On Jupiter and Mars
+
+In other words
+Hold my hand
+In other words
+Baby, kiss me
+
+Fill my heart with song
+And let me sing forevermore
+You are all I long for
+All I worship and adore
+
+In other words
+Please, be true
+In other words
+I love you
+
+Fill my heart with song
+Let me sing forevermore
+You are all I long for
+All I worship and adore
+
+In other words
+Please, be true
+In other words
+In other words
+I love you
+### Just The Two Of Us ;; Grover Washington Jr ;; J
+I see the crystal raindrops fall
+And the beauty of it all
+Is when the Sun comes shining through
+To make those rainbows in my mind
+When I think of you sometime
+And I want to spend some time with you
+
+Just the two of us
+We can make it if we try
+Just the two of us (just the two of us)
+Just the two of us
+Building castles in the sky
+Just the two of us
+You and I
+
+We look for love, no time for tears
+Wasted water's all that is
+And it don't make no flowers grow
+Good things might come to those who wait
+But not for those who wait too late
+We gotta go for all we know
+
+Just the two of us
+We can make it if we try
+Just the two of us (just the two of us)
+Just the two of us
+Building them castles in the sky
+Just the two of us
+You and I
+### Feeling Good ;; Nina Simone ;; J
+Birds flying high, you know how I feel
+Sun in the sky, you know how I feel
+Breeze driftin' on by, you know how I feel
+
+It's a new dawn
+It's a new day
+It's a new life for me, yeah
+It's a new dawn
+It's a new day
+It's a new life for me, ooh
+And I'm feeling good
+
+Fish in the sea, you know how I feel
+River running free, you know how I feel
+Blossom on the tree, you know how I feel
+
+It's a new dawn
+It's a new day
+It's a new life for me
+And I'm feeling good
+yeah
+
+Stars when you shine, you know how I feel
+Scent of the pine, you know how I feel
+Oh, freedom is mine!
+And I know how I feel
+
+It's a new dawn
+It's a new day
+It's a new life for me
+I'm feeling good!
+### I've Got You Under My Skin ;; Frank Sinatra ;; J
+I've got you under my skin
+I've got you deep in the heart of me
+So deep in my heart that you're really a part of me
+I've got you under my skin
+
+I tried so not to give in
+I said to myself: This affair never will go so well
+But why should I try to resist?
+When, baby, I know so well
+I've got you under my skin
+
+I'd sacrifice anything, come what might
+For the sake of having you near
+In spite of a warning voice
+That comes in the night and repeats
+Repeats in my ear
+
+Don't you know, little fool? You never can win
+Use your mentality, wake up to reality
+But each time that I do, just the thought of you
+Makes me stop before I begin
+'Cause I've got you under my skin
+
+I would sacrifice anything, come what might
+For the sake of having you near
+In spite of a warning voice
+That comes in the night and repeats
+How it yells in my ear
+
+Don't you know, little fool? You never can win
+Why not use your mentality?
+Step up, wake up to reality
+But each time I do, just the thought of you
+Makes me stop just before I begin
+'Cause I've got you under my skin
+Yes, I've got you under my skin
+### Boom Boom ;; John Lee Hooker ;; J
+Boom boom boom boom
+I'm gonna shoot you right down
+Right off of your feet
+Take you home with me
+Put you in my house
+Boom boom boom boom
+
+Hmmm
+Hmmm hmmm hmmm hmmm
+
+I love to see you wall
+Up and down the floor
+When you talking to me
+That baby talk
+I like it like that
+
+You talk like that?
+You nothing me do
+Right off of my feet
+How how how how
+Uoahhh!!
+### I Got A Woman ;; Ray Charles ;; J
+Well, I got a woman way over town
+That's good to me, oh yeah!
+Say I got a woman way over town
+Good to me oh yeah
+
+She give me money when I'm in need
+Yeah she is a kind of friend indeed
+I got a woman way over town
+That's good to me oh yeah
+
+She say she loves me,
+Early in the morning just for me oh yeah
+She say she loves me,
+Early in the morning just for me oh yeah
+She say she loves me just for me yeah
+She loves me so tenderly
+I got a woman way over town
+She's good to me
+
+She is there to love me,
+both day and night
+Never grumbles or fusses, always
+treats me right
+Never running in the streets, leaving
+me alone
+She knows
+a womans place
+is right there in their home
+
+I got a woman way over town
+That's good to me oh yeah
+I got a woman way over town
+That's good to me oh yeah
+
+Oh she is my baby don't you understand
+Yeahh ahh I'm her loving man
+I got a woman way over town
+That's good to me
+Don't you know's is alright
+### La Grange ;; Z.Z. Top ;; J
+Rumour spreadin' around
+In that Texas town
+'Bout that shack outside La Grange
+And you know what I'm talkin' about
+Just let me know if you wanna go
+To that home out on the range
+They gotta lotta nice girls, ah
+
+Have mercy
+A-haw, haw, haw, haw
+A-haw, haw, haw, haw
+
+Well, I hear it's fine
+If you got the time
+And the ten to get yourself in
+A-hmm, hmm
+
+And I hear it's tight
+Most every night
+But now I might be mistaken
+A-hmm, hmm, hmm, hmm
+
+Have mercy
+### Sweet Home Chicago ;; Eric Clapton ;; J
+Come on
+Baby don't you wanna go
+Come on
+Baby don't you wanna go
+Back from the land of California
+To my sweet home Chicago
+
+Two and two is four
+Six and two is eight
+Come on don't ya,
+don't ya make me late
+Hi-de-hey
+Baby don't you wanna go
+Back from the land of California
+To my sweet home Chicago
+
+One and one is two
+Two and two is four
+I'm heavy loaded
+I'm booked, I gotta go.
+Hi-de-hey
+Baby don't you wanna go
+Back from the land of California
+To my sweet home Chicago
+### Cantaloupe Island ;; Herbie Hancock ;; J
+(Instrumental)
+### Walkin Blues ;; Robert Johnson ;; J
+Woke up this morning,
+feel 'round for my shoes
+You know 'bout that babe,
+had them old walkin' blues
+
+Woke up this morning,
+I feel 'round for my shoes
+You know 'bout that babe, lord, I had them old
+walkin' blues
+
+Leavin' this morning,
+I had to go ride the blinds
+I've been mistreated,
+don't mind dying
+
+This morning,
+I had to go ride the blinds
+I've been mistreated,
+lord, I don't mind dying
+
+People tell me
+walkin' blues ain't bad
+Worst old feeling
+I most ever had
+People tell me
+the old walkin' blues ain't bad
+Well it's the worst old feeling, lord, I most ever
+had
+@@@FIM@@@
+</script>
+
+<script>
+'use strict';
+/* ================= DADOS ================= */
+const CATS = { A: 'A Sua Maneira', J: 'Jazz & Blues' };
+const SONGS = (() => {
+  const raw = document.getElementById('songdata').textContent;
+  const out = []; let cur = null;
+  const push = () => {
+    if (!cur) return;
+    while (cur.lines.length && cur.lines[0].trim() === '') cur.lines.shift();
+    while (cur.lines.length && cur.lines[cur.lines.length - 1].trim() === '') cur.lines.pop();
+    cur.text = cur.lines.join('\n');
+    delete cur.lines;
+    out.push(cur);
+  };
+  raw.split('\n').forEach(line => {
+    if (line.startsWith('### ')) {
+      push();
+      const p = line.slice(4).split(';;').map(s => s.trim());
+      cur = { title: p[0] || '?', artist: p[1] || '', cats: (p[2] || 'A'), lines: [] };
+    } else if (cur && line !== '@@@' + 'FIM' + '@@@') cur.lines.push(line);
+  });
+  push();
+  out.forEach((s, i) => {
+    s.id = 'S' + i + '_' + s.title.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 20);
+    s.norm = norm(s.title + ' ' + s.artist);
+    s.sortKey = norm(s.title).replace(/^[^a-z0-9]+/, '');
+  });
+  out.sort((a, b) => a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0);
+  return out;
+})();
+function norm(s) {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+/* ================= PREFERÊNCIAS ================= */
+const DEF = { fg:'#ffffff', title:'#ff3b30', artist:'#ffd60a', bg:'#000000',
+              font:22, defSpeed:30, barPos:'bottom' };
+const LSK = 'repHaroldo_prefs_v1', LSS = 'repHaroldo_speeds_v1';
+let prefs = { ...DEF }, speeds = {};
+try { Object.assign(prefs, JSON.parse(localStorage.getItem(LSK) || '{}')); } catch(e) {}
+try { speeds = JSON.parse(localStorage.getItem(LSS) || '{}') || {}; } catch(e) {}
+function savePrefs(){ try{ localStorage.setItem(LSK, JSON.stringify(prefs)); }catch(e){} }
+function saveSpeeds(){ try{ localStorage.setItem(LSS, JSON.stringify(speeds)); }catch(e){} }
+function applyPrefs(){
+  const r = document.documentElement.style;
+  r.setProperty('--fg', prefs.fg); r.setProperty('--title', prefs.title);
+  r.setProperty('--artist', prefs.artist); r.setProperty('--bg', prefs.bg);
+  r.setProperty('--accent', prefs.title);
+  r.setProperty('--lyr', prefs.font + 'px');
+  document.body.classList.toggle('barTop', prefs.barPos === 'top');
+  document.querySelector('meta[name=theme-color]').content = prefs.bg;
+}
+applyPrefs();
+
+/* ================= ESTADO ================= */
+const $ = id => document.getElementById(id);
+let filterCat = 'ALL', filterArtist = null, query = '';
+let curList = [], curIdx = -1, curSong = null;
+let playing = false, pos = 0, lastT = 0, ended = false, touching = false;
+let homeScroll = 0, artistMode = false;
+
+/* ================= HOME ================= */
+const chipsEl = $('chips'), listEl = $('list');
+$('subInfo').textContent = SONGS.length + ' músicas no repertório';
+function buildChips(){
+  chipsEl.innerHTML = '';
+  const mk = (label, on, fn) => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (on ? ' on' : ''); b.textContent = label;
+    b.onclick = fn; chipsEl.appendChild(b);
+  };
+  mk('Todas', filterCat==='ALL' && !artistMode && !filterArtist, () => { filterCat='ALL'; filterArtist=null; artistMode=false; refresh(); });
+  mk(CATS.A, filterCat==='A' && !artistMode, () => { filterCat='A'; filterArtist=null; artistMode=false; refresh(); });
+  mk(CATS.J, filterCat==='J' && !artistMode, () => { filterCat='J'; filterArtist=null; artistMode=false; refresh(); });
+  mk(filterArtist ? '♫ ' + filterArtist : 'Artistas', artistMode || !!filterArtist, () => { artistMode=true; filterArtist=null; refresh(); });
+}
+function filtered(){
+  return SONGS.filter(s =>
+    (filterCat==='ALL' || s.cats.includes(filterCat)) &&
+    (!filterArtist || s.artist === filterArtist) &&
+    (!query || s.norm.includes(query)));
+}
+function refresh(){
+  buildChips();
+  listEl.innerHTML = '';
+  $('empty').style.display = 'none';
+  if (artistMode){
+    const map = new Map();
+    SONGS.forEach(s => map.set(s.artist, (map.get(s.artist)||0)+1));
+    let names = [...map.keys()].sort((a,b)=>norm(a)<norm(b)?-1:1);
+    if (query) names = names.filter(n => norm(n).includes(query));
+    $('count').textContent = names.length + ' artistas';
+    const gh = document.createElement('div');
+    gh.className='groupHead'; gh.textContent='Escolha o artista';
+    listEl.appendChild(gh);
+    names.forEach(n => {
+      const d = document.createElement('div'); d.className='item';
+      d.innerHTML = '<div><div class="t">'+esc(n)+'</div></div><div class="n">'+map.get(n)+' ♪</div>';
+      d.onclick = () => { filterArtist=n; artistMode=false; filterCat='ALL'; $('search').value=''; query=''; refresh(); };
+      listEl.appendChild(d);
+    });
+    if (!names.length) $('empty').style.display='block';
+    return;
+  }
+  const arr = filtered();
+  $('count').textContent = arr.length + (arr.length===1?' música':' músicas');
+  arr.forEach(s => {
+    const d = document.createElement('div'); d.className='item';
+    d.innerHTML = '<div><div class="t">'+esc(s.title)+'</div><div class="a">'+esc(s.artist)+'</div></div>' +
+      '<div class="n">'+(s.cats.includes('J') && s.cats.includes('A') ? 'A+J' : s.cats.includes('J') ? 'J&B' : '')+'</div>';
+    d.onclick = () => openSong(arr, arr.indexOf(s));
+    listEl.appendChild(d);
+  });
+  if (!arr.length) $('empty').style.display='block';
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+$('search').addEventListener('input', e => { query = norm(e.target.value.trim()); refresh(); });
+refresh();
+
+/* ================= SONG VIEW ================= */
+const lyricsEl = $('lyrics'), playBtn = $('playBtn');
+function speedOf(s){ return speeds[s.id] || prefs.defSpeed; }
+function openSong(list, idx){
+  homeScroll = listEl.scrollTop;
+  curList = list; curIdx = idx; curSong = list[idx];
+  $('songTitle').textContent = curSong.title;
+  $('songArtist').textContent = curSong.artist;
+  $('songBody').textContent = curSong.text || '(Instrumental)';
+  $('spdVal').textContent = speedOf(curSong);
+  stopScroll(); pos = 0; ended = false;
+  lyricsEl.scrollTop = 0;
+  show('songView');
+  requestWakeLock();
+  hintShow();
+}
+function show(id){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function backHome(){
+  stopScroll(); releaseWakeLock();
+  show('homeView');
+  listEl.scrollTop = homeScroll;
+}
+$('menuBtn').onclick = () => history.back();
+$('prevBtn').onclick = () => { if (curIdx > 0) openSong(curList, curIdx - 1); };
+$('nextBtn').onclick = () => { if (curIdx < curList.length - 1) openSong(curList, curIdx + 1); };
+
+/* ---- auto-scroll ---- */
+function setPlayIcon(){
+  playBtn.innerHTML = (playing ? '⏸' : '▶') + '<small>' + (playing ? 'PAUSA' : 'PLAY') + '</small>';
+}
+function startScroll(){
+  if (playing) return;
+  if (ended){ pos = 0; lyricsEl.scrollTop = 0; ended = false; }
+  playing = true; lastT = 0; pos = lyricsEl.scrollTop;
+  setPlayIcon();
+  requestAnimationFrame(step);
+}
+function stopScroll(){ playing = false; setPlayIcon(); }
+function step(t){
+  if (!playing) return;
+  if (!lastT) lastT = t;
+  const dt = Math.min((t - lastT) / 1000, 0.1); lastT = t;
+  if (!touching){
+    pos += speedOf(curSong) * dt;
+    const max = lyricsEl.scrollHeight - lyricsEl.clientHeight;
+    if (pos >= max){ pos = max; lyricsEl.scrollTop = pos; ended = true; stopScroll(); return; }
+    lyricsEl.scrollTop = pos;
+  }
+  requestAnimationFrame(step);
+}
+playBtn.onclick = () => playing ? stopScroll() : startScroll();
+lyricsEl.addEventListener('click', e => { playing ? stopScroll() : startScroll(); });
+lyricsEl.addEventListener('touchstart', () => { touching = true; }, {passive:true});
+lyricsEl.addEventListener('touchend', () => { touching = false; pos = lyricsEl.scrollTop; lastT = 0; }, {passive:true});
+lyricsEl.addEventListener('touchcancel', () => { touching = false; pos = lyricsEl.scrollTop; lastT = 0; }, {passive:true});
+
+/* ---- velocidade por música ---- */
+function bumpSpeed(d){
+  if (!curSong) return;
+  let v = speedOf(curSong) + d;
+  v = Math.max(4, Math.min(150, v));
+  speeds[curSong.id] = v; saveSpeeds();
+  $('spdVal').textContent = v;
+}
+$('spdUp').onclick = () => bumpSpeed(2);
+$('spdDown').onclick = () => bumpSpeed(-2);
+hold($('spdUp'), () => bumpSpeed(2)); hold($('spdDown'), () => bumpSpeed(-2));
+function hold(btn, fn){
+  let iv;
+  btn.addEventListener('touchstart', () => { iv = setInterval(fn, 120); }, {passive:true});
+  ['touchend','touchcancel'].forEach(ev => btn.addEventListener(ev, () => clearInterval(iv)));
+}
+
+/* ---- swipe p/ trocar música ---- */
+let sx=0, sy=0, st=0;
+lyricsEl.addEventListener('touchstart', e => {
+  sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+}, {passive:true});
+lyricsEl.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+  if (Date.now() - st < 600 && Math.abs(dx) > 70 && Math.abs(dy) < 50){
+    if (dx < 0 && curIdx < curList.length - 1) openSong(curList, curIdx + 1);
+    else if (dx > 0 && curIdx > 0) openSong(curList, curIdx - 1);
+  }
+}, {passive:true});
+
+/* ---- dica ---- */
+let hintT;
+function hintShow(){
+  const h = $('tapHint'); h.classList.add('show');
+  clearTimeout(hintT); hintT = setTimeout(() => h.classList.remove('show'), 2500);
+}
+
+/* ================= WAKE LOCK ================= */
+let wakeLock = null;
+async function requestWakeLock(){
+  try{
+    if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+  }catch(e){}
+}
+function releaseWakeLock(){ try{ wakeLock && wakeLock.release(); }catch(e){} wakeLock = null; }
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && $('songView').classList.contains('active')) requestWakeLock();
+});
+
+/* ================= CONFIGURAÇÕES ================= */
+function syncSet(){
+  $('fVal').textContent = prefs.font + 'px';
+  $('dVal').textContent = prefs.defSpeed;
+  $('cFg').value = prefs.fg; $('cTitle').value = prefs.title;
+  $('cArtist').value = prefs.artist; $('cBg').value = prefs.bg;
+  $('posB').classList.toggle('on', prefs.barPos === 'bottom');
+  $('posT').classList.toggle('on', prefs.barPos === 'top');
+}
+$('setBtn').onclick = () => { syncSet(); $('setView').classList.add('active'); };
+$('closeSet').onclick = () => $('setView').classList.remove('active');
+$('setView').addEventListener('click', e => { if (e.target === $('setView')) $('setView').classList.remove('active'); });
+$('fPlus').onclick = () => { prefs.font = Math.min(44, prefs.font + 1); done(); };
+$('fMinus').onclick = () => { prefs.font = Math.max(14, prefs.font - 1); done(); };
+$('dPlus').onclick = () => { prefs.defSpeed = Math.min(150, prefs.defSpeed + 2); done(); };
+$('dMinus').onclick = () => { prefs.defSpeed = Math.max(4, prefs.defSpeed - 2); done(); };
+$('posB').onclick = () => { prefs.barPos = 'bottom'; done(); };
+$('posT').onclick = () => { prefs.barPos = 'top'; done(); };
+['cFg','cTitle','cArtist','cBg'].forEach(id => {
+  $(id).addEventListener('input', e => {
+    const map = { cFg:'fg', cTitle:'title', cArtist:'artist', cBg:'bg' };
+    prefs[map[id]] = e.target.value; done();
+  });
+});
+$('resetBtn').onclick = () => { prefs = { ...DEF }; done(); };
+function done(){ applyPrefs(); savePrefs(); syncSet(); if (curSong) $('spdVal').textContent = speedOf(curSong); }
+
+/* volta com botão do Android (history) */
+history.replaceState({v:'home'}, '');
+window.addEventListener('popstate', () => {
+  if ($('setView').classList.contains('active')) { $('setView').classList.remove('active'); history.pushState({v:'song'}, ''); }
+  else if ($('songView').classList.contains('active')) { backHome(); }
+});
+const _open = openSong;
+openSong = function(l, i){ if (!$('songView').classList.contains('active')) history.pushState({v:'song'}, ''); _open(l, i); };
+</script>
+</body>
+</html>
