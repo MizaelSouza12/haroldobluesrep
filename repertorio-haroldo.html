@@ -7,13 +7,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
+<link rel="manifest" href="./manifest.json">
 <title>Repertório Haroldo</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23000'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23ff3b30' font-family='Arial'%3E♪%3C/text%3E%3C/svg%3E">
 <style>
 :root{
   --bg:#000000; --fg:#ffffff; --title:#ff3b30; --artist:#ffd60a;
   --accent:#ff3b30; --bar:#111111; --muted:#8e8e93;
-  --lyr:22px;
+  --lyr:22px; --align:center;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
@@ -29,6 +30,12 @@ button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:po
 #homeHead{padding:14px 16px 8px}
 #homeHead h1{font-size:22px;color:var(--title);font-weight:800;letter-spacing:.5px}
 #homeHead .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.headRow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.headBtns{display:flex;gap:8px;flex:0 0 auto}
+.iconBtn{flex:0 0 auto;font-size:22px;line-height:1;color:var(--accent);background:#1c1c1e;
+  width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.iconBtn:active{background:#262626}
+.iconBtn.on{background:var(--accent);color:#fff}
 #searchWrap{padding:8px 16px}
 #search{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #2c2c2e;
   background:#1c1c1e;color:var(--fg);font-size:16px;outline:none}
@@ -37,6 +44,12 @@ button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:po
 .chip{flex:0 0 auto;padding:8px 14px;border-radius:20px;background:#1c1c1e;color:var(--fg);
   font-size:14px;border:1px solid #2c2c2e;white-space:nowrap}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.chipAdd{padding:8px 12px !important;font-weight:800;border:1px dashed #555 !important;color:var(--muted)}
+#updateBanner{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));
+  background:var(--accent);color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:99999;
+  box-shadow:0 4px 16px rgba(0,0,0,.4)}
+#updateBanner button{background:#fff;color:#000;border-radius:8px;padding:7px 12px;font-weight:700;font-size:13px}
 #list{flex:1;overflow-y:auto;padding:0 8px 30px;-webkit-overflow-scrolling:touch}
 .item{display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:13px 12px;border-bottom:1px solid #1c1c1e;border-radius:8px}
@@ -44,6 +57,20 @@ button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:po
 .item .t{font-size:17px;font-weight:600;line-height:1.25}
 .item .a{font-size:13px;color:var(--artist);margin-top:2px}
 .item .n{font-size:12px;color:var(--muted);flex:0 0 auto}
+.item .snip{font-size:12px;color:var(--muted);font-style:italic;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.moreBtn{flex:0 0 auto;font-size:20px;color:var(--muted);padding:6px 10px;border-radius:8px}
+.moreBtn:active{background:#262626}
+.selBadge{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:800;color:var(--muted);background:#1c1c1e}
+.selBadge.on{background:var(--accent);color:#fff}
+#selectBar{display:none;align-items:center;justify-content:space-between;gap:10px;flex:0 0 auto;
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--bar);border-top:1px solid #262626}
+#selectBar button{font-size:14px;font-weight:700;padding:10px 14px;border-radius:11px}
+#selCancel{color:var(--muted);background:#1c1c1e}
+#selClear{color:var(--title);background:#1c1c1e}
+#selConfirm{color:#fff;background:var(--accent)}
+#selCount{font-size:13px;color:var(--muted);font-weight:600;flex:1;text-align:center}
 .groupHead{padding:16px 12px 6px;font-size:13px;font-weight:800;color:var(--accent);
   text-transform:uppercase;letter-spacing:1px}
 #empty{padding:40px 20px;text-align:center;color:var(--muted);display:none}
@@ -51,7 +78,7 @@ button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:po
 
 /* ===== SONG ===== */
 #songView{background:var(--bg)}
-#lyrics{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:center;
+#lyrics{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:var(--align,center);
   padding:20px 18px 0;scrollbar-width:none}
 #lyrics::-webkit-scrollbar{display:none}
 #songTitle{color:var(--title);font-size:calc(var(--lyr) * 1.25);font-weight:800;
@@ -101,7 +128,113 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 .stepper span{min-width:44px;text-align:center;font-weight:700;color:var(--artist)}
 #resetBtn{margin-top:18px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
   color:var(--title);font-size:15px;font-weight:600}
+#exportBtn,#importBtn{margin-top:10px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
+  color:var(--fg);font-size:15px;font-weight:600}
 #closeSet{margin-top:10px;width:100%;padding:13px;border-radius:12px;background:var(--accent);
+  color:#fff;font-size:16px;font-weight:700}
+.manageList{max-height:150px;overflow-y:auto;margin:0 0 8px}
+.manageRow{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 0;font-size:13px;border-bottom:1px solid #232325}
+.manageRow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.manageRow button{flex:0 0 auto;background:#2c2c2e;color:var(--fg);padding:6px 12px;
+  border-radius:8px;font-size:12px;font-weight:700}
+.manageEmpty{font-size:12px;color:var(--muted);padding:4px 0 8px}
+
+/* ===== ACTION SHEET (editar/ocultar/excluir) ===== */
+#actionSheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60}
+#actionSheet.active{display:block}
+#actionPanel{position:absolute;left:0;right:0;bottom:0;background:#161618;border-radius:18px 18px 0 0;
+  padding:16px 20px calc(20px + env(safe-area-inset-bottom))}
+#actionTitle{font-size:14px;color:var(--muted);margin-bottom:14px;text-align:center;font-weight:600}
+#actionPanel button{display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;
+  font-weight:700;margin-bottom:10px;background:#2c2c2e;color:var(--fg)}
+#actDelete{color:#ff453a}
+#actCancel{background:var(--accent);color:#fff;margin-bottom:0}
+
+/* ===== GERENCIAR SETLISTS ===== */
+#setlistSheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60}
+#setlistSheet.active{display:block}
+#setlistPanel{position:absolute;left:0;right:0;bottom:0;background:#161618;border-radius:18px 18px 0 0;
+  padding:18px 20px calc(20px + env(safe-area-inset-bottom));max-height:78%;overflow-y:auto}
+#setlistPanel h2{font-size:18px;color:var(--fg);margin-bottom:12px}
+.setlistRow{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 0;border-bottom:1px solid #232325}
+.setlistRow.active .slName{color:var(--accent)}
+.slInfo{flex:1;min-width:0}
+.slName{font-size:15px;font-weight:700;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slCount{font-size:12px;color:var(--muted);margin-top:1px}
+.slActions{display:flex;gap:6px;flex:0 0 auto}
+.slActions button{padding:7px 10px;border-radius:8px;background:#2c2c2e;color:var(--fg);font-size:14px}
+#newSetlistBtn{margin-top:14px;width:100%;padding:13px;border-radius:12px;background:var(--accent);
+  color:#fff;font-size:15px;font-weight:700}
+#closeSetlistMgr{margin-top:10px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
+  color:var(--fg);font-size:15px;font-weight:600}
+
+/* ===== BUSCA POR VOZ ===== */
+#voiceSheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:70}
+#voiceSheet.active{display:block}
+#voicePanel{position:absolute;left:0;right:0;bottom:0;background:#161618;border-radius:18px 18px 0 0;
+  padding:26px 22px calc(24px + env(safe-area-inset-bottom));max-height:80%;overflow-y:auto;text-align:center}
+#voiceMicBig{font-size:52px;line-height:1;margin-bottom:10px}
+#voiceMicBig.listening{animation:voicePulse 1.1s infinite}
+@keyframes voicePulse{0%{transform:scale(1);opacity:1}50%{transform:scale(1.18);opacity:.75}100%{transform:scale(1);opacity:1}}
+#voiceStatus{font-size:15px;color:var(--muted);margin-bottom:10px;min-height:20px}
+#voiceTranscript{font-size:18px;color:var(--fg);font-weight:700;margin-bottom:14px;min-height:24px}
+#voiceCandidates{text-align:left;margin-bottom:6px}
+.voiceCand{width:100%;display:block;text-align:left;padding:12px 14px;border-radius:12px;
+  background:#232325;color:var(--fg);margin-bottom:8px;font-size:15px}
+.voiceCand small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.voiceCandArtist{color:var(--muted)}
+.voiceSectionLabel{font-size:12px;color:var(--muted);margin:10px 0 6px;font-weight:700;text-transform:uppercase}
+#voiceRetry{margin-top:8px;width:100%;padding:13px;border-radius:12px;background:var(--accent);
+  color:#fff;font-size:15px;font-weight:700}
+#voiceCancel{margin-top:10px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
+  color:var(--fg);font-size:15px;font-weight:600}
+
+/* ===== BOTÃO FLUTUANTE (arrastável) ===== */
+#voiceFab{position:fixed;z-index:80;width:60px;height:60px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;padding:0;
+  background:radial-gradient(circle at 35% 30%,#3a3a3c,#101012 72%);
+  border:1px solid rgba(255,255,255,.08);box-shadow:0 4px 16px rgba(0,0,0,.55);
+  touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab;
+  opacity:1;transition:opacity .5s ease}
+#voiceFab.idle{opacity:.42}
+#voiceFab.dragging{transition:none !important;opacity:1;cursor:grabbing}
+#voiceFabIcon{position:relative;z-index:2;font-size:25px;
+  filter:drop-shadow(0 0 5px rgba(255,59,48,.85))}
+#voiceFabGlow{position:absolute;inset:-9px;border-radius:50%;z-index:1;
+  background:conic-gradient(from 0deg,#ff3b30,#ff9500,#ffd60a,#34c759,#5ac8fa,#af52de,#ff3b30);
+  filter:blur(10px);opacity:.5;
+  animation:voiceFabSpin 3.4s linear infinite,voiceFabPulse 1.7s ease-in-out infinite}
+@keyframes voiceFabSpin{to{transform:rotate(360deg)}}
+@keyframes voiceFabPulse{0%,100%{opacity:.32}50%{opacity:.72}}
+
+/* ===== EDIT TOOLBAR ===== */
+.editToolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.editToolbar button{padding:8px 12px;border-radius:9px;background:#2c2c2e;color:var(--fg);
+  font-size:13px;font-weight:600}
+.editToolbar button:active{background:#3a3a3c}
+.colorRow{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.colorRow input[type=color]{width:46px;height:34px;border:none;border-radius:8px;background:none;padding:0}
+.colorRow button{padding:8px 12px;border-radius:9px;background:#2c2c2e;color:var(--fg);font-size:13px;font-weight:600}
+.colorRow span{font-size:12px;color:var(--muted)}
+
+/* ===== EDIT (nova/editar letra) ===== */
+#editView{background:var(--bg)}
+#editHead{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 16px;border-bottom:1px solid #1c1c1e;flex:0 0 auto}
+#editHead button{font-size:15px;color:var(--accent);font-weight:700;padding:8px 6px}
+#editHead h2{font-size:16px;color:var(--fg);font-weight:700}
+#editBody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 40px}
+#editBody label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;font-weight:600}
+#editBody input[type=text],#editBody textarea{width:100%;padding:12px 14px;border-radius:12px;
+  border:1px solid #2c2c2e;background:#1c1c1e;color:#fff;font-size:16px;outline:none;font-family:inherit}
+#editBody textarea{min-height:38vh;line-height:1.5;resize:vertical;white-space:pre-wrap}
+#catSeg{display:flex;flex-wrap:wrap;gap:6px}
+#catSeg button{padding:8px 12px;border-radius:9px;background:#2c2c2e;color:var(--fg);font-size:13px}
+#catSeg button.on{background:var(--accent);font-weight:700;color:#fff}
+#catSeg button.catAddBtn2{background:transparent;border:1px dashed #666;color:var(--muted)}
+#saveSong{margin-top:24px;width:100%;padding:14px;border-radius:12px;background:var(--accent);
   color:#fff;font-size:16px;font-weight:700}
 </style>
 </head>
@@ -110,8 +243,17 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 <!-- ============ HOME ============ -->
 <div id="homeView" class="view active">
   <div id="homeHead">
-    <h1>♪ Repertório Haroldo</h1>
-    <div class="sub" id="subInfo"></div>
+    <div class="headRow">
+      <div>
+        <h1>♪ Repertório Haroldo</h1>
+        <div class="sub" id="subInfo"></div>
+      </div>
+      <div class="headBtns">
+        <button id="selectBtn" class="iconBtn" title="Selecionar setlist">☑</button>
+        <button id="addBtn" class="iconBtn" title="Nova letra">＋</button>
+        <button id="setBtnHome" class="iconBtn" title="Configurações">⚙</button>
+      </div>
+    </div>
   </div>
   <div id="searchWrap">
     <input id="search" type="search" placeholder="Buscar música ou artista..." autocomplete="off">
@@ -120,6 +262,12 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
   <div id="count"></div>
   <div id="list"></div>
   <div id="empty">Nenhuma música encontrada.</div>
+  <div id="selectBar">
+    <button id="selCancel">Cancelar</button>
+    <button id="selClear">Limpar</button>
+    <div id="selCount">0 selecionadas</div>
+    <button id="selConfirm">Confirmar</button>
+  </div>
 </div>
 
 <!-- ============ SONG ============ -->
@@ -158,12 +306,98 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
     <div class="setRow"><span>Posição da barra</span>
       <div class="seg"><button id="posB">Embaixo</button><button id="posT">Em cima</button></div>
     </div>
+    <div class="setRow"><span>Botão flutuante de voz</span>
+      <div class="seg"><button id="fabOn">Ativado</button><button id="fabOff">Desativado</button></div>
+    </div>
+    <div class="setRow"><span>Alinhamento da letra</span>
+      <div class="seg"><button id="alL">Esquerda</button><button id="alC">Centro</button><button id="alR">Direita</button></div>
+    </div>
     <div class="setRow"><span>Cor da letra</span><input type="color" id="cFg"></div>
     <div class="setRow"><span>Cor do título</span><input type="color" id="cTitle"></div>
     <div class="setRow"><span>Cor do artista</span><input type="color" id="cArtist"></div>
     <div class="setRow"><span>Cor do fundo</span><input type="color" id="cBg"></div>
+    <div class="setRow"><span>Minhas letras salvas</span><span id="customCount">0</span></div>
+    <button id="exportBtn">⬇ Exportar backup completo (.json)</button>
+    <button id="importBtn">⬆ Importar backup</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+    <div class="setRow"><span>Letras ocultas</span><span id="hiddenCount">0</span></div>
+    <div id="hiddenList" class="manageList"></div>
+    <div class="setRow"><span>Letras excluídas</span><span id="removedCount">0</span></div>
+    <div id="removedList" class="manageList"></div>
     <button id="resetBtn">Restaurar padrões</button>
     <button id="closeSet">Fechar</button>
+  </div>
+</div>
+
+<!-- ============ MENU DE AÇÕES (editar/ocultar/excluir) ============ -->
+<div id="actionSheet">
+  <div id="actionPanel">
+    <div id="actionTitle"></div>
+    <button id="actEdit">✎ Editar</button>
+    <button id="actShare">📤 Compartilhar</button>
+    <button id="actHide">🙈 Ocultar</button>
+    <button id="actDelete">🗑 Excluir</button>
+    <button id="actCancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ GERENCIAR SETLISTS ============ -->
+<div id="setlistSheet">
+  <div id="setlistPanel">
+    <h2>Meus Setlists</h2>
+    <div id="setlistMgrList"></div>
+    <button id="newSetlistBtn">+ Novo setlist</button>
+    <button id="closeSetlistMgr">Fechar</button>
+  </div>
+</div>
+
+<!-- ============ BUSCA POR VOZ ============ -->
+<div id="voiceSheet">
+  <div id="voicePanel">
+    <div id="voiceMicBig">🎤</div>
+    <div id="voiceStatus">Toque no microfone e fale</div>
+    <div id="voiceTranscript"></div>
+    <div id="voiceCandidates"></div>
+    <button id="voiceRetry" style="display:none">🎤 Falar de novo</button>
+    <button id="voiceCancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ BOTÃO FLUTUANTE DE VOZ ============ -->
+<button id="voiceFab" title="Buscar por voz (toque ou segure)">
+  <span id="voiceFabGlow"></span>
+  <span id="voiceFabIcon">🎤</span>
+</button>
+
+<!-- ============ NOVA / EDITAR LETRA ============ -->
+<div id="editView" class="view">
+  <div id="editHead">
+    <button id="editBack">‹ Voltar</button>
+    <h2 id="editTitle2">Nova Letra</h2>
+    <button id="editDelete" style="display:none;color:#ff453a">Excluir</button>
+  </div>
+  <div id="editBody">
+    <label for="inTitle">Título da música</label>
+    <input id="inTitle" type="text" placeholder="Ex: Minha Nova Música" autocomplete="off">
+    <label for="inArtist">Artista</label>
+    <input id="inArtist" type="text" placeholder="Ex: Nome do Artista" autocomplete="off">
+    <label>Categoria</label>
+    <div class="seg" id="catSeg"></div>
+    <label>Cor da letra desta música (opcional)</label>
+    <div class="colorRow">
+      <input type="color" id="taColor">
+      <button type="button" id="taColorReset">Usar cor padrão</button>
+      <span id="taColorState"></span>
+    </div>
+    <label for="inLyrics">Letra completa</label>
+    <div class="editToolbar">
+      <button type="button" id="taFontDown">A−</button>
+      <button type="button" id="taFontUp">A+</button>
+      <button type="button" id="taPaste">📋 Colar</button>
+      <button type="button" id="taCopy">📄 Copiar</button>
+    </div>
+    <textarea id="inLyrics" placeholder="Cole ou digite a letra aqui..."></textarea>
+    <button id="saveSong">Salvar Letra</button>
   </div>
 </div>
 
@@ -7046,7 +7280,6 @@ had
 <script>
 'use strict';
 /* ================= DADOS ================= */
-const CATS = { A: 'A Sua Maneira', J: 'Jazz & Blues' };
 const SONGS = (() => {
   const raw = document.getElementById('songdata').textContent;
   const out = []; let cur = null;
@@ -7078,9 +7311,111 @@ function norm(s) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
+/* ================= MINHAS LETRAS (localStorage) ================= */
+const CUSTOM_KEY = 'repHaroldo_custom_v1';
+let CUSTOM = [];
+try {
+  const raw2 = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
+  if (Array.isArray(raw2)) CUSTOM = raw2.filter(s => s && s.title && s.text);
+} catch(e) { CUSTOM = []; }
+function saveCustom(){ try{ localStorage.setItem(CUSTOM_KEY, JSON.stringify(CUSTOM)); }catch(e){} }
+
+/* ================= SETLISTS (múltiplos "momentos" salvos) ================= */
+const SETLISTS_KEY = 'repHaroldo_setlists_v1';
+const OLD_SETLIST_KEY = 'repHaroldo_setlist_v1';
+let SETLISTS = [], activeSetlistId = null;
+try {
+  const raw = JSON.parse(localStorage.getItem(SETLISTS_KEY) || 'null');
+  if (raw && Array.isArray(raw.list)) { SETLISTS = raw.list; activeSetlistId = raw.active || null; }
+} catch(e) { SETLISTS = []; }
+function saveSetlists(){ try{ localStorage.setItem(SETLISTS_KEY, JSON.stringify({ list: SETLISTS, active: activeSetlistId })); }catch(e){} }
+function activeSetlist(){ return SETLISTS.find(s => s.id === activeSetlistId) || null; }
+// migração de versão antiga (setlist único, sem nome)
+if (!localStorage.getItem(SETLISTS_KEY)){
+  try{
+    const oldRaw = JSON.parse(localStorage.getItem(OLD_SETLIST_KEY) || '[]');
+    if (Array.isArray(oldRaw) && oldRaw.length){
+      const id = 'ST' + Date.now().toString(36);
+      SETLISTS = [{ id, name: 'Setlist 1', songIds: oldRaw }];
+      activeSetlistId = id;
+      saveSetlists();
+    }
+  }catch(e){}
+}
+
+/* ================= NOMES DAS ABAS (personalizáveis) ================= */
+const CHIP_NAMES_KEY = 'repHaroldo_chipnames_v1';
+let CHIP_NAMES = { A: 'A Sua Maneira', J: 'Jazz & Blues', C: 'Minhas Letras' };
+try { Object.assign(CHIP_NAMES, JSON.parse(localStorage.getItem(CHIP_NAMES_KEY) || '{}')); } catch(e) {}
+function saveChipNames(){ try{ localStorage.setItem(CHIP_NAMES_KEY, JSON.stringify(CHIP_NAMES)); }catch(e){} }
+
+/* ================= CATEGORIAS PERSONALIZADAS (criadas pelo usuário) ================= */
+const CUSTOM_CATS_KEY = 'repHaroldo_customcats_v1';
+let CUSTOM_CATS = [];
+try { const cc = JSON.parse(localStorage.getItem(CUSTOM_CATS_KEY) || '[]'); if (Array.isArray(cc)) CUSTOM_CATS = cc; } catch(e) { CUSTOM_CATS = []; }
+function saveCustomCats(){ try{ localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(CUSTOM_CATS)); }catch(e){} }
+function manageCustomCat(key){
+  const cat = CUSTOM_CATS.find(c => c.key === key);
+  if (!cat) return;
+  const name = prompt('Renomear categoria (cancele e confirme para excluir):', cat.name);
+  if (name === null){
+    if (confirm('Excluir a categoria "' + cat.name + '"? As músicas continuam salvas, só deixam de aparecer nesta aba.')){
+      CUSTOM_CATS = CUSTOM_CATS.filter(c => c.key !== key);
+      saveCustomCats();
+      if (filterCat === key) filterCat = 'ALL';
+      renderCatSeg(); refresh();
+    }
+    return;
+  }
+  const t = name.trim();
+  if (!t) return;
+  cat.name = t; saveCustomCats(); renderCatSeg(); refresh();
+}
+
+/* ================= OCULTAR / EXCLUIR / EDITAR (qualquer música) ================= */
+const HIDDEN_KEY = 'repHaroldo_hidden_v1', REMOVED_KEY = 'repHaroldo_removed_v1', OVERRIDES_KEY = 'repHaroldo_overrides_v1';
+let HIDDEN = new Set(), REMOVED = new Set(), OVERRIDES = {};
+try { const h = JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'); if (Array.isArray(h)) HIDDEN = new Set(h); } catch(e) {}
+try { const r = JSON.parse(localStorage.getItem(REMOVED_KEY) || '[]'); if (Array.isArray(r)) REMOVED = new Set(r); } catch(e) {}
+try { OVERRIDES = JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}') || {}; } catch(e) { OVERRIDES = {}; }
+function saveHidden(){ try{ localStorage.setItem(HIDDEN_KEY, JSON.stringify([...HIDDEN])); }catch(e){} }
+function saveRemoved(){ try{ localStorage.setItem(REMOVED_KEY, JSON.stringify([...REMOVED])); }catch(e){} }
+function saveOverrides(){ try{ localStorage.setItem(OVERRIDES_KEY, JSON.stringify(OVERRIDES)); }catch(e){} }
+function rawById(id){ return SONGS.find(s => s.id === id) || CUSTOM.find(s => s.id === id) || null; }
+
+let ALL = [];
+let SONG_MAP = new Map();
+function rebuildAll(){
+  CUSTOM.forEach(s => {
+    if (!s.id) s.id = 'C' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+    if (!s.cats) s.cats = 'C';
+  });
+  let base = SONGS.concat(CUSTOM).map(s => {
+    const ov = OVERRIDES[s.id];
+    return ov ? Object.assign({}, s, ov) : s;
+  });
+  base = base.filter(s => !HIDDEN.has(s.id) && !REMOVED.has(s.id));
+  base.forEach(s => {
+    s.normHead = norm(s.title + ' ' + (s.artist || ''));
+    s.norm = s.normHead + ' ' + norm(s.text || '');
+    s.sortKey = norm(s.title).replace(/^[^a-z0-9]+/, '');
+  });
+  base.sort((a, b) => a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0);
+  ALL = base;
+  SONG_MAP = new Map(ALL.map(s => [s.id, s]));
+  let changed = false;
+  SETLISTS.forEach(st => {
+    const before = st.songIds.length;
+    st.songIds = st.songIds.filter(id => SONG_MAP.has(id));
+    if (st.songIds.length !== before) changed = true;
+  });
+  if (changed) saveSetlists();
+}
+rebuildAll();
+
 /* ================= PREFERÊNCIAS ================= */
 const DEF = { fg:'#ffffff', title:'#ff3b30', artist:'#ffd60a', bg:'#000000',
-              font:22, defSpeed:30, barPos:'bottom' };
+              font:22, defSpeed:30, barPos:'bottom', align:'center', fabEnabled:true };
 const LSK = 'repHaroldo_prefs_v1', LSS = 'repHaroldo_speeds_v1';
 let prefs = { ...DEF }, speeds = {};
 try { Object.assign(prefs, JSON.parse(localStorage.getItem(LSK) || '{}')); } catch(e) {}
@@ -7093,6 +7428,7 @@ function applyPrefs(){
   r.setProperty('--artist', prefs.artist); r.setProperty('--bg', prefs.bg);
   r.setProperty('--accent', prefs.title);
   r.setProperty('--lyr', prefs.font + 'px');
+  r.setProperty('--align', prefs.align || 'center');
   document.body.classList.toggle('barTop', prefs.barPos === 'top');
   document.querySelector('meta[name=theme-color]').content = prefs.bg;
 }
@@ -7104,35 +7440,83 @@ let filterCat = 'ALL', filterArtist = null, query = '';
 let curList = [], curIdx = -1, curSong = null;
 let playing = false, pos = 0, lastT = 0, ended = false, touching = false;
 let homeScroll = 0, artistMode = false;
+let selecting = false, tempSelection = [];
 
 /* ================= HOME ================= */
 const chipsEl = $('chips'), listEl = $('list');
-$('subInfo').textContent = SONGS.length + ' músicas no repertório';
+function attachLongPress(el, fn){
+  let timer = null, fired = false;
+  const start = () => { fired = false; timer = setTimeout(() => { fired = true; if (navigator.vibrate) navigator.vibrate(15); fn(); }, 550); };
+  const cancel = () => { if (timer) clearTimeout(timer); timer = null; };
+  el.addEventListener('touchstart', start, {passive:true});
+  el.addEventListener('touchend', cancel, {passive:true});
+  el.addEventListener('touchmove', cancel, {passive:true});
+  el.addEventListener('mousedown', start);
+  el.addEventListener('mouseup', cancel);
+  el.addEventListener('mouseleave', cancel);
+  el.addEventListener('click', e => { if (fired){ e.preventDefault(); e.stopPropagation(); fired = false; } }, true);
+  el.addEventListener('dblclick', e => { e.preventDefault(); fn(); });
+  el.addEventListener('contextmenu', e => { e.preventDefault(); fn(); });
+}
+function activeSetlistLabel(){
+  const st = activeSetlist();
+  return st ? (st.name + (st.songIds.length ? ' (' + st.songIds.length + ')' : ' (vazio)')) : 'Setlist';
+}
+function renameChip(key){
+  const name = prompt('Novo nome para esta aba:', CHIP_NAMES[key]);
+  if (name === null) return;
+  const t = name.trim();
+  if (!t) return;
+  CHIP_NAMES[key] = t; saveChipNames(); refresh();
+}
 function buildChips(){
   chipsEl.innerHTML = '';
-  const mk = (label, on, fn) => {
+  const mk = (label, on, fn, longPress) => {
     const b = document.createElement('button');
     b.className = 'chip' + (on ? ' on' : ''); b.textContent = label;
     b.onclick = fn; chipsEl.appendChild(b);
+    if (longPress) attachLongPress(b, longPress);
+    return b;
   };
   mk('Todas', filterCat==='ALL' && !artistMode && !filterArtist, () => { filterCat='ALL'; filterArtist=null; artistMode=false; refresh(); });
-  mk(CATS.A, filterCat==='A' && !artistMode, () => { filterCat='A'; filterArtist=null; artistMode=false; refresh(); });
-  mk(CATS.J, filterCat==='J' && !artistMode, () => { filterCat='J'; filterArtist=null; artistMode=false; refresh(); });
+  mk(activeSetlistLabel(), filterCat==='SET' && !artistMode, () => { filterCat='SET'; filterArtist=null; artistMode=false; refresh(); }, openSetlistManager);
+  const addSet = document.createElement('button');
+  addSet.className = 'chip chipAdd'; addSet.textContent = '+'; addSet.title = 'Criar novo setlist';
+  addSet.onclick = (e) => { e.stopPropagation(); openSetlistManager(); };
+  chipsEl.appendChild(addSet);
+  mk(CHIP_NAMES.A, filterCat==='A' && !artistMode, () => { filterCat='A'; filterArtist=null; artistMode=false; refresh(); }, () => renameChip('A'));
+  mk(CHIP_NAMES.J, filterCat==='J' && !artistMode, () => { filterCat='J'; filterArtist=null; artistMode=false; refresh(); }, () => renameChip('J'));
+  mk(CHIP_NAMES.C, filterCat==='C' && !artistMode, () => { filterCat='C'; filterArtist=null; artistMode=false; refresh(); }, () => renameChip('C'));
+  CUSTOM_CATS.forEach(cat => {
+    mk(cat.name, filterCat===cat.key && !artistMode, () => { filterCat=cat.key; filterArtist=null; artistMode=false; refresh(); }, () => manageCustomCat(cat.key));
+  });
   mk(filterArtist ? '♫ ' + filterArtist : 'Artistas', artistMode || !!filterArtist, () => { artistMode=true; filterArtist=null; refresh(); });
 }
 function filtered(){
-  return SONGS.filter(s =>
-    (filterCat==='ALL' || s.cats.includes(filterCat)) &&
-    (!filterArtist || s.artist === filterArtist) &&
-    (!query || s.norm.includes(query)));
+  if (filterCat === 'SET'){
+    const st = activeSetlist();
+    let arr = st ? st.songIds.map(id => SONG_MAP.get(id)).filter(Boolean) : [];
+    if (query) arr = arr.filter(s => s.norm.includes(query));
+    return arr;
+  }
+  return ALL.filter(s => {
+    const isCustom = !!(s.id && s.id.charAt(0) === 'C');
+    if (filterCat === 'C'){ if (!isCustom) return false; }
+    else if (filterCat !== 'ALL' && !s.cats.includes(filterCat)) return false;
+    return (!filterArtist || s.artist === filterArtist) && (!query || s.norm.includes(query));
+  });
 }
 function refresh(){
+  $('subInfo').textContent = ALL.length + ' músicas no repertório';
   buildChips();
   listEl.innerHTML = '';
   $('empty').style.display = 'none';
+  $('selectBar').style.display = selecting ? 'flex' : 'none';
+  $('selectBtn').classList.toggle('on', selecting);
+  if (selecting) $('selCount').textContent = tempSelection.length + (tempSelection.length===1?' selecionada':' selecionadas');
   if (artistMode){
     const map = new Map();
-    SONGS.forEach(s => map.set(s.artist, (map.get(s.artist)||0)+1));
+    ALL.forEach(s => map.set(s.artist, (map.get(s.artist)||0)+1));
     let names = [...map.keys()].sort((a,b)=>norm(a)<norm(b)?-1:1);
     if (query) names = names.filter(n => norm(n).includes(query));
     $('count').textContent = names.length + ' artistas';
@@ -7152,16 +7536,479 @@ function refresh(){
   $('count').textContent = arr.length + (arr.length===1?' música':' músicas');
   arr.forEach(s => {
     const d = document.createElement('div'); d.className='item';
-    d.innerHTML = '<div><div class="t">'+esc(s.title)+'</div><div class="a">'+esc(s.artist)+'</div></div>' +
-      '<div class="n">'+(s.cats.includes('J') && s.cats.includes('A') ? 'A+J' : s.cats.includes('J') ? 'J&B' : '')+'</div>';
-    d.onclick = () => openSong(arr, arr.indexOf(s));
+    if (selecting){
+      const pos = tempSelection.indexOf(s.id);
+      d.innerHTML = '<span class="selBadge'+(pos>=0?' on':'')+'">'+(pos>=0?(pos+1):'○')+'</span>' +
+        '<div style="flex:1;min-width:0"><div class="t">'+esc(s.title)+'</div><div class="a">'+esc(s.artist)+'</div></div>';
+      d.onclick = () => toggleSelect(s.id);
+    } else {
+      let snip = '';
+      if (query && s.normHead && !s.normHead.includes(query)) snip = findSnippet(s, query);
+      d.innerHTML = '<div style="flex:1;min-width:0"><div class="t">'+esc(s.title)+'</div><div class="a">'+esc(s.artist)+'</div>' +
+        (snip ? '<div class="snip">"…'+esc(snip)+'…"</div>' : '') + '</div>' +
+        '<div class="n">'+ tagFor(s) + '</div>' +
+        '<button class="moreBtn" title="Opções">⋮</button>';
+      d.onclick = () => openSong(arr, arr.indexOf(s));
+      const moreBtn = d.querySelector('.moreBtn');
+      moreBtn.onclick = (e) => { e.stopPropagation(); openActions(s); };
+    }
     listEl.appendChild(d);
   });
-  if (!arr.length) $('empty').style.display='block';
+  if (!arr.length){
+    $('empty').textContent = (filterCat==='SET' && !selecting)
+      ? 'Toque em ☑ para montar este setlist, ou segure a aba "Setlist" para criar/trocar de setlist.'
+      : 'Nenhuma música encontrada.';
+    $('empty').style.display='block';
+  }
 }
+function findSnippet(s, q){
+  if (!s.text) return '';
+  const lines = s.text.split('\n');
+  for (const line of lines){
+    if (line.trim() && norm(line).includes(q)) return line.trim().slice(0, 60);
+  }
+  return '';
+}
+function tagFor(s){
+  if (s.id && s.id.charAt(0) === 'C') return 'MINHA';
+  if (OVERRIDES[s.id]) return 'editada';
+  return (s.cats.includes('J') && s.cats.includes('A')) ? 'A+J' : s.cats.includes('J') ? 'J&B' : '';
+}
+/* ---- menu de ações: editar / ocultar / excluir ---- */
+let actionSong = null;
+function openActions(s){
+  actionSong = s;
+  $('actionTitle').textContent = s.title + ' — ' + s.artist;
+  $('actionSheet').classList.add('active');
+}
+function closeActions(){ $('actionSheet').classList.remove('active'); actionSong = null; }
+$('actionSheet').addEventListener('click', e => { if (e.target === $('actionSheet')) closeActions(); });
+$('actCancel').onclick = closeActions;
+$('actEdit').onclick = () => { const s = actionSong; closeActions(); if (s) openEdit(s); };
+$('actShare').onclick = async () => {
+  const s = actionSong; closeActions();
+  if (!s) return;
+  const shareText = s.title + ' - ' + s.artist + '\n\n' + (s.text || '');
+  if (navigator.share){
+    try{ await navigator.share({ title: s.title, text: shareText }); }catch(e){}
+  } else {
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(shareText), '_blank');
+  }
+};
+$('actHide').onclick = () => {
+  if (!actionSong) return;
+  HIDDEN.add(actionSong.id); saveHidden(); rebuildAll();
+  closeActions(); refresh();
+};
+$('actDelete').onclick = () => {
+  if (!actionSong) return;
+  const s = actionSong;
+  const isCustom = s.id.charAt(0) === 'C';
+  const msg = isCustom
+    ? 'Excluir esta letra definitivamente? Essa ação não pode ser desfeita (a menos que você tenha um backup exportado).'
+    : 'Remover esta música da lista? Você pode restaurar depois em Configurações → Letras excluídas.';
+  if (!confirm(msg)) { closeActions(); return; }
+  if (isCustom){ CUSTOM = CUSTOM.filter(c => c.id !== s.id); saveCustom(); }
+  else { REMOVED.add(s.id); saveRemoved(); }
+  rebuildAll();
+  closeActions(); refresh();
+};
+function toggleSelect(id){
+  const idx = tempSelection.indexOf(id);
+  if (idx >= 0) tempSelection.splice(idx, 1); else tempSelection.push(id);
+  refresh();
+}
+function enterSelect(){
+  selecting = true;
+  const st = activeSetlist();
+  tempSelection = st ? st.songIds.slice() : [];
+  artistMode = false; filterArtist = null; filterCat = 'ALL';
+  history.pushState({v:'select'}, '');
+  refresh();
+}
+function exitSelect(){ selecting = false; refresh(); }
+$('selectBtn').onclick = () => {
+  if (selecting){ history.back(); return; }
+  if (!SETLISTS.length){
+    const name = prompt('Nome do seu primeiro setlist:', 'Show 1');
+    if (name === null) return;
+    const t = name.trim() || 'Setlist 1';
+    const id = 'ST' + Date.now().toString(36);
+    SETLISTS.push({ id, name: t, songIds: [] });
+    activeSetlistId = id; saveSetlists();
+  }
+  enterSelect();
+};
+$('selCancel').onclick = () => history.back();
+$('selClear').onclick = () => {
+  if (!tempSelection.length) return;
+  if (!confirm('Limpar toda a seleção atual e começar um setlist novo do zero?')) return;
+  tempSelection = [];
+  refresh();
+};
+$('selConfirm').onclick = () => {
+  const st = activeSetlist();
+  if (st){ st.songIds = tempSelection.slice(); }
+  else {
+    const id = 'ST' + Date.now().toString(36);
+    SETLISTS.push({ id, name: 'Setlist 1', songIds: tempSelection.slice() });
+    activeSetlistId = id;
+  }
+  saveSetlists();
+  filterCat = tempSelection.length ? 'SET' : 'ALL';
+  history.back();
+};
+
+/* ---- gerenciador de setlists (long-press na aba Setlist) ---- */
+function openSetlistManager(){
+  renderSetlistManager();
+  $('setlistSheet').classList.add('active');
+}
+function closeSetlistManager(){ $('setlistSheet').classList.remove('active'); }
+function renderSetlistManager(){
+  const wrap = $('setlistMgrList'); wrap.innerHTML = '';
+  if (!SETLISTS.length){
+    const p = document.createElement('div'); p.className = 'manageEmpty';
+    p.textContent = 'Nenhum setlist criado ainda. Toque em "+ Novo setlist" para começar.';
+    wrap.appendChild(p);
+  }
+  SETLISTS.forEach(st => {
+    const row = document.createElement('div'); row.className = 'setlistRow' + (st.id === activeSetlistId ? ' active' : '');
+    row.innerHTML = '<div class="slInfo"><div class="slName">' + esc(st.name) + '</div>' +
+      '<div class="slCount">' + st.songIds.length + ' música(s)</div></div>' +
+      '<div class="slActions">' +
+      '<button data-a="use" title="Usar este">▶</button>' +
+      '<button data-a="edit" title="Editar músicas">☑</button>' +
+      '<button data-a="ren" title="Renomear">✎</button>' +
+      '<button data-a="del" title="Excluir">🗑</button></div>';
+    row.querySelector('[data-a="use"]').onclick = () => {
+      activeSetlistId = st.id; saveSetlists(); filterCat = 'SET'; artistMode = false; filterArtist = null;
+      closeSetlistManager(); refresh();
+    };
+    row.querySelector('[data-a="edit"]').onclick = () => {
+      activeSetlistId = st.id; saveSetlists();
+      closeSetlistManager(); enterSelect();
+    };
+    row.querySelector('[data-a="ren"]').onclick = () => {
+      const name = prompt('Renomear setlist:', st.name);
+      if (name === null) return;
+      const t = name.trim(); if (!t) return;
+      st.name = t; saveSetlists(); renderSetlistManager(); refresh();
+    };
+    row.querySelector('[data-a="del"]').onclick = () => {
+      if (!confirm('Excluir o setlist "' + st.name + '"? As músicas continuam no repertório normalmente, só esta lista específica será removida.')) return;
+      SETLISTS = SETLISTS.filter(x => x.id !== st.id);
+      if (activeSetlistId === st.id) activeSetlistId = (SETLISTS[0] && SETLISTS[0].id) || null;
+      saveSetlists(); renderSetlistManager(); refresh();
+    };
+    wrap.appendChild(row);
+  });
+}
+$('newSetlistBtn').onclick = () => {
+  const name = prompt('Nome do novo setlist:', 'Show ' + (SETLISTS.length + 1));
+  if (name === null) return;
+  const t = name.trim(); if (!t) return;
+  const id = 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  SETLISTS.push({ id, name: t, songIds: [] });
+  activeSetlistId = id; saveSetlists();
+  closeSetlistManager();
+  enterSelect();
+};
+$('closeSetlistMgr').onclick = closeSetlistManager;
+$('setlistSheet').addEventListener('click', e => { if (e.target === $('setlistSheet')) closeSetlistManager(); });
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 $('search').addEventListener('input', e => { query = norm(e.target.value.trim()); refresh(); });
 refresh();
+
+/* ================= BUSCA POR VOZ ================= */
+/* Usa a Web Speech API do navegador (grátis, nativa do Chrome/Android).
+   Precisa de internet: o reconhecimento de voz roda nos servidores do Google,
+   mesmo com o resto do app funcionando 100% offline. */
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  if (!m) return n; if (!n) return m;
+  const dp = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+  for (let i = 1; i <= m; i++){
+    let prev = dp[0]; dp[0] = i;
+    for (let j = 1; j <= n; j++){
+      const tmp = dp[j];
+      dp[j] = a[i-1] === b[j-1] ? prev : 1 + Math.min(prev, dp[j], dp[j-1]);
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+function scoreMatch(qNorm, candNorm){
+  if (!qNorm || !candNorm) return 0;
+  if (candNorm === qNorm) return 100;
+  if (candNorm.includes(qNorm) || qNorm.includes(candNorm)){
+    return 88 - Math.min(20, Math.abs(candNorm.length - qNorm.length));
+  }
+  const qTok = qNorm.split(' ').filter(Boolean);
+  const cTok = candNorm.split(' ').filter(Boolean);
+  let overlap = 0;
+  qTok.forEach(t => { if (cTok.includes(t)) overlap++; });
+  const tokScore = qTok.length ? (overlap / qTok.length) * 75 : 0;
+  const dist = levenshtein(qNorm, candNorm);
+  const maxLen = Math.max(qNorm.length, candNorm.length) || 1;
+  const editScore = (1 - dist / maxLen) * 65;
+  return Math.max(tokScore, editScore);
+}
+function bestMatchesFor(fragNorm){
+  return ALL.map(s => {
+    const scoreTitle = scoreMatch(fragNorm, norm(s.title));
+    const scoreHead = scoreMatch(fragNorm, s.normHead) * 0.85;
+    return { s, score: Math.max(scoreTitle, scoreHead) };
+  }).sort((a, b) => b.score - a.score);
+}
+
+let recognition = null, voiceListDraft = [];
+function speechSupported(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
+function openVoiceSheet(){
+  $('voiceSheet').classList.add('active');
+  $('voiceMicBig').classList.remove('listening');
+  $('voiceStatus').textContent = 'Toque no microfone e fale';
+  $('voiceTranscript').textContent = '';
+  $('voiceCandidates').innerHTML = '';
+  $('voiceRetry').style.display = 'none';
+}
+function closeVoiceSheet(){
+  $('voiceSheet').classList.remove('active');
+  if (recognition){ try{ recognition.onend = null; recognition.abort(); }catch(e){} }
+}
+$('voiceCancel').onclick = closeVoiceSheet;
+$('voiceSheet').addEventListener('click', e => { if (e.target === $('voiceSheet')) closeVoiceSheet(); });
+$('voiceRetry').onclick = () => startVoiceListening();
+function triggerVoiceFromFab(){
+  if (!speechSupported()){
+    alert('A busca por voz não é compatível com este navegador. No Android, abra o app pelo Google Chrome para usar esse recurso.');
+    return;
+  }
+  if (!navigator.onLine){
+    alert('Sem internet no momento. A busca por voz precisa de conexão (o reconhecimento de fala roda pela internet, mesmo o resto do app funcionando offline). Use a busca por texto normalmente.');
+    return;
+  }
+  openVoiceSheet();
+  startVoiceListening();
+}
+
+/* ---- botão flutuante: arrastar livre pela tela + toque para falar ---- */
+const FAB_POS_KEY = 'repHaroldo_fabpos_v1';
+function loadFabPos(){ try{ return JSON.parse(localStorage.getItem(FAB_POS_KEY) || 'null'); }catch(e){ return null; } }
+function saveFabPos(xPct, yPct){ try{ localStorage.setItem(FAB_POS_KEY, JSON.stringify({xPct, yPct})); }catch(e){} }
+function applyFabPos(){
+  const fab = $('voiceFab');
+  const w = fab.offsetWidth || 60, h = fab.offsetHeight || 60;
+  const pos = loadFabPos() || { xPct: 0.86, yPct: 0.78 };
+  const x = Math.min(window.innerWidth - w - 6, Math.max(6, pos.xPct * window.innerWidth - w / 2));
+  const y = Math.min(window.innerHeight - h - 6, Math.max(6, pos.yPct * window.innerHeight - h / 2));
+  fab.style.left = x + 'px';
+  fab.style.top = y + 'px';
+}
+window.addEventListener('resize', applyFabPos);
+let fabIdleTimer = null;
+function fabResetIdle(){
+  $('voiceFab').classList.remove('idle');
+  clearTimeout(fabIdleTimer);
+  fabIdleTimer = setTimeout(() => $('voiceFab').classList.add('idle'), 2500);
+}
+(function initFabDrag(){
+  const fab = $('voiceFab');
+  let dragging = false, moved = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+  function down(x, y){
+    dragging = true; moved = false; startX = x; startY = y;
+    const rect = fab.getBoundingClientRect();
+    startLeft = rect.left; startTop = rect.top;
+    fab.classList.add('dragging');
+    fabResetIdle();
+  }
+  function move(x, y){
+    if (!dragging) return;
+    const dx = x - startX, dy = y - startY;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+    if (!moved) return;
+    const w = fab.offsetWidth, h = fab.offsetHeight;
+    const nx = Math.min(window.innerWidth - w - 4, Math.max(4, startLeft + dx));
+    const ny = Math.min(window.innerHeight - h - 4, Math.max(4, startTop + dy));
+    fab.style.left = nx + 'px';
+    fab.style.top = ny + 'px';
+  }
+  function up(){
+    if (!dragging) return;
+    dragging = false;
+    fab.classList.remove('dragging');
+    if (moved){
+      const rect = fab.getBoundingClientRect();
+      const w = fab.offsetWidth, h = fab.offsetHeight;
+      saveFabPos((rect.left + w / 2) / window.innerWidth, (rect.top + h / 2) / window.innerHeight);
+    } else {
+      triggerVoiceFromFab();
+    }
+    fabResetIdle();
+  }
+  fab.addEventListener('touchstart', e => { const t = e.touches[0]; down(t.clientX, t.clientY); }, {passive:true});
+  fab.addEventListener('touchmove', e => { const t = e.touches[0]; move(t.clientX, t.clientY); if (moved) e.preventDefault(); }, {passive:false});
+  fab.addEventListener('touchend', up, {passive:true});
+  fab.addEventListener('touchcancel', up, {passive:true});
+  fab.addEventListener('mousedown', e => { down(e.clientX, e.clientY); e.preventDefault(); });
+  window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
+  window.addEventListener('mouseup', up);
+})();
+function updateFabVisibility(){
+  const overlayOpen = ['setView','actionSheet','setlistSheet','voiceSheet'].some(id => $(id).classList.contains('active'));
+  const onHome = $('homeView').classList.contains('active');
+  const shouldShow = prefs.fabEnabled !== false && onHome && !overlayOpen;
+  $('voiceFab').style.display = shouldShow ? 'flex' : 'none';
+}
+const fabWatchObserver = new MutationObserver(updateFabVisibility);
+['homeView','setView','actionSheet','setlistSheet','voiceSheet'].forEach(id => {
+  fabWatchObserver.observe($(id), { attributes: true, attributeFilter: ['class'] });
+});
+applyFabPos();
+updateFabVisibility();
+fabResetIdle();
+
+function startVoiceListening(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  try{ recognition = new SR(); }catch(e){
+    $('voiceStatus').textContent = 'Não foi possível acessar o microfone.';
+    $('voiceRetry').style.display = 'block';
+    return;
+  }
+  recognition.lang = 'pt-BR';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
+  $('voiceMicBig').classList.add('listening');
+  $('voiceStatus').textContent = 'Ouvindo...';
+  $('voiceTranscript').textContent = '';
+  $('voiceCandidates').innerHTML = '';
+  $('voiceRetry').style.display = 'none';
+  let finished = false;
+  recognition.onresult = (ev) => {
+    let text = '';
+    for (let i = 0; i < ev.results.length; i++) text += ev.results[i][0].transcript;
+    $('voiceTranscript').textContent = text;
+    if (ev.results[ev.results.length - 1].isFinal){
+      finished = true;
+      handleVoiceResult(text);
+    }
+  };
+  recognition.onerror = (ev) => {
+    $('voiceMicBig').classList.remove('listening');
+    let msg = 'Não consegui entender. Toque e fale de novo.';
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') msg = 'Permissão de microfone negada. Ative o microfone nas configurações do site (no Chrome: toque no cadeado ao lado do link).';
+    else if (ev.error === 'no-speech') msg = 'Não ouvi nada. Toque e fale de novo.';
+    else if (ev.error === 'network') msg = 'Sem conexão suficiente para reconhecer a voz. Verifique a internet.';
+    else if (ev.error === 'audio-capture') msg = 'Não encontrei um microfone neste aparelho.';
+    $('voiceStatus').textContent = msg;
+    $('voiceRetry').style.display = 'block';
+  };
+  recognition.onend = () => {
+    $('voiceMicBig').classList.remove('listening');
+    if (!finished && $('voiceTranscript').textContent.trim() === ''){
+      $('voiceStatus').textContent = 'Não ouvi nada. Toque e fale de novo.';
+      $('voiceRetry').style.display = 'block';
+    }
+  };
+  try{ recognition.start(); }catch(e){
+    $('voiceStatus').textContent = 'Não foi possível iniciar o microfone.';
+    $('voiceRetry').style.display = 'block';
+  }
+}
+function handleVoiceResult(rawText){
+  const text = rawText.trim();
+  if (!text){ $('voiceStatus').textContent = 'Não ouvi nada. Toque e fale de novo.'; $('voiceRetry').style.display = 'block'; return; }
+  const qn = norm(text);
+  const listMatch = qn.match(/^(?:crie|criar|cria|montar|monta|fazer|faz)\s+(?:uma\s+)?(?:nova\s+)?(?:lista|setlist|set list)\s*(?:de musicas)?\s*(?:com|para)?\s*(.*)$/);
+  if (listMatch && listMatch[1] && listMatch[1].trim().length > 1){
+    handleVoiceCreateList(listMatch[1].trim());
+  } else {
+    handleVoiceSearch(text, qn);
+  }
+}
+function handleVoiceSearch(text, qn){
+  const results = bestMatchesFor(qn);
+  const top = results[0], second = results[1];
+  if (top && top.score >= 78 && (!second || top.score - second.score >= 12)){
+    closeVoiceSheet();
+    openSong(ALL, ALL.indexOf(top.s));
+    return;
+  }
+  const candidates = results.filter(r => r.score >= 28).slice(0, 4);
+  if (!candidates.length){
+    $('voiceStatus').textContent = 'Não encontrei nenhuma música parecida com "' + text + '".';
+    $('voiceRetry').style.display = 'block';
+    return;
+  }
+  $('voiceStatus').textContent = 'Não tenho certeza — você quis dizer:';
+  const wrap = $('voiceCandidates'); wrap.innerHTML = '';
+  candidates.forEach(c => {
+    const b = document.createElement('button'); b.className = 'voiceCand';
+    b.innerHTML = esc(c.s.title) + '<small class="voiceCandArtist">' + esc(c.s.artist) + '</small>';
+    b.onclick = () => { closeVoiceSheet(); openSong(ALL, ALL.indexOf(c.s)); };
+    wrap.appendChild(b);
+  });
+  $('voiceRetry').style.display = 'block';
+}
+function handleVoiceCreateList(fragmentText){
+  const frags = fragmentText.split(/\s*(?:,|;| e | mais )\s*/).map(f => f.trim()).filter(Boolean);
+  if (!frags.length){ $('voiceStatus').textContent = 'Não entendi quais músicas incluir. Toque e tente de novo.'; $('voiceRetry').style.display = 'block'; return; }
+  const matched = frags.map(f => {
+    const results = bestMatchesFor(f);
+    return { frag: f, best: (results[0] && results[0].score >= 40) ? results[0].s : null };
+  });
+  $('voiceStatus').textContent = 'Conferindo a lista:';
+  voiceListDraft = matched.filter(m => m.best).map(m => ({ song: m.best, included: true }));
+  const notFound = matched.filter(m => !m.best);
+  const wrap = $('voiceCandidates'); wrap.innerHTML = '';
+  if (voiceListDraft.length){
+    const lbl = document.createElement('div'); lbl.className = 'voiceSectionLabel'; lbl.textContent = 'Encontradas'; wrap.appendChild(lbl);
+    voiceListDraft.forEach(item => {
+      const b = document.createElement('button'); b.className = 'voiceCand';
+      b.innerHTML = '✓ ' + esc(item.song.title) + '<small class="voiceCandArtist">' + esc(item.song.artist) + ' — toque para remover</small>';
+      b.onclick = () => {
+        item.included = !item.included;
+        b.style.opacity = item.included ? '1' : '.4';
+        b.querySelector('small').textContent = item.included ? (item.song.artist + ' — toque para remover') : 'removida — toque para incluir de novo';
+      };
+      wrap.appendChild(b);
+    });
+  }
+  if (notFound.length){
+    const lbl2 = document.createElement('div'); lbl2.className = 'voiceSectionLabel'; lbl2.textContent = 'Não encontradas'; wrap.appendChild(lbl2);
+    notFound.forEach(m => {
+      const d = document.createElement('div'); d.className = 'voiceCand'; d.style.opacity = '.55';
+      d.innerHTML = '✕ "' + esc(m.frag) + '"<small>não encontrei — adicione depois pelo botão ☑</small>';
+      wrap.appendChild(d);
+    });
+  }
+  if (voiceListDraft.length){
+    const confirmBtn = document.createElement('button'); confirmBtn.className = 'voiceCand';
+    confirmBtn.style.cssText = 'background:var(--accent);color:#fff;text-align:center;font-weight:700';
+    confirmBtn.textContent = '✔ Criar setlist com estas músicas';
+    confirmBtn.onclick = finalizeVoiceList;
+    wrap.appendChild(confirmBtn);
+  } else {
+    $('voiceStatus').textContent = 'Não reconheci nenhuma música na lista falada.';
+  }
+  $('voiceRetry').style.display = 'block';
+}
+function finalizeVoiceList(){
+  const chosen = voiceListDraft.filter(i => i.included).map(i => i.song.id);
+  if (!chosen.length){ alert('Nenhuma música selecionada.'); return; }
+  const name = prompt('Nome do novo setlist:', 'Lista por voz');
+  if (name === null) return;
+  const t = name.trim() || 'Lista por voz';
+  const id = 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  SETLISTS.push({ id, name: t, songIds: chosen });
+  activeSetlistId = id; saveSetlists();
+  closeVoiceSheet();
+  filterCat = 'SET'; artistMode = false; filterArtist = null;
+  refresh();
+  alert('Setlist "' + t + '" criado com ' + chosen.length + ' música(s).');
+}
 
 /* ================= SONG VIEW ================= */
 const lyricsEl = $('lyrics'), playBtn = $('playBtn');
@@ -7172,6 +8019,7 @@ function openSong(list, idx){
   $('songTitle').textContent = curSong.title;
   $('songArtist').textContent = curSong.artist;
   $('songBody').textContent = curSong.text || '(Instrumental)';
+  $('songBody').style.color = curSong.color || '';
   $('spdVal').textContent = speedOf(curSong);
   stopScroll(); pos = 0; ended = false;
   lyricsEl.scrollTop = 0;
@@ -7279,8 +8127,44 @@ function syncSet(){
   $('cArtist').value = prefs.artist; $('cBg').value = prefs.bg;
   $('posB').classList.toggle('on', prefs.barPos === 'bottom');
   $('posT').classList.toggle('on', prefs.barPos === 'top');
+  $('fabOn').classList.toggle('on', prefs.fabEnabled !== false);
+  $('fabOff').classList.toggle('on', prefs.fabEnabled === false);
+  $('alL').classList.toggle('on', prefs.align === 'left');
+  $('alC').classList.toggle('on', prefs.align === 'center');
+  $('alR').classList.toggle('on', prefs.align === 'right');
+  $('customCount').textContent = CUSTOM.length;
+  renderManageLists();
+}
+function renderManageLists(){
+  const hidArr = [...HIDDEN];
+  $('hiddenCount').textContent = hidArr.length;
+  const hEl = $('hiddenList'); hEl.innerHTML = '';
+  hidArr.forEach(id => {
+    const s = rawById(id); if (!s) return;
+    const ov = OVERRIDES[id];
+    const row = document.createElement('div'); row.className = 'manageRow';
+    row.innerHTML = '<span>' + esc((ov && ov.title) || s.title) + '</span>';
+    const btn = document.createElement('button'); btn.textContent = 'Mostrar';
+    btn.onclick = () => { HIDDEN.delete(id); saveHidden(); rebuildAll(); refresh(); renderManageLists(); };
+    row.appendChild(btn); hEl.appendChild(row);
+  });
+  if (!hidArr.length){ const p = document.createElement('div'); p.className='manageEmpty'; p.textContent='Nenhuma letra oculta.'; hEl.appendChild(p); }
+  const remArr = [...REMOVED];
+  $('removedCount').textContent = remArr.length;
+  const rEl = $('removedList'); rEl.innerHTML = '';
+  remArr.forEach(id => {
+    const s = rawById(id); if (!s) return;
+    const ov = OVERRIDES[id];
+    const row = document.createElement('div'); row.className = 'manageRow';
+    row.innerHTML = '<span>' + esc((ov && ov.title) || s.title) + '</span>';
+    const btn = document.createElement('button'); btn.textContent = 'Restaurar';
+    btn.onclick = () => { REMOVED.delete(id); saveRemoved(); rebuildAll(); refresh(); renderManageLists(); };
+    row.appendChild(btn); rEl.appendChild(row);
+  });
+  if (!remArr.length){ const p = document.createElement('div'); p.className='manageEmpty'; p.textContent='Nenhuma letra excluída.'; rEl.appendChild(p); }
 }
 $('setBtn').onclick = () => { syncSet(); $('setView').classList.add('active'); };
+$('setBtnHome').onclick = () => { syncSet(); $('setView').classList.add('active'); };
 $('closeSet').onclick = () => $('setView').classList.remove('active');
 $('setView').addEventListener('click', e => { if (e.target === $('setView')) $('setView').classList.remove('active'); });
 $('fPlus').onclick = () => { prefs.font = Math.min(44, prefs.font + 1); done(); };
@@ -7289,23 +8173,298 @@ $('dPlus').onclick = () => { prefs.defSpeed = Math.min(150, prefs.defSpeed + 2);
 $('dMinus').onclick = () => { prefs.defSpeed = Math.max(4, prefs.defSpeed - 2); done(); };
 $('posB').onclick = () => { prefs.barPos = 'bottom'; done(); };
 $('posT').onclick = () => { prefs.barPos = 'top'; done(); };
+$('fabOn').onclick = () => { prefs.fabEnabled = true; done(); updateFabVisibility(); };
+$('fabOff').onclick = () => { prefs.fabEnabled = false; done(); updateFabVisibility(); };
+$('alL').onclick = () => { prefs.align = 'left'; done(); };
+$('alC').onclick = () => { prefs.align = 'center'; done(); };
+$('alR').onclick = () => { prefs.align = 'right'; done(); };
 ['cFg','cTitle','cArtist','cBg'].forEach(id => {
   $(id).addEventListener('input', e => {
     const map = { cFg:'fg', cTitle:'title', cArtist:'artist', cBg:'bg' };
     prefs[map[id]] = e.target.value; done();
   });
 });
-$('resetBtn').onclick = () => { prefs = { ...DEF }; done(); };
+$('resetBtn').onclick = () => { if (confirm('Restaurar cores, fonte e velocidade padrão? (não afeta suas letras salvas)')) { prefs = { ...DEF }; done(); } };
 function done(){ applyPrefs(); savePrefs(); syncSet(); if (curSong) $('spdVal').textContent = speedOf(curSong); }
+
+/* ---- backup: exportar / importar minhas letras ---- */
+/* Backup completo: letras próprias, setlists, categorias/abas renomeadas,
+   categorias personalizadas, ocultas/excluídas/editadas e velocidades por música. */
+$('exportBtn').onclick = () => {
+  const backup = {
+    type: 'repHaroldoBackup', version: 1, exportedAt: new Date().toISOString(),
+    data: {
+      custom: CUSTOM,
+      setlists: SETLISTS, activeSetlistId,
+      chipNames: CHIP_NAMES,
+      customCats: CUSTOM_CATS,
+      hidden: [...HIDDEN], removed: [...REMOVED], overrides: OVERRIDES,
+      prefs, speeds
+    }
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'repertorio-haroldo-backup.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+};
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const raw = JSON.parse(reader.result);
+      // formato antigo: só um array de letras
+      const isFull = raw && raw.type === 'repHaroldoBackup' && raw.data;
+      const d = isFull ? raw.data : { custom: raw };
+      if (!Array.isArray(d.custom)) throw new Error('formato inválido');
+
+      if (!confirm('Isto vai combinar este backup com os dados já salvos neste aparelho (letras, setlists, categorias, ocultas/excluídas e edições). Nada que já existe aqui será apagado. Continuar?')) return;
+
+      // 1) letras próprias — mescla por título+artista, preserva o id original quando possível
+      const idMap = {};
+      let addedCustom = 0;
+      d.custom.forEach(item => {
+        if (!item || !item.title || !item.text) return;
+        const local = CUSTOM.find(c => norm(c.title) === norm(item.title) && norm(c.artist||'') === norm(item.artist||''));
+        if (local){ if (item.id) idMap[item.id] = local.id; return; }
+        const idTaken = item.id && CUSTOM.some(c => c.id === item.id);
+        const newId = (item.id && !idTaken) ? item.id : ('C' + Date.now().toString(36) + Math.random().toString(36).slice(2,7));
+        if (item.id && newId !== item.id) idMap[item.id] = newId;
+        CUSTOM.push({ id: newId, title: String(item.title), artist: String(item.artist || 'Desconhecido'),
+          cats: String(item.cats || 'C'), text: String(item.text), color: item.color || null });
+        addedCustom++;
+      });
+      saveCustom();
+
+      // 2) nomes das abas — só preenche o que ainda não foi renomeado localmente
+      if (isFull && d.chipNames){
+        Object.keys(d.chipNames).forEach(k => { if (CHIP_NAMES[k] === undefined) CHIP_NAMES[k] = d.chipNames[k]; });
+        saveChipNames();
+      }
+      // 3) categorias personalizadas — mescla por chave
+      let addedCats = 0;
+      if (isFull && Array.isArray(d.customCats)){
+        d.customCats.forEach(c => {
+          if (!c || !c.key || !c.name) return;
+          if (CUSTOM_CATS.some(x => x.key === c.key)) return;
+          CUSTOM_CATS.push({ key: c.key, name: c.name }); addedCats++;
+        });
+        saveCustomCats(); renderCatSeg();
+      }
+      // 4) ocultas / excluídas / editadas — une os conjuntos
+      if (isFull){
+        if (Array.isArray(d.hidden)) d.hidden.forEach(id => HIDDEN.add(idMap[id] || id));
+        if (Array.isArray(d.removed)) d.removed.forEach(id => REMOVED.add(idMap[id] || id));
+        if (d.overrides) Object.keys(d.overrides).forEach(id => { const nid = idMap[id] || id; if (!OVERRIDES[nid]) OVERRIDES[nid] = d.overrides[id]; });
+        saveHidden(); saveRemoved(); saveOverrides();
+      }
+      rebuildAll();
+      // 5) setlists — mescla por id/nome, corrigindo ids de letras remapeadas
+      let addedSetlists = 0;
+      if (isFull && Array.isArray(d.setlists)){
+        d.setlists.forEach(st => {
+          if (!st || !st.name || !Array.isArray(st.songIds)) return;
+          const fixedIds = st.songIds.map(id => idMap[id] || id).filter(id => SONG_MAP.has(id));
+          const already = SETLISTS.some(x => x.id === st.id || x.name === st.name);
+          if (already) return;
+          SETLISTS.push({ id: 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2,5), name: st.name, songIds: fixedIds });
+          addedSetlists++;
+        });
+        if (!activeSetlistId && SETLISTS.length) activeSetlistId = SETLISTS[0].id;
+        saveSetlists();
+      }
+      // 6) velocidades por música — só preenche o que ainda não tem velocidade definida
+      if (isFull && d.speeds){
+        Object.keys(d.speeds).forEach(id => { const nid = idMap[id] || id; if (speeds[nid] === undefined) speeds[nid] = d.speeds[id]; });
+        saveSpeeds();
+      }
+      // 7) cores/fonte/velocidade padrão — pergunta antes de sobrescrever a aparência atual
+      if (isFull && d.prefs && confirm('O backup também tem cores, fonte e velocidade padrão salvas. Aplicar essas configurações neste aparelho também?')){
+        prefs = { ...prefs, ...d.prefs }; applyPrefs(); savePrefs();
+      }
+
+      refresh(); syncSet();
+      alert('Backup importado: ' + addedCustom + ' letra(s), ' + addedSetlists + ' setlist(s) e ' + addedCats + ' categoria(s) nova(s).');
+    }catch(err){ alert('Não foi possível ler este arquivo de backup.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ================= NOVA / EDITAR LETRA ================= */
+let editingId = null, editCat = 'C', editColor = null;
+function syncColorState(){
+  $('taColorState').textContent = editColor ? 'cor personalizada' : 'cor padrão do app';
+}
+$('taColor').addEventListener('input', e => { editColor = e.target.value; syncColorState(); });
+$('taColorReset').onclick = () => { editColor = null; $('taColor').value = prefs.fg; syncColorState(); };
+const FIXED_CATS = [ {v:'C', label:'Só Minhas'}, {v:'A', label:'A Sua Maneira'}, {v:'J', label:'Jazz & Blues'}, {v:'AJ', label:'Ambas'} ];
+function renderCatSeg(){
+  const wrap = $('catSeg'); wrap.innerHTML = '';
+  FIXED_CATS.forEach(c => {
+    const b = document.createElement('button'); b.dataset.v = c.v; b.textContent = c.label;
+    b.onclick = () => { editCat = c.v; syncCatSeg(); };
+    wrap.appendChild(b);
+  });
+  CUSTOM_CATS.forEach(c => {
+    const b = document.createElement('button'); b.dataset.v = c.key; b.textContent = c.name;
+    b.onclick = () => { editCat = c.key; syncCatSeg(); };
+    wrap.appendChild(b);
+  });
+  const add = document.createElement('button'); add.className = 'catAddBtn2'; add.textContent = '+ Nova categoria';
+  add.onclick = () => {
+    const name = prompt('Nome da nova categoria:');
+    if (name === null) return;
+    const t = name.trim();
+    if (!t) return;
+    const key = 'X' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+    CUSTOM_CATS.push({ key, name: t }); saveCustomCats();
+    renderCatSeg();
+    editCat = key; syncCatSeg();
+  };
+  wrap.appendChild(add);
+  syncCatSeg();
+}
+function syncCatSeg(){
+  document.querySelectorAll('#catSeg button[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === editCat));
+}
+renderCatSeg();
+
+function openEdit(song){
+  editingId = song ? song.id : null;
+  $('editTitle2').textContent = song ? 'Editar Letra' : 'Nova Letra';
+  $('inTitle').value = song ? song.title : '';
+  $('inArtist').value = song ? song.artist : '';
+  $('inLyrics').value = song ? song.text : '';
+  taFont = 16; $('inLyrics').style.fontSize = taFont + 'px';
+  editCat = song ? (song.cats || 'C') : 'C';
+  renderCatSeg();
+  editColor = (song && song.color) ? song.color : null;
+  $('taColor').value = editColor || prefs.fg;
+  syncColorState();
+  $('editDelete').style.display = song ? '' : 'none';
+  $('editDelete').textContent = (song && song.id && song.id.charAt(0) === 'C') ? '🗑 Excluir' : (song ? '🗑 Remover da lista' : '🗑 Excluir');
+  show('editView');
+}
+function hasUnsavedEdit(){
+  return $('editView').classList.contains('active') &&
+    ($('inTitle').value.trim() || $('inArtist').value.trim() || $('inLyrics').value.trim());
+}
+function closeEdit(){ show('homeView'); refresh(); }
+$('editBack').onclick = () => {
+  if (hasUnsavedEdit() && !confirm('Descartar esta letra sem salvar?')) return;
+  history.back();
+};
+$('saveSong').onclick = () => {
+  const title = $('inTitle').value.trim();
+  const artist = $('inArtist').value.trim() || 'Desconhecido';
+  const text = $('inLyrics').value.replace(/\r\n/g, '\n').trim();
+  if (!title || !text){ alert('Preencha ao menos o título e a letra completa.'); return; }
+  if (editingId && editingId.charAt(0) === 'C'){
+    const idx = CUSTOM.findIndex(s => s.id === editingId);
+    if (idx >= 0) CUSTOM[idx] = { id: editingId, title, artist, cats: editCat, text, color: editColor };
+    saveCustom();
+  } else if (editingId){
+    OVERRIDES[editingId] = { title, artist, cats: editCat, text, color: editColor };
+    saveOverrides();
+  } else {
+    CUSTOM.push({ id: 'C' + Date.now().toString(36) + Math.random().toString(36).slice(2,7), title, artist, cats: editCat, text, color: editColor });
+    saveCustom();
+  }
+  rebuildAll();
+  history.back();
+};
+$('editDelete').onclick = () => {
+  if (!editingId) return;
+  const isCustom = editingId.charAt(0) === 'C';
+  const msg = isCustom
+    ? 'Excluir esta letra definitivamente? Essa ação não pode ser desfeita.'
+    : 'Remover esta música da lista? Você pode restaurar depois em Configurações → Letras excluídas.';
+  if (!confirm(msg)) return;
+  if (isCustom){ CUSTOM = CUSTOM.filter(s => s.id !== editingId); saveCustom(); }
+  else { REMOVED.add(editingId); saveRemoved(); }
+  rebuildAll();
+  history.back();
+};
+/* ---- barra de ferramentas: tamanho, copiar, colar ---- */
+let taFont = 16;
+$('taFontUp').onclick = () => { taFont = Math.min(26, taFont + 1); $('inLyrics').style.fontSize = taFont + 'px'; };
+$('taFontDown').onclick = () => { taFont = Math.max(12, taFont - 1); $('inLyrics').style.fontSize = taFont + 'px'; };
+$('taPaste').onclick = async () => {
+  try{
+    const text = await navigator.clipboard.readText();
+    if (!text){ alert('A área de transferência está vazia.'); return; }
+    if ($('inLyrics').value.trim() && !confirm('Substituir o texto atual pelo conteúdo copiado?')) return;
+    $('inLyrics').value = text;
+  }catch(e){
+    alert('Não foi possível acessar a área de transferência automaticamente. Toque e segure no campo de texto e escolha "Colar".');
+  }
+};
+$('taCopy').onclick = async () => {
+  if (!$('inLyrics').value){ alert('Não há texto para copiar ainda.'); return; }
+  try{
+    await navigator.clipboard.writeText($('inLyrics').value);
+    alert('Letra copiada para a área de transferência.');
+  }catch(e){
+    alert('Não foi possível copiar automaticamente. Selecione o texto manualmente.');
+  }
+};
+$('addBtn').onclick = () => openEdit(null);
 
 /* volta com botão do Android (history) */
 history.replaceState({v:'home'}, '');
 window.addEventListener('popstate', () => {
-  if ($('setView').classList.contains('active')) { $('setView').classList.remove('active'); history.pushState({v:'song'}, ''); }
-  else if ($('songView').classList.contains('active')) { backHome(); }
+  if ($('voiceSheet').classList.contains('active')) { closeVoiceSheet(); history.pushState({v:'top'}, ''); return; }
+  if ($('setlistSheet').classList.contains('active')) { closeSetlistManager(); history.pushState({v:'top'}, ''); return; }
+  if ($('actionSheet').classList.contains('active')) { closeActions(); history.pushState({v:'top'}, ''); return; }
+  if (selecting) { exitSelect(); return; }
+  if ($('setView').classList.contains('active')) { $('setView').classList.remove('active'); history.pushState({v:'top'}, ''); return; }
+  if ($('editView').classList.contains('active')) { closeEdit(); return; }
+  if ($('songView').classList.contains('active')) { backHome(); return; }
 });
 const _open = openSong;
 openSong = function(l, i){ if (!$('songView').classList.contains('active')) history.pushState({v:'song'}, ''); _open(l, i); };
+const _openEdit = openEdit;
+openEdit = function(song){ if (!$('editView').classList.contains('active')) history.pushState({v:'edit'}, ''); _openEdit(song); };
+$('menuBtn').onclick = () => history.back();
+
+/* ================= PWA: instalação e cache offline ================= */
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller){
+            showUpdateBanner(reg);
+          }
+        });
+      });
+    }).catch(() => {});
+  });
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+}
+function showUpdateBanner(reg){
+  if ($('updateBanner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'updateBanner';
+  bar.innerHTML = '<span>Nova versão do app disponível.</span><button>Atualizar</button>';
+  bar.querySelector('button').onclick = () => {
+    if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+    bar.remove();
+  };
+  document.body.appendChild(bar);
+}
 </script>
 </body>
 </html>
