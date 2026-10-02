@@ -170,6 +170,24 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 #closeSetlistMgr{margin-top:10px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
   color:var(--fg);font-size:15px;font-weight:600}
 
+/* ===== PREPARAR PARA MÚSICOS ===== */
+#musicianSheet{display:none;position:fixed;inset:0;background:#0c0c0e;z-index:65;flex-direction:column}
+#musicianSheet.active{display:flex}
+#musicianHead{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #262628;flex:0 0 auto}
+#musicianHead button{color:var(--accent);font-size:15px;font-weight:700;padding:8px 4px}
+#musicianHead h2{font-size:18px;color:var(--fg)}
+#musicianSub{font-size:12px;color:var(--muted);margin-top:2px}
+#musicianList{flex:1;overflow-y:auto;padding:8px 14px 120px;-webkit-overflow-scrolling:touch}
+.musicianRow{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #202022}
+.musicianInfo{flex:1;min-width:0}
+.musicianTitle{font-size:15px;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.musicianArtist{font-size:12px;color:var(--artist);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.musicianKey{width:70px;padding:10px 8px;border-radius:10px;border:1px solid #3a3a3c;background:#1c1c1e;color:#fff;font-size:16px;font-weight:800;text-align:center;outline:none}
+.musicianKey:focus{border-color:var(--accent)}
+#musicianActions{position:fixed;left:0;right:0;bottom:0;z-index:66;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#151517;border-top:1px solid #2c2c2e}
+#musicianActions button{padding:12px 8px;border-radius:11px;background:#2c2c2e;color:#fff;font-size:13px;font-weight:700}
+#musicianActions button.primary{background:var(--accent)}
+
 /* ===== BUSCA POR VOZ ===== */
 #voiceSheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:70}
 #voiceSheet.active{display:block}
@@ -348,6 +366,24 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
     <div id="setlistMgrList"></div>
     <button id="newSetlistBtn">+ Novo setlist</button>
     <button id="closeSetlistMgr">Fechar</button>
+  </div>
+</div>
+
+<!-- ============ PREPARAR PARA MÚSICOS ============ -->
+<div id="musicianSheet">
+  <div id="musicianHead">
+    <button id="musicianBack">‹ Voltar</button>
+    <div>
+      <h2 id="musicianTitle">Repertório para músicos</h2>
+      <div id="musicianSub">Somente música - artista - nota será compartilhado.</div>
+    </div>
+  </div>
+  <div id="musicianList"></div>
+  <div id="musicianActions">
+    <button id="musicianCopyLink" class="primary">🔗 Copiar link</button>
+    <button id="musicianPdf">PDF</button>
+    <button id="musicianWord">Word (.doc)</button>
+    <button id="musicianText">Copiar texto</button>
   </div>
 </div>
 
@@ -7300,7 +7336,8 @@ const SONGS = (() => {
   });
   push();
   out.forEach((s, i) => {
-    s.id = 'S' + i + '_' + s.title.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 20);
+    s.legacyId = 'S' + i + '_' + s.title.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 20);
+    s.id = stableSongId(s.title, s.artist);
     s.norm = norm(s.title + ' ' + s.artist);
     s.sortKey = norm(s.title).replace(/^[^a-z0-9]+/, '');
   });
@@ -7310,6 +7347,17 @@ const SONGS = (() => {
 function norm(s) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
+function stableSongId(title, artist){
+  const str = norm((title || '') + '|' + (artist || ''));
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++){
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return 'SB' + (h >>> 0).toString(36);
+}
+const LEGACY_ID_MAP = new Map(SONGS.map(s => [s.legacyId, s.id]));
+function migrateBuiltinId(id){ return LEGACY_ID_MAP.get(id) || id; }
 
 /* ================= MINHAS LETRAS (localStorage) ================= */
 const CUSTOM_KEY = 'repHaroldo_custom_v1';
@@ -7324,11 +7372,21 @@ function saveCustom(){ try{ localStorage.setItem(CUSTOM_KEY, JSON.stringify(CUST
 const SETLISTS_KEY = 'repHaroldo_setlists_v1';
 const OLD_SETLIST_KEY = 'repHaroldo_setlist_v1';
 let SETLISTS = [], activeSetlistId = null;
+function normalizeSetlist(st){
+  if (!st || typeof st !== 'object') return null;
+  if (!Array.isArray(st.songIds)) st.songIds = [];
+  st.songIds = st.songIds.map(migrateBuiltinId);
+  if (!st.songKeys || typeof st.songKeys !== 'object') st.songKeys = {};
+  const fixedKeys = {};
+  Object.keys(st.songKeys).forEach(id => fixedKeys[migrateBuiltinId(id)] = String(st.songKeys[id] || ''));
+  st.songKeys = fixedKeys;
+  return st;
+}
 try {
   const raw = JSON.parse(localStorage.getItem(SETLISTS_KEY) || 'null');
-  if (raw && Array.isArray(raw.list)) { SETLISTS = raw.list; activeSetlistId = raw.active || null; }
+  if (raw && Array.isArray(raw.list)) { SETLISTS = raw.list.map(normalizeSetlist).filter(Boolean); activeSetlistId = raw.active || null; }
 } catch(e) { SETLISTS = []; }
-function saveSetlists(){ try{ localStorage.setItem(SETLISTS_KEY, JSON.stringify({ list: SETLISTS, active: activeSetlistId })); }catch(e){} }
+function saveSetlists(){ try{ SETLISTS.forEach(normalizeSetlist); localStorage.setItem(SETLISTS_KEY, JSON.stringify({ list: SETLISTS, active: activeSetlistId })); }catch(e){} }
 function activeSetlist(){ return SETLISTS.find(s => s.id === activeSetlistId) || null; }
 // migração de versão antiga (setlist único, sem nome)
 if (!localStorage.getItem(SETLISTS_KEY)){
@@ -7336,7 +7394,7 @@ if (!localStorage.getItem(SETLISTS_KEY)){
     const oldRaw = JSON.parse(localStorage.getItem(OLD_SETLIST_KEY) || '[]');
     if (Array.isArray(oldRaw) && oldRaw.length){
       const id = 'ST' + Date.now().toString(36);
-      SETLISTS = [{ id, name: 'Setlist 1', songIds: oldRaw }];
+      SETLISTS = [{ id, name: 'Setlist 1', songIds: oldRaw.map(migrateBuiltinId), songKeys: {} }];
       activeSetlistId = id;
       saveSetlists();
     }
@@ -7375,9 +7433,12 @@ function manageCustomCat(key){
 /* ================= OCULTAR / EXCLUIR / EDITAR (qualquer música) ================= */
 const HIDDEN_KEY = 'repHaroldo_hidden_v1', REMOVED_KEY = 'repHaroldo_removed_v1', OVERRIDES_KEY = 'repHaroldo_overrides_v1';
 let HIDDEN = new Set(), REMOVED = new Set(), OVERRIDES = {};
-try { const h = JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'); if (Array.isArray(h)) HIDDEN = new Set(h); } catch(e) {}
-try { const r = JSON.parse(localStorage.getItem(REMOVED_KEY) || '[]'); if (Array.isArray(r)) REMOVED = new Set(r); } catch(e) {}
-try { OVERRIDES = JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}') || {}; } catch(e) { OVERRIDES = {}; }
+try { const h = JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'); if (Array.isArray(h)) HIDDEN = new Set(h.map(migrateBuiltinId)); } catch(e) {}
+try { const r = JSON.parse(localStorage.getItem(REMOVED_KEY) || '[]'); if (Array.isArray(r)) REMOVED = new Set(r.map(migrateBuiltinId)); } catch(e) {}
+try {
+  const loaded = JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}') || {};
+  Object.keys(loaded).forEach(id => OVERRIDES[migrateBuiltinId(id)] = loaded[id]);
+} catch(e) { OVERRIDES = {}; }
 function saveHidden(){ try{ localStorage.setItem(HIDDEN_KEY, JSON.stringify([...HIDDEN])); }catch(e){} }
 function saveRemoved(){ try{ localStorage.setItem(REMOVED_KEY, JSON.stringify([...REMOVED])); }catch(e){} }
 function saveOverrides(){ try{ localStorage.setItem(OVERRIDES_KEY, JSON.stringify(OVERRIDES)); }catch(e){} }
@@ -7419,7 +7480,10 @@ const DEF = { fg:'#ffffff', title:'#ff3b30', artist:'#ffd60a', bg:'#000000',
 const LSK = 'repHaroldo_prefs_v1', LSS = 'repHaroldo_speeds_v1';
 let prefs = { ...DEF }, speeds = {};
 try { Object.assign(prefs, JSON.parse(localStorage.getItem(LSK) || '{}')); } catch(e) {}
-try { speeds = JSON.parse(localStorage.getItem(LSS) || '{}') || {}; } catch(e) {}
+try {
+  const loaded = JSON.parse(localStorage.getItem(LSS) || '{}') || {};
+  Object.keys(loaded).forEach(id => speeds[migrateBuiltinId(id)] = loaded[id]);
+} catch(e) {}
 function savePrefs(){ try{ localStorage.setItem(LSK, JSON.stringify(prefs)); }catch(e){} }
 function saveSpeeds(){ try{ localStorage.setItem(LSS, JSON.stringify(speeds)); }catch(e){} }
 function applyPrefs(){
@@ -7634,7 +7698,7 @@ $('selectBtn').onclick = () => {
     if (name === null) return;
     const t = name.trim() || 'Setlist 1';
     const id = 'ST' + Date.now().toString(36);
-    SETLISTS.push({ id, name: t, songIds: [] });
+    SETLISTS.push({ id, name: t, songIds: [], songKeys: {} });
     activeSetlistId = id; saveSetlists();
   }
   enterSelect();
@@ -7651,7 +7715,7 @@ $('selConfirm').onclick = () => {
   if (st){ st.songIds = tempSelection.slice(); }
   else {
     const id = 'ST' + Date.now().toString(36);
-    SETLISTS.push({ id, name: 'Setlist 1', songIds: tempSelection.slice() });
+    SETLISTS.push({ id, name: 'Setlist 1', songIds: tempSelection.slice(), songKeys: {} });
     activeSetlistId = id;
   }
   saveSetlists();
@@ -7679,6 +7743,7 @@ function renderSetlistManager(){
       '<div class="slActions">' +
       '<button data-a="use" title="Usar este">▶</button>' +
       '<button data-a="edit" title="Editar músicas">☑</button>' +
+      '<button data-a="mus" title="Preparar para músicos">♫</button>' +
       '<button data-a="ren" title="Renomear">✎</button>' +
       '<button data-a="del" title="Excluir">🗑</button></div>';
     row.querySelector('[data-a="use"]').onclick = () => {
@@ -7688,6 +7753,10 @@ function renderSetlistManager(){
     row.querySelector('[data-a="edit"]').onclick = () => {
       activeSetlistId = st.id; saveSetlists();
       closeSetlistManager(); enterSelect();
+    };
+    row.querySelector('[data-a="mus"]').onclick = () => {
+      activeSetlistId = st.id; saveSetlists();
+      closeSetlistManager(); openMusicianPrep(st);
     };
     row.querySelector('[data-a="ren"]').onclick = () => {
       const name = prompt('Renomear setlist:', st.name);
@@ -7709,7 +7778,7 @@ $('newSetlistBtn').onclick = () => {
   if (name === null) return;
   const t = name.trim(); if (!t) return;
   const id = 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-  SETLISTS.push({ id, name: t, songIds: [] });
+  SETLISTS.push({ id, name: t, songIds: [], songKeys: {} });
   activeSetlistId = id; saveSetlists();
   closeSetlistManager();
   enterSelect();
@@ -7719,6 +7788,180 @@ $('setlistSheet').addEventListener('click', e => { if (e.target === $('setlistSh
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 $('search').addEventListener('input', e => { query = norm(e.target.value.trim()); refresh(); });
 refresh();
+
+/* ================= REPERTÓRIO PARA MÚSICOS ================= */
+const MUSICIANS_BASE_URL = 'https://mizaelsouza12.github.io/repertorio-haroldo/';
+let musicianSetlistId = null;
+function musicianSetlist(){ return SETLISTS.find(st => st.id === musicianSetlistId) || null; }
+function setlistKey(st, songId){
+  normalizeSetlist(st);
+  return String(st.songKeys[songId] || '');
+}
+function setSetlistKey(st, songId, value){
+  normalizeSetlist(st);
+  st.songKeys[songId] = String(value || '').trim();
+  saveSetlists();
+}
+function openMusicianPrep(st){
+  if (!st) return;
+  musicianSetlistId = st.id;
+  renderMusicianPrep();
+  $('musicianSheet').classList.add('active');
+  history.pushState({v:'musicians'}, '');
+}
+function closeMusicianPrep(){
+  $('musicianSheet').classList.remove('active');
+  musicianSetlistId = null;
+}
+$('musicianBack').onclick = () => history.back();
+function renderMusicianPrep(){
+  const st = musicianSetlist(); if (!st) return;
+  $('musicianTitle').textContent = st.name;
+  const songs = st.songIds.map(id => SONG_MAP.get(id)).filter(Boolean);
+  $('musicianSub').textContent = songs.length + ' música(s) · compartilha somente música - artista - nota';
+  const wrap = $('musicianList'); wrap.innerHTML = '';
+  if (!songs.length){
+    const p = document.createElement('div'); p.className = 'manageEmpty';
+    p.textContent = 'Este setlist está vazio. Adicione músicas antes de compartilhar.';
+    wrap.appendChild(p); return;
+  }
+  songs.forEach((song, idx) => {
+    const row = document.createElement('div'); row.className = 'musicianRow';
+    const info = document.createElement('div'); info.className = 'musicianInfo';
+    info.innerHTML = '<div class="musicianTitle">' + String(idx + 1).padStart(2,'0') + '. ' + esc(song.title) + '</div>' +
+      '<div class="musicianArtist">' + esc(song.artist || '') + '</div>';
+    const input = document.createElement('input');
+    input.className = 'musicianKey'; input.type = 'text'; input.maxLength = 12;
+    input.placeholder = 'Nota'; input.value = setlistKey(st, song.id);
+    input.autocapitalize = 'characters'; input.autocomplete = 'off';
+    input.setAttribute('aria-label', 'Nota de ' + song.title);
+    input.addEventListener('input', () => setSetlistKey(st, song.id, input.value));
+    row.appendChild(info); row.appendChild(input); wrap.appendChild(row);
+  });
+}
+function musicianPayload(st){
+  normalizeSetlist(st);
+  return { v:1, n:st.name || 'Repertório', s:st.songIds.map(id => {
+    const song = SONG_MAP.get(id); if (!song) return null;
+    return [song.title, song.artist || '', setlistKey(st, id)];
+  }).filter(Boolean) };
+}
+function missingMusicianKeys(st){
+  const p = musicianPayload(st);
+  return p.s.filter(x => !String(x[2] || '').trim()).length;
+}
+function allowMusicianExport(st){
+  const missing = missingMusicianKeys(st);
+  if (!missing) return true;
+  return confirm(missing + ' música(s) ainda estão sem nota. Compartilhar mesmo assim?');
+}
+function payloadToBase64Url(payload){
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function musicianLink(st){ return MUSICIANS_BASE_URL + '#d=' + payloadToBase64Url(musicianPayload(st)); }
+async function copyTextSafe(text, okMsg){
+  try{ await navigator.clipboard.writeText(text); alert(okMsg); }
+  catch(e){ prompt('Copie o conteúdo abaixo:', text); }
+}
+function musicianPlainText(st){
+  const p = musicianPayload(st);
+  const lines = ['REPERTÓRIO - ' + p.n, ''];
+  p.s.forEach((x, i) => lines.push(String(i+1).padStart(2,'0') + '. ' + x[0] + ' - ' + x[1] + ' - ' + (x[2] || '___')));
+  return lines.join('\n');
+}
+$('musicianCopyLink').onclick = async () => {
+  const st = musicianSetlist(); if (!st || !allowMusicianExport(st)) return;
+  const link = musicianLink(st);
+  if (link.length > 7000 && !confirm('Este link ficou muito grande. Para repertórios extensos, PDF ou Word é mais confiável. Copiar mesmo assim?')) return;
+  await copyTextSafe(link, 'Link do repertório copiado. Ele contém somente música, artista e nota.');
+};
+$('musicianText').onclick = async () => {
+  const st = musicianSetlist(); if (!st || !allowMusicianExport(st)) return;
+  await copyTextSafe(musicianPlainText(st), 'Repertório copiado em texto.');
+};
+function safeFileName(s){
+  return String(s || 'repertorio').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9_-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60) || 'repertorio';
+}
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function htmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+$('musicianWord').onclick = () => {
+  const st = musicianSetlist(); if (!st || !allowMusicianExport(st)) return;
+  const p = musicianPayload(st);
+  let rows = '';
+  p.s.forEach((x,i) => { rows += '<tr><td>'+(i+1)+'</td><td>'+htmlEsc(x[0])+'</td><td>'+htmlEsc(x[1])+'</td><td><b>'+htmlEsc(x[2] || '___')+'</b></td></tr>'; });
+  const doc = '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;margin:36px;color:#111}h1{font-size:22px}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #ccc;text-align:left}th{background:#eee}</style></head><body><h1>REPERTÓRIO - '+htmlEsc(p.n)+'</h1><table><tr><th>#</th><th>Música</th><th>Artista</th><th>Nota</th></tr>'+rows+'</table></body></html>';
+  downloadBlob(new Blob(['\ufeff', doc], {type:'application/msword'}), safeFileName(p.n) + '.doc');
+};
+function pdfLatin(s){
+  const map = {'–':'-','—':'-','’':"'",'‘':"'",'“':'"','”':'"','…':'...','•':'-'};
+  let out = '';
+  for (const ch of String(s)){
+    if (map[ch]) out += map[ch];
+    else if (ch.charCodeAt(0) <= 255) out += ch;
+    else out += '?';
+  }
+  return out;
+}
+function pdfEscape(s){ return pdfLatin(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)'); }
+function pdfWrap(s, max){
+  const words = pdfLatin(s).split(/\s+/); const lines = []; let line = '';
+  words.forEach(w => {
+    const test = line ? line + ' ' + w : w;
+    if (test.length > max && line){ lines.push(line); line = w; }
+    else line = test;
+  });
+  if (line) lines.push(line);
+  return lines.length ? lines : [''];
+}
+function buildMusicianPdf(st){
+  const p = musicianPayload(st); const body = [];
+  p.s.forEach((x,i) => {
+    const row = String(i+1).padStart(2,'0') + '. ' + x[0] + ' - ' + x[1] + ' - ' + (x[2] || '___');
+    pdfWrap(row, 82).forEach(line => body.push(line));
+  });
+  const perPage = 43, pages = [];
+  for (let i=0; i<body.length; i+=perPage) pages.push(body.slice(i, i+perPage));
+  if (!pages.length) pages.push([]);
+  const objects = {};
+  objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  const kids = [];
+  pages.forEach((lines, pageIndex) => {
+    const contentNo = 4 + pageIndex * 2, pageNo = contentNo + 1; kids.push(pageNo + ' 0 R');
+    let stream = 'BT\n/F1 16 Tf\n50 792 Td\n(' + pdfEscape('REPERTÓRIO - ' + p.n) + ') Tj\n';
+    stream += '/F1 10 Tf\n0 -28 Td\n';
+    lines.forEach((line, idx) => {
+      if (idx) stream += '0 -16 Td\n';
+      stream += '(' + pdfEscape(line) + ') Tj\n';
+    });
+    stream += 'ET\n';
+    objects[contentNo] = '<< /Length ' + stream.length + ' >>\nstream\n' + stream + 'endstream';
+    objects[pageNo] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ' + contentNo + ' 0 R >>';
+  });
+  objects[2] = '<< /Type /Pages /Count ' + pages.length + ' /Kids [' + kids.join(' ') + '] >>';
+  const maxObj = 3 + pages.length * 2; let pdf = '%PDF-1.4\n%âãÏÓ\n'; const offsets = [0];
+  for (let i=1; i<=maxObj; i++){
+    offsets[i] = pdf.length;
+    pdf += i + ' 0 obj\n' + objects[i] + '\nendobj\n';
+  }
+  const xref = pdf.length;
+  pdf += 'xref\n0 ' + (maxObj + 1) + '\n0000000000 65535 f \n';
+  for (let i=1; i<=maxObj; i++) pdf += String(offsets[i]).padStart(10,'0') + ' 00000 n \n';
+  pdf += 'trailer\n<< /Size ' + (maxObj + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
+  return new Uint8Array(Array.from(pdf, ch => ch.charCodeAt(0) & 255));
+}
+$('musicianPdf').onclick = () => {
+  const st = musicianSetlist(); if (!st || !allowMusicianExport(st)) return;
+  const bytes = buildMusicianPdf(st);
+  downloadBlob(new Blob([bytes], {type:'application/pdf'}), safeFileName(st.name) + '.pdf');
+};
 
 /* ================= BUSCA POR VOZ ================= */
 /* Usa a Web Speech API do navegador (grátis, nativa do Chrome/Android).
@@ -7856,13 +8099,13 @@ function fabResetIdle(){
   window.addEventListener('mouseup', up);
 })();
 function updateFabVisibility(){
-  const overlayOpen = ['setView','actionSheet','setlistSheet','voiceSheet'].some(id => $(id).classList.contains('active'));
+  const overlayOpen = ['setView','actionSheet','setlistSheet','musicianSheet','voiceSheet'].some(id => $(id).classList.contains('active'));
   const onHome = $('homeView').classList.contains('active');
   const shouldShow = prefs.fabEnabled !== false && onHome && !overlayOpen;
   $('voiceFab').style.display = shouldShow ? 'flex' : 'none';
 }
 const fabWatchObserver = new MutationObserver(updateFabVisibility);
-['homeView','setView','actionSheet','setlistSheet','voiceSheet'].forEach(id => {
+['homeView','setView','actionSheet','setlistSheet','musicianSheet','voiceSheet'].forEach(id => {
   fabWatchObserver.observe($(id), { attributes: true, attributeFilter: ['class'] });
 });
 applyFabPos();
@@ -8002,7 +8245,7 @@ function finalizeVoiceList(){
   if (name === null) return;
   const t = name.trim() || 'Lista por voz';
   const id = 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-  SETLISTS.push({ id, name: t, songIds: chosen });
+  SETLISTS.push({ id, name: t, songIds: chosen, songKeys: {} });
   activeSetlistId = id; saveSetlists();
   closeVoiceSheet();
   filterCat = 'SET'; artistMode = false; filterArtist = null;
@@ -8257,9 +8500,9 @@ $('importFile').addEventListener('change', e => {
       }
       // 4) ocultas / excluídas / editadas — une os conjuntos
       if (isFull){
-        if (Array.isArray(d.hidden)) d.hidden.forEach(id => HIDDEN.add(idMap[id] || id));
-        if (Array.isArray(d.removed)) d.removed.forEach(id => REMOVED.add(idMap[id] || id));
-        if (d.overrides) Object.keys(d.overrides).forEach(id => { const nid = idMap[id] || id; if (!OVERRIDES[nid]) OVERRIDES[nid] = d.overrides[id]; });
+        if (Array.isArray(d.hidden)) d.hidden.forEach(id => HIDDEN.add(idMap[id] || migrateBuiltinId(id)));
+        if (Array.isArray(d.removed)) d.removed.forEach(id => REMOVED.add(idMap[id] || migrateBuiltinId(id)));
+        if (d.overrides) Object.keys(d.overrides).forEach(id => { const nid = idMap[id] || migrateBuiltinId(id); if (!OVERRIDES[nid]) OVERRIDES[nid] = d.overrides[id]; });
         saveHidden(); saveRemoved(); saveOverrides();
       }
       rebuildAll();
@@ -8268,10 +8511,12 @@ $('importFile').addEventListener('change', e => {
       if (isFull && Array.isArray(d.setlists)){
         d.setlists.forEach(st => {
           if (!st || !st.name || !Array.isArray(st.songIds)) return;
-          const fixedIds = st.songIds.map(id => idMap[id] || id).filter(id => SONG_MAP.has(id));
+          const fixedIds = st.songIds.map(id => idMap[id] || migrateBuiltinId(id)).filter(id => SONG_MAP.has(id));
           const already = SETLISTS.some(x => x.id === st.id || x.name === st.name);
           if (already) return;
-          SETLISTS.push({ id: 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2,5), name: st.name, songIds: fixedIds });
+          const fixedKeys = {};
+          if (st.songKeys && typeof st.songKeys === 'object') Object.keys(st.songKeys).forEach(k => fixedKeys[idMap[k] || migrateBuiltinId(k)] = String(st.songKeys[k] || ''));
+          SETLISTS.push({ id: 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2,5), name: st.name, songIds: fixedIds, songKeys: fixedKeys });
           addedSetlists++;
         });
         if (!activeSetlistId && SETLISTS.length) activeSetlistId = SETLISTS[0].id;
@@ -8279,7 +8524,7 @@ $('importFile').addEventListener('change', e => {
       }
       // 6) velocidades por música — só preenche o que ainda não tem velocidade definida
       if (isFull && d.speeds){
-        Object.keys(d.speeds).forEach(id => { const nid = idMap[id] || id; if (speeds[nid] === undefined) speeds[nid] = d.speeds[id]; });
+        Object.keys(d.speeds).forEach(id => { const nid = idMap[id] || migrateBuiltinId(id); if (speeds[nid] === undefined) speeds[nid] = d.speeds[id]; });
         saveSpeeds();
       }
       // 7) cores/fonte/velocidade padrão — pergunta antes de sobrescrever a aparência atual
@@ -8418,6 +8663,7 @@ $('addBtn').onclick = () => openEdit(null);
 /* volta com botão do Android (history) */
 history.replaceState({v:'home'}, '');
 window.addEventListener('popstate', () => {
+  if ($('musicianSheet').classList.contains('active')) { closeMusicianPrep(); return; }
   if ($('voiceSheet').classList.contains('active')) { closeVoiceSheet(); history.pushState({v:'top'}, ''); return; }
   if ($('setlistSheet').classList.contains('active')) { closeSetlistManager(); history.pushState({v:'top'}, ''); return; }
   if ($('actionSheet').classList.contains('active')) { closeActions(); history.pushState({v:'top'}, ''); return; }
