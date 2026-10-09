@@ -753,3 +753,30 @@ test('76: duas abas do aplicativo preparam notas distintas sem perda',()=>{
   assert.equal(persisted.A[ids[1]],'C7');
   a.w.close();b.w.close();
 });
+
+
+test('77: falta de espaço ao salvar preferencias nao pode fingir valor persistido',()=>{
+  const store=createStorage(),native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_prefs_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warnings=[];w.alert=t=>warnings.push(String(t));
+  w.document.getElementById('setBtnHome').click();
+  w.document.getElementById('fPlus').click();
+  assert.equal(w.eval('prefs.font'),22);
+  assert.equal(w.document.getElementById('fVal').textContent,'22px');
+  assert.ok(warnings.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
+test('78: falha ao restaurar música oculta mantém item no conjunto original',()=>{
+  const store=createStorage(),native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_hidden_v1' && store.getItem('repHaroldo_hidden_v1')
+    ?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warnings=[];w.alert=t=>warnings.push(String(t));
+  w.eval('HIDDEN.add(ALL[0].id);saveHidden();rebuildAll()');
+  assert.equal(w.eval('ALL.length'),213);
+  w.document.getElementById('setBtnHome').click();
+  w.document.querySelector('#hiddenList .manageRow button').click();
+  assert.equal(w.eval('ALL.length'),213);
+  assert.equal(w.eval('HIDDEN.size'),1);
+  assert.ok(warnings.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
