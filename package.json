@@ -4,9 +4,10 @@
   "private": true,
   "description": "Testes de regressão do Repertório Haroldo (GitHub Pages)",
   "scripts": {
-    "test": "node --test tests/*.test.cjs",
+    "test": "node --test tests/repertorio.test.cjs tests/browser.test.cjs",
     "test:browser": "node --test tests/browser.test.cjs",
-    "audit:source": "node scripts/review-source.cjs"
+    "audit:source": "node scripts/review-source.cjs",
+    "test:compat": "node --test tests/compatibility.test.cjs"
   },
   "devDependencies": {
     "jsdom": "26.1.0",
