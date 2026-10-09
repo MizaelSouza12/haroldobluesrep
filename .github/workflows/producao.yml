@@ -2,6 +2,9 @@ name: Verificação diária da produção
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["pages build and deployment"]
+    types: [completed]
   schedule:
     - cron: '15 9 * * *'
 
@@ -11,6 +14,7 @@ permissions:
 jobs:
   smoke:
     name: GitHub Pages - verificação HTTP real
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
