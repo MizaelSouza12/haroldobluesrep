@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0d">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<title>A Sua Maneira — Repertório</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0b0d;--line:#29292d;--fg:#f5f5f7;--muted:#98989f;--accent:#ff453a;--artist:#ffd60a}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+main{width:min(860px,100%);margin:0 auto;padding:26px 18px 48px}
+header{padding-bottom:20px;border-bottom:1px solid var(--line)}
+.eyebrow{margin:0 0 7px;color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+h1{margin:0;font-size:clamp(25px,6vw,39px);line-height:1.08}.meta{margin-top:9px;color:var(--muted);font-size:14px}
+.song{display:grid;grid-template-columns:44px minmax(0,1fr) 68px;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line)}
+.num{color:var(--muted);font-size:13px;font-weight:700;text-align:right}.title{font-size:17px;font-weight:750}.artist{margin-top:4px;color:var(--artist);font-size:13px}
+.key{padding:8px 7px;border-radius:10px;background:#222226;border:1px solid #38383d;text-align:center;font-size:17px;font-weight:850;min-height:39px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}button{border:0;border-radius:11px;padding:12px 15px;background:#26262a;color:var(--fg);font:inherit;font-size:14px;font-weight:750;cursor:pointer}
+button.primary{background:var(--accent);color:#fff}#error{display:none;margin:26px 0;padding:16px;border:1px solid #4a2727;border-radius:14px;background:#1c1112;color:#ffb4ae}
+footer{margin-top:28px;color:#666;font-size:11px;text-align:center}
+@media(max-width:520px){main{padding-left:12px;padding-right:12px}.song{grid-template-columns:32px minmax(0,1fr) 54px;gap:8px}.title{font-size:16px}.key{font-size:15px}}
+@media print{body{background:#fff;color:#111}main{width:100%;padding:0}.eyebrow,.artist{color:#111}.meta,.num{color:#555}.key{background:#fff;border-color:#aaa}.actions,footer{display:none}.song{break-inside:avoid;border-color:#ddd}}
+</style>
+</head>
+<body>
+<main>
+<header><p class="eyebrow">Repertório para músicos</p><h1 id="title">A Sua Maneira</h1><div class="meta" id="meta">Carregando…</div></header>
+<div id="error"></div><section id="list"></section>
+<div class="actions"><button class="primary" id="copyBtn">Copiar lista</button><button id="printBtn">Imprimir / PDF</button></div>
+<footer>Somente música, artista e nota.</footer>
+</main>
+<script>
+'use strict';
+function add(parent,cls,text){const e=document.createElement('div');e.className=cls;e.textContent=text;parent.appendChild(e);return e;}
+async function load(){
+  const res=await fetch('./a-sua-maneira.json',{cache:'no-store'});
+  if(!res.ok) throw new Error('Não foi possível carregar este repertório.');
+  const data=await res.json();
+  if(!data||!Array.isArray(data.songs)) throw new Error('Formato de repertório inválido.');
+  document.getElementById('title').textContent=data.name||'Repertório';
+  document.getElementById('meta').textContent=data.songs.length+(data.songs.length===1?' música':' músicas');
+  document.title=(data.name||'Repertório')+' — Repertório';
+  const list=document.getElementById('list'); list.textContent='';
+  data.songs.forEach((s,i)=>{
+    const row=document.createElement('article');row.className='song';
+    add(row,'num',String(i+1).padStart(2,'0'));
+    const info=document.createElement('div');add(info,'title',s.title||'Sem título');add(info,'artist',s.artist||'');row.appendChild(info);
+    add(row,'key',String(s.key||'—'));list.appendChild(row);
+  });
+  document.getElementById('copyBtn').onclick=async()=>{
+    const lines=['REPERTÓRIO - '+(data.name||'Repertório'),''];
+    data.songs.forEach((s,i)=>lines.push(String(i+1).padStart(2,'0')+'. '+s.title+' - '+s.artist+' - '+(s.key||'___')));
+    const txt=lines.join('\n');
+    try{await navigator.clipboard.writeText(txt);alert('Lista copiada.');}catch(e){prompt('Copie a lista:',txt);}
+  };
+}
+document.getElementById('printBtn').onclick=()=>window.print();
+load().catch(err=>{const e=document.getElementById('error');e.textContent=err.message||'Erro ao carregar.';e.style.display='block';document.getElementById('meta').textContent='Erro';});
+</script>
+</body></html>
