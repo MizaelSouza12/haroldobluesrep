@@ -653,7 +653,8 @@ test('68: ativação da PWA preserva caches de outros apps do mesmo domínio',as
   const handlers={},deleted=[];
   const self={addEventListener:(name,fn)=>handlers[name]=fn,clients:{claim:async()=>{}},
     location:{origin:'https://mizaelsouza12.github.io'}};
-  const caches={keys:async()=>['outro-projeto-offline','repertorio-haroldo-v1','repertorio-haroldo-v15'],
+  const current='repertorio-haroldo-'+(sw.match(/CACHE_VERSION = '([^']+)'/)||[])[1];
+  const caches={keys:async()=>['outro-projeto-offline','repertorio-haroldo-v1',current],
     delete:async key=>{deleted.push(key);return true;}};
   vm.runInNewContext(sw,{self,caches,fetch:()=>{},URL,Response});
   let task;handlers.activate({waitUntil:p=>task=p});await task;
