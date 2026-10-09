@@ -45,6 +45,7 @@ button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:po
   font-size:14px;border:1px solid #2c2c2e;white-space:nowrap}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 .chipAdd{padding:8px 12px !important;font-weight:800;border:1px dashed #555 !important;color:var(--muted)}
+.shareSetlistChip{background:#2a1716 !important;border-color:#6d2b27 !important;color:#ff8b82 !important;font-weight:800}
 #updateBanner{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));
   background:var(--accent);color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;
   display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:99999;
@@ -7544,6 +7545,17 @@ function buildChips(){
   };
   mk('Todas', filterCat==='ALL' && !artistMode && !filterArtist, () => { filterCat='ALL'; filterArtist=null; artistMode=false; refresh(); });
   mk(activeSetlistLabel(), filterCat==='SET' && !artistMode, () => { filterCat='SET'; filterArtist=null; artistMode=false; refresh(); }, openSetlistManager);
+  const shareSet = document.createElement('button');
+  shareSet.className = 'chip shareSetlistChip';
+  shareSet.textContent = '📤 Enviar setlist';
+  shareSet.title = 'Definir notas e compartilhar o setlist ativo com os músicos';
+  shareSet.onclick = (e) => {
+    e.stopPropagation();
+    const st = activeSetlist();
+    if (!st){ openSetlistManager(); return; }
+    openMusicianPrep(st);
+  };
+  chipsEl.appendChild(shareSet);
   const addSet = document.createElement('button');
   addSet.className = 'chip chipAdd'; addSet.textContent = '+'; addSet.title = 'Criar novo setlist';
   addSet.onclick = (e) => { e.stopPropagation(); openSetlistManager(); };
@@ -7790,7 +7802,7 @@ $('search').addEventListener('input', e => { query = norm(e.target.value.trim())
 refresh();
 
 /* ================= REPERTÓRIO PARA MÚSICOS ================= */
-const MUSICIANS_BASE_URL = 'https://mizaelsouza12.github.io/haroldobluesrep/musicos.html';
+const MUSICIANS_BASE_URL = 'https://mizaelsouza12.github.io/haroldobluesrep/setlist.html';
 let musicianSetlistId = null;
 function musicianSetlist(){ return SETLISTS.find(st => st.id === musicianSetlistId) || null; }
 function setlistKey(st, songId){
