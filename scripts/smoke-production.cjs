@@ -2,6 +2,8 @@
 // Verificação HTTP da produção publicada, independente de cache local,
 // JSDOM e servidor HTTP dos testes. Use: npm run test:production
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
 const BASE='https://mizaelsouza12.github.io/haroldobluesrep';
 const paths=[
   '/repertorio-haroldo.html','/setlist.html',
@@ -37,7 +39,11 @@ async function main(){
   assert.equal(playlistA.songs.length,204);
   assert.equal(playlistJ.songs.length,19);
   assert.ok(data['/setlists/editor.js'].includes('localStorage'));
-  assert.match(data['/sw.js'],/const CACHE_VERSION\s*=\s*'v\d+'/);
+  const localWorker=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
+  const expectedVersion=(localWorker.match(/const CACHE_VERSION\s*=\s*'(v\d+)'/)||[])[1];
+  const publishedVersion=(data['/sw.js'].match(/const CACHE_VERSION\s*=\s*'(v\d+)'/)||[])[1];
+  assert.ok(expectedVersion,'Versão local de SW inválida');
+  assert.equal(publishedVersion,expectedVersion,'A versão publicada está defasada em relação à main');
   const manifest=JSON.parse(data['/manifest.json']);
   assert.ok(manifest.start_url);
   console.log('PRODUÇÃO CONFIRMADA:',BASE);
