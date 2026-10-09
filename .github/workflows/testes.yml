@@ -1,0 +1,25 @@
+name: Testes do Repertório
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Node 22 - testes de regressão
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependências de teste
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Executar testes
+        run: npm test
