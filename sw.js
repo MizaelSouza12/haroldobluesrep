@@ -2,7 +2,7 @@
    IMPORTANTE: sempre que o repertorio-haroldo.html for atualizado,
    troque o número da CACHE_VERSION abaixo para forçar a atualização
    nos celulares que já têm o app instalado. */
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const CACHE_NAME = 'repertorio-haroldo-' + CACHE_VERSION;
 const ASSETS = [
   './repertorio-haroldo.html',
