@@ -164,8 +164,10 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 .slInfo{flex:1;min-width:0}
 .slName{font-size:15px;font-weight:700;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .slCount{font-size:12px;color:var(--muted);margin-top:1px}
-.slActions{display:flex;gap:6px;flex:0 0 auto}
-.slActions button{padding:7px 10px;border-radius:8px;background:#2c2c2e;color:var(--fg);font-size:14px}
+.slActions{display:flex;gap:6px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
+.slActions button{padding:7px 10px;border-radius:8px;background:#2c2c2e;color:var(--fg);font-size:13px;font-weight:700}
+.slActions button[data-a="mus"]{background:#4a1e1b;color:#ff9b93}
+.setlistHelp{font-size:12px;color:var(--muted);line-height:1.4;margin:-4px 0 10px}
 #newSetlistBtn{margin-top:14px;width:100%;padding:13px;border-radius:12px;background:var(--accent);
   color:#fff;font-size:15px;font-weight:700}
 #closeSetlistMgr{margin-top:10px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
@@ -187,7 +189,8 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 .musicianKey:focus{border-color:var(--accent)}
 #musicianActions{position:fixed;left:0;right:0;bottom:0;z-index:66;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#151517;border-top:1px solid #2c2c2e}
 #musicianActions button{padding:12px 8px;border-radius:11px;background:#2c2c2e;color:#fff;font-size:13px;font-weight:700}
-#musicianActions button.primary{background:var(--accent)}
+#musicianActions button.primary{background:var(--accent);grid-column:1/-1}
+#musicianActions button:disabled{opacity:.35;cursor:not-allowed}
 
 /* ===== BUSCA POR VOZ ===== */
 #voiceSheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:70}
@@ -364,6 +367,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 <div id="setlistSheet">
   <div id="setlistPanel">
     <h2>Meus Setlists</h2>
+    <div class="setlistHelp">Escolha qualquer setlist abaixo. Toque em <b>Enviar</b> para definir as notas e compartilhar somente música, artista e nota.</div>
     <div id="setlistMgrList"></div>
     <button id="newSetlistBtn">+ Novo setlist</button>
     <button id="closeSetlistMgr">Fechar</button>
@@ -381,7 +385,8 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
   </div>
   <div id="musicianList"></div>
   <div id="musicianActions">
-    <button id="musicianCopyLink" class="primary">🔗 Copiar link</button>
+    <button id="musicianShare" class="primary">📤 Compartilhar com músicos</button>
+    <button id="musicianCopyLink">🔗 Copiar link</button>
     <button id="musicianPdf">PDF</button>
     <button id="musicianWord">Word (.doc)</button>
     <button id="musicianText">Copiar texto</button>
@@ -7551,13 +7556,11 @@ function buildChips(){
   shareSet.title = 'Definir notas e compartilhar o setlist ativo com os músicos';
   shareSet.onclick = (e) => {
     e.stopPropagation();
-    const st = activeSetlist();
-    if (!st){ openSetlistManager(); return; }
-    openMusicianPrep(st);
+    openSetlistManager();
   };
   chipsEl.appendChild(shareSet);
   const addSet = document.createElement('button');
-  addSet.className = 'chip chipAdd'; addSet.textContent = '+'; addSet.title = 'Criar novo setlist';
+  addSet.className = 'chip'; addSet.textContent = '☰ Setlists'; addSet.title = 'Gerenciar e criar setlists';
   addSet.onclick = (e) => { e.stopPropagation(); openSetlistManager(); };
   chipsEl.appendChild(addSet);
   mk(CHIP_NAMES.A, filterCat==='A' && !artistMode, () => { filterCat='A'; filterArtist=null; artistMode=false; refresh(); }, () => renameChip('A'));
@@ -7753,9 +7756,9 @@ function renderSetlistManager(){
     row.innerHTML = '<div class="slInfo"><div class="slName">' + esc(st.name) + '</div>' +
       '<div class="slCount">' + st.songIds.length + ' música(s)</div></div>' +
       '<div class="slActions">' +
-      '<button data-a="use" title="Usar este">▶</button>' +
-      '<button data-a="edit" title="Editar músicas">☑</button>' +
-      '<button data-a="mus" title="Preparar para músicos">♫</button>' +
+      '<button data-a="use" title="Usar este setlist">Usar</button>' +
+      '<button data-a="edit" title="Editar músicas">Editar</button>' +
+      '<button data-a="mus" title="Enviar para músicos">Enviar</button>' +
       '<button data-a="ren" title="Renomear">✎</button>' +
       '<button data-a="del" title="Excluir">🗑</button></div>';
     row.querySelector('[data-a="use"]').onclick = () => {
@@ -7831,10 +7834,12 @@ function renderMusicianPrep(){
   $('musicianTitle').textContent = st.name;
   const songs = st.songIds.map(id => SONG_MAP.get(id)).filter(Boolean);
   $('musicianSub').textContent = songs.length + ' música(s) · compartilha somente música - artista - nota';
+  const actionIds = ['musicianShare','musicianCopyLink','musicianPdf','musicianWord','musicianText'];
+  actionIds.forEach(id => { $(id).disabled = !songs.length; });
   const wrap = $('musicianList'); wrap.innerHTML = '';
   if (!songs.length){
     const p = document.createElement('div'); p.className = 'manageEmpty';
-    p.textContent = 'Este setlist está vazio. Adicione músicas antes de compartilhar.';
+    p.textContent = 'Este setlist está vazio. Volte, adicione músicas e depois abra Enviar novamente.';
     wrap.appendChild(p); return;
   }
   songs.forEach((song, idx) => {
@@ -7884,14 +7889,32 @@ function musicianPlainText(st){
   p.s.forEach((x, i) => lines.push(String(i+1).padStart(2,'0') + '. ' + x[0] + ' - ' + x[1] + ' - ' + (x[2] || '___')));
   return lines.join('\n');
 }
-$('musicianCopyLink').onclick = async () => {
-  const st = musicianSetlist(); if (!st || !allowMusicianExport(st)) return;
+async function getMusicianLinkForShare(st){
   const link = musicianLink(st);
-  if (link.length > 7000 && !confirm('Este link ficou muito grande. Para repertórios extensos, PDF ou Word é mais confiável. Copiar mesmo assim?')) return;
+  if (link.length > 4000){
+    const ok = confirm('Este setlist gerou um link muito longo e alguns aplicativos podem cortá-lo. PDF ou Word é mais confiável para esta quantidade de músicas. Continuar com o link mesmo assim?');
+    if (!ok) return null;
+  }
+  return link;
+}
+$('musicianShare').onclick = async () => {
+  const st = musicianSetlist(); if (!st || !st.songIds.length || !allowMusicianExport(st)) return;
+  const link = await getMusicianLinkForShare(st); if (!link) return;
+  if (navigator.share){
+    try{
+      await navigator.share({ title:'Repertório - ' + st.name, text:'Repertório ' + st.name, url:link });
+      return;
+    }catch(e){ if (e && e.name === 'AbortError') return; }
+  }
+  await copyTextSafe(link, 'Link copiado. Agora é só colar no WhatsApp ou no aplicativo que preferir.');
+};
+$('musicianCopyLink').onclick = async () => {
+  const st = musicianSetlist(); if (!st || !st.songIds.length || !allowMusicianExport(st)) return;
+  const link = await getMusicianLinkForShare(st); if (!link) return;
   await copyTextSafe(link, 'Link do repertório copiado. Ele contém somente música, artista e nota.');
 };
 $('musicianText').onclick = async () => {
-  const st = musicianSetlist(); if (!st || !allowMusicianExport(st)) return;
+  const st = musicianSetlist(); if (!st || !st.songIds.length || !allowMusicianExport(st)) return;
   await copyTextSafe(musicianPlainText(st), 'Repertório copiado em texto.');
 };
 function safeFileName(s){
@@ -7904,7 +7927,7 @@ function downloadBlob(blob, filename){
 }
 function htmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 $('musicianWord').onclick = () => {
-  const st = musicianSetlist(); if (!st || !allowMusicianExport(st)) return;
+  const st = musicianSetlist(); if (!st || !st.songIds.length || !allowMusicianExport(st)) return;
   const p = musicianPayload(st);
   let rows = '';
   p.s.forEach((x,i) => { rows += '<tr><td>'+(i+1)+'</td><td>'+htmlEsc(x[0])+'</td><td>'+htmlEsc(x[1])+'</td><td><b>'+htmlEsc(x[2] || '___')+'</b></td></tr>'; });
@@ -7970,7 +7993,7 @@ function buildMusicianPdf(st){
   return new Uint8Array(Array.from(pdf, ch => ch.charCodeAt(0) & 255));
 }
 $('musicianPdf').onclick = () => {
-  const st = musicianSetlist(); if (!st || !allowMusicianExport(st)) return;
+  const st = musicianSetlist(); if (!st || !st.songIds.length || !allowMusicianExport(st)) return;
   const bytes = buildMusicianPdf(st);
   downloadBlob(new Blob([bytes], {type:'application/pdf'}), safeFileName(st.name) + '.pdf');
 };
