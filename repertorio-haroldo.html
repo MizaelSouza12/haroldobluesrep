@@ -284,7 +284,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
       </div>
     </div>
   </div>
-  <button id="shareSetlistBtn" type="button">📤 Enviar setlist aos músicos</button>
+  <button id="shareSetlistBtn" type="button">📤 Enviar playlist aos músicos</button>
   <div id="searchWrap">
     <input id="search" type="search" placeholder="Buscar música ou artista..." autocomplete="off">
   </div>
@@ -7426,6 +7426,40 @@ const CUSTOM_CATS_KEY = 'repHaroldo_customcats_v1';
 let CUSTOM_CATS = [];
 try { const cc = JSON.parse(localStorage.getItem(CUSTOM_CATS_KEY) || '[]'); if (Array.isArray(cc)) CUSTOM_CATS = cc; } catch(e) { CUSTOM_CATS = []; }
 function saveCustomCats(){ try{ localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(CUSTOM_CATS)); }catch(e){} }
+
+/* ================= NOTAS DOS REPERTÓRIOS PARA MÚSICOS ================= */
+const PLAYLIST_KEYS_KEY = 'repHaroldo_playlistkeys_v1';
+let PLAYLIST_KEYS = {};
+try {
+  const pk = JSON.parse(localStorage.getItem(PLAYLIST_KEYS_KEY) || '{}');
+  if (pk && typeof pk === 'object' && !Array.isArray(pk)) PLAYLIST_KEYS = pk;
+} catch(e) { PLAYLIST_KEYS = {}; }
+function savePlaylistKeys(){ try{ localStorage.setItem(PLAYLIST_KEYS_KEY, JSON.stringify(PLAYLIST_KEYS)); }catch(e){} }
+
+function playlistSongs(catKey){
+  return ALL.filter(s => s && typeof s.cats === 'string' && s.cats.includes(catKey));
+}
+function shareablePlaylists(){
+  const defs = [
+    { key:'A', name:CHIP_NAMES.A || 'A Sua Maneira' },
+    { key:'J', name:CHIP_NAMES.J || 'Jazz & Blues' }
+  ].concat(CUSTOM_CATS.map(cat => ({ key:cat.key, name:cat.name })));
+  return defs.map(def => ({
+    key:def.key,
+    name:def.name,
+    songIds:playlistSongs(def.key).map(s => s.id)
+  })).filter(p => p.songIds.length);
+}
+function sharePlaylistSource(p){
+  if (!PLAYLIST_KEYS[p.key] || typeof PLAYLIST_KEYS[p.key] !== 'object') PLAYLIST_KEYS[p.key] = {};
+  return {
+    id:'CAT_' + p.key,
+    shareCategoryKey:p.key,
+    name:p.name,
+    songIds:p.songIds.slice(),
+    songKeys:PLAYLIST_KEYS[p.key]
+  };
+}
 function manageCustomCat(key){
   const cat = CUSTOM_CATS.find(c => c.key === key);
   if (!cat) return;
@@ -7756,38 +7790,45 @@ function renderSetlistManager(){
   const sharing = setlistManagerMode === 'share';
   $('setlistPanelTitle').textContent = sharing ? 'Escolha a playlist' : 'Meus Setlists';
   $('setlistHelp').textContent = sharing
-    ? 'Selecione a playlist que você quer mandar para os músicos.'
-    : 'Gerencie suas playlists.';
+    ? 'Escolha um dos repertórios que já existem no app.'
+    : 'Gerencie seus setlists de palco.';
   $('newSetlistBtn').style.display = sharing ? 'none' : 'block';
 
   const wrap = $('setlistMgrList'); wrap.innerHTML = '';
+
+  if (sharing){
+    const playlists = shareablePlaylists();
+    if (!playlists.length){
+      const p = document.createElement('div'); p.className = 'manageEmpty';
+      p.textContent = 'Nenhum repertório disponível para compartilhar.';
+      wrap.appendChild(p);
+      return;
+    }
+    playlists.forEach(pl => {
+      const row = document.createElement('div');
+      row.className = 'setlistRow shareChoice';
+      row.innerHTML = '<div class="slInfo"><div class="slName">' + esc(pl.name) + '</div>' +
+        '<div class="slCount">' + pl.songIds.length + ' música(s)</div></div>' +
+        '<div class="shareArrow">›</div>';
+      row.onclick = () => {
+        closeSetlistManager();
+        openMusicianPrep(sharePlaylistSource(pl));
+      };
+      wrap.appendChild(row);
+    });
+    return;
+  }
+
   if (!SETLISTS.length){
     const p = document.createElement('div'); p.className = 'manageEmpty';
-    p.textContent = sharing
-      ? 'Não há nenhuma playlist criada para enviar.'
-      : 'Nenhum setlist criado ainda. Toque em "+ Novo setlist" para começar.';
+    p.textContent = 'Nenhum setlist de palco criado ainda. Toque em "+ Novo setlist" para começar.';
     wrap.appendChild(p);
     return;
   }
 
   SETLISTS.forEach(st => {
     const row = document.createElement('div');
-    row.className = 'setlistRow' + (sharing ? ' shareChoice' : (st.id === activeSetlistId ? ' active' : ''));
-
-    if (sharing){
-      row.innerHTML = '<div class="slInfo"><div class="slName">' + esc(st.name) + '</div>' +
-        '<div class="slCount">' + st.songIds.length + ' música(s)</div></div>' +
-        '<div class="shareArrow">›</div>';
-      row.onclick = () => {
-        activeSetlistId = st.id;
-        saveSetlists();
-        closeSetlistManager();
-        openMusicianPrep(st);
-      };
-      wrap.appendChild(row);
-      return;
-    }
-
+    row.className = 'setlistRow' + (st.id === activeSetlistId ? ' active' : '');
     row.innerHTML = '<div class="slInfo"><div class="slName">' + esc(st.name) + '</div>' +
       '<div class="slCount">' + st.songIds.length + ' música(s)</div></div>' +
       '<div class="slActions">' +
@@ -7837,27 +7878,31 @@ refresh();
 
 /* ================= REPERTÓRIO PARA MÚSICOS ================= */
 const MUSICIANS_BASE_URL = 'https://mizaelsouza12.github.io/haroldobluesrep/setlist.html';
-let musicianSetlistId = null;
-function musicianSetlist(){ return SETLISTS.find(st => st.id === musicianSetlistId) || null; }
+let musicianSource = null;
+function musicianSetlist(){ return musicianSource; }
 function setlistKey(st, songId){
-  normalizeSetlist(st);
-  return String(st.songKeys[songId] || '');
+  return String((st.songKeys && st.songKeys[songId]) || '');
 }
 function setSetlistKey(st, songId, value){
-  normalizeSetlist(st);
+  if (!st.songKeys || typeof st.songKeys !== 'object') st.songKeys = {};
   st.songKeys[songId] = String(value || '').trim();
-  saveSetlists();
+  if (st.shareCategoryKey){
+    PLAYLIST_KEYS[st.shareCategoryKey] = st.songKeys;
+    savePlaylistKeys();
+  } else {
+    saveSetlists();
+  }
 }
 function openMusicianPrep(st){
   if (!st) return;
-  musicianSetlistId = st.id;
+  musicianSource = st;
   renderMusicianPrep();
   $('musicianSheet').classList.add('active');
   history.pushState({v:'musicians'}, '');
 }
 function closeMusicianPrep(){
   $('musicianSheet').classList.remove('active');
-  musicianSetlistId = null;
+  musicianSource = null;
 }
 $('musicianBack').onclick = () => history.back();
 function renderMusicianPrep(){
@@ -7870,7 +7915,7 @@ function renderMusicianPrep(){
   const wrap = $('musicianList'); wrap.innerHTML = '';
   if (!songs.length){
     const p = document.createElement('div'); p.className = 'manageEmpty';
-    p.textContent = 'Este setlist está vazio. Volte, adicione músicas e depois abra Enviar novamente.';
+    p.textContent = 'Este repertório não tem músicas disponíveis para compartilhar.';
     wrap.appendChild(p); return;
   }
   songs.forEach((song, idx) => {
@@ -7888,7 +7933,6 @@ function renderMusicianPrep(){
   });
 }
 function musicianPayload(st){
-  normalizeSetlist(st);
   return { v:1, n:st.name || 'Repertório', s:st.songIds.map(id => {
     const song = SONG_MAP.get(id); if (!song) return null;
     return [song.title, song.artist || '', setlistKey(st, id)];
@@ -7923,7 +7967,7 @@ function musicianPlainText(st){
 async function getMusicianLinkForShare(st){
   const link = musicianLink(st);
   if (link.length > 4000){
-    const ok = confirm('Este setlist gerou um link muito longo e alguns aplicativos podem cortá-lo. PDF ou Word é mais confiável para esta quantidade de músicas. Continuar com o link mesmo assim?');
+    const ok = confirm('Este repertório gerou um link muito longo e alguns aplicativos podem cortá-lo. PDF ou Word é mais confiável para esta quantidade de músicas. Continuar com o link mesmo assim?');
     if (!ok) return null;
   }
   return link;
@@ -8507,6 +8551,7 @@ $('exportBtn').onclick = () => {
       setlists: SETLISTS, activeSetlistId,
       chipNames: CHIP_NAMES,
       customCats: CUSTOM_CATS,
+      playlistKeys: PLAYLIST_KEYS,
       hidden: [...HIDDEN], removed: [...REMOVED], overrides: OVERRIDES,
       prefs, speeds
     }
@@ -8551,7 +8596,10 @@ $('importFile').addEventListener('change', e => {
 
       // 2) nomes das abas — só preenche o que ainda não foi renomeado localmente
       if (isFull && d.chipNames){
-        Object.keys(d.chipNames).forEach(k => { if (CHIP_NAMES[k] === undefined) CHIP_NAMES[k] = d.chipNames[k]; });
+        Object.keys(d.chipNames).forEach(k => {
+          const hasLocalRename = !!localStorage.getItem(CHIP_NAMES_KEY) && Object.prototype.hasOwnProperty.call(JSON.parse(localStorage.getItem(CHIP_NAMES_KEY) || '{}'), k);
+          if (!hasLocalRename) CHIP_NAMES[k] = d.chipNames[k];
+        });
         saveChipNames();
       }
       // 3) categorias personalizadas — mescla por chave
@@ -8572,6 +8620,21 @@ $('importFile').addEventListener('change', e => {
         saveHidden(); saveRemoved(); saveOverrides();
       }
       rebuildAll();
+
+      // notas dos repertórios A Sua Maneira / Jazz & Blues / categorias personalizadas
+      if (isFull && d.playlistKeys && typeof d.playlistKeys === 'object'){
+        Object.keys(d.playlistKeys).forEach(catKey => {
+          const incoming = d.playlistKeys[catKey];
+          if (!incoming || typeof incoming !== 'object') return;
+          if (!PLAYLIST_KEYS[catKey] || typeof PLAYLIST_KEYS[catKey] !== 'object') PLAYLIST_KEYS[catKey] = {};
+          Object.keys(incoming).forEach(id => {
+            const nid = idMap[id] || migrateBuiltinId(id);
+            if (PLAYLIST_KEYS[catKey][nid] === undefined) PLAYLIST_KEYS[catKey][nid] = String(incoming[id] || '');
+          });
+        });
+        savePlaylistKeys();
+      }
+
       // 5) setlists — mescla por id/nome, corrigindo ids de letras remapeadas
       let addedSetlists = 0;
       if (isFull && Array.isArray(d.setlists)){
