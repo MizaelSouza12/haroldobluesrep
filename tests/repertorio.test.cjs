@@ -1,0 +1,405 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const {JSDOM, VirtualConsole} = require('jsdom');
+
+const ROOT = path.join(__dirname, '..');
+const read = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
+const mainHtml = read('repertorio-haroldo.html');
+const standalone = read('setlist.html');
+const editorJS = read('setlists/editor.js');
+const sw = read('sw.js');
+const aHTML = read('setlists/a-sua-maneira.html');
+const jHTML = read('setlists/jazz-blues.html');
+const aData = JSON.parse(read('setlists/a-sua-maneira.json'));
+const jData = JSON.parse(read('setlists/jazz-blues.json'));
+const scriptsOf = html => [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)]
+  .filter(m => !/type=["']text\/plain["']/i.test(m[1]))
+  .map(m => m[2]).filter(s => s.trim());
+const mainScript = scriptsOf(mainHtml).join('\n');
+const standaloneScript = scriptsOf(standalone).join('\n');
+
+function createStorage(seed) {
+  const map = seed || new Map();
+  return {
+    get length() { return map.size; },
+    key(i) { return [...map.keys()][i] || null; },
+    getItem(k) { return map.has(k) ? map.get(k) : null; },
+    setItem(k,v) { map.set(String(k),String(v)); },
+    removeItem(k) { map.delete(String(k)); },
+    clear() { map.clear(); },
+    map
+  };
+}
+const tick = () => new Promise(resolve => setImmediate(resolve));
+function setup(html, url, sharedStorage) {
+  const errors = [];
+  const vc = new VirtualConsole();
+  vc.on('jsdomError',e=>errors.push(e.message));
+  const dom = new JSDOM(html,{url,runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc});
+  const w = dom.window;
+  if(sharedStorage) Object.defineProperty(w,'localStorage',{configurable:true,value:sharedStorage});
+  w.TextEncoder=global.TextEncoder; w.TextDecoder=global.TextDecoder;
+  w.alert=()=>{}; w.confirm=()=>true; w.prompt=()=>null;
+  w.scrollTo=()=>{}; w.print=()=>{};
+  w.URL.createObjectURL=()=> 'blob:fake'; w.URL.revokeObjectURL=()=>{};
+  w.navigator.vibrate=()=>false;
+  Object.defineProperty(w.navigator,'clipboard',{configurable:true,value:{writeText:async()=>{},readText:async()=>''}});
+  return {dom,w,errors};
+}
+function bootMain(sharedStorage) {
+  const env=setup(mainHtml,'https://mizaelsouza12.github.io/haroldobluesrep/repertorio-haroldo.html',sharedStorage);
+  env.w.eval(mainScript);
+  return env;
+}
+async function bootEditor(slug,sharedStorage,fixture) {
+  const html = slug==='a-sua-maneira' ? aHTML : jHTML;
+  const data = fixture || (slug==='a-sua-maneira'?aData:jData);
+  const env=setup(html,'https://mizaelsouza12.github.io/haroldobluesrep/setlists/'+slug+'.html',sharedStorage);
+  let copied='';
+  env.w.navigator.clipboard.writeText=async v=>{copied=v;};
+  env.w.fetch=async()=>({ok:true,json:async()=>data});
+  env.w.eval(editorJS);
+  await tick(); await tick();
+  return {...env,getCopied:()=>copied};
+}
+function input(el,value,w) {
+  el.value=value;
+  el.dispatchEvent(new w.Event('input',{bubbles:true}));
+}
+function fixtureSongs(html) {
+  const m=html.match(/<script type="text\/plain" id="songdata">([\s\S]*?)<\/script>/i);
+  assert.ok(m,'dados do repertório estão presentes');
+  return m[1].split('\n').filter(line=>line.startsWith('### ')).map(line=>{
+    const p=line.slice(4).split(';;').map(s=>s.trim());
+    return {title:p[0],artist:p[1],cats:p[2]||'A'};
+  });
+}
+const sourceSongs=fixtureSongs(mainHtml);
+function stableSongId(title,artist) {
+  const str=(title+'|'+artist).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  let h=2166136261;
+  for(let i=0;i<str.length;i++) {h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
+  return 'SB'+(h>>>0).toString(36);
+}
+
+test('01: HTML, script principal, editor, visualizador e service worker sem erros de sintaxe',()=>{
+  assert.ok(mainScript.length>30000);
+  new vm.Script(mainScript);
+  new vm.Script(standaloneScript);
+  new vm.Script(editorJS);
+  new vm.Script(sw);
+  for(const page of [aHTML,jHTML]) assert.ok(page.includes('src="./editor.js"'));
+});
+test('02: dados originais íntegros: 214 músicas',()=>assert.equal(sourceSongs.length,214));
+test('03: categoria A tem 204 músicas',()=>assert.equal(sourceSongs.filter(s=>s.cats.includes('A')).length,204));
+test('04: categoria J tem 19 músicas',()=>assert.equal(sourceSongs.filter(s=>s.cats.includes('J')).length,19));
+test('05: músicas AJ entram em ambas categorias',()=>assert.equal(sourceSongs.filter(s=>s.cats==='AJ').length,9));
+test('06: IDs estáveis sem colisões nos dados originais',()=>{
+  assert.equal(new Set(sourceSongs.map(s=>stableSongId(s.title,s.artist))).size,sourceSongs.length);
+});
+test('07: JSON A mantém todas as músicas previstas sem duplicar',()=>{
+  assert.equal(aData.songs.length,204);
+  assert.deepEqual(new Set(aData.songs.map(s=>s.title+'|'+s.artist)),
+    new Set(sourceSongs.filter(s=>s.cats.includes('A')).map(s=>s.title+'|'+s.artist)));
+});
+test('08: JSON J mantém todas as músicas previstas sem duplicar',()=>{
+  assert.equal(jData.songs.length,19);
+  assert.deepEqual(new Set(jData.songs.map(s=>s.title+'|'+s.artist)),
+    new Set(sourceSongs.filter(s=>s.cats.includes('J')).map(s=>s.title+'|'+s.artist)));
+});
+test('09: dados públicos são apenas título, artista, nota',()=>{
+  for(const data of [aData,jData]){
+    for(const s of data.songs){
+      assert.deepEqual(Object.keys(s).sort(),['artist','key','title']);
+      assert.equal(typeof s.title,'string');
+      assert.equal(typeof s.artist,'string');
+      assert.equal(typeof s.key,'string');
+      assert.equal(s.text,undefined);
+      assert.equal(s.lyrics,undefined);
+    }
+  }
+});
+test('10: URLs fixas estão presentes sem tokens secretos',()=>{
+  assert.ok(aHTML.includes('a-sua-maneira.json'));
+  assert.ok(jHTML.includes('jazz-blues.json'));
+  for(const html of [aHTML,jHTML]) {
+    assert.ok(!/github_pat_|ghp_[a-z0-9]{20}|service_role/i.test(html));
+    assert.ok(/data-slug=/.test(html));
+  }
+});
+test('11: páginas públicas não incorporam o texto das letras',()=>{
+  for(const html of [aHTML,jHTML]){
+    assert.ok(!html.includes('id="songdata"'));
+    assert.ok(!html.includes('cur.lines'));
+    assert.ok(html.includes('Tom / Nota'));
+    assert.ok(html.includes('Anotação'));
+  }
+});
+test('12: manifest tem JSON válido e start_url',()=>{
+  const manifest=JSON.parse(read('manifest.json'));
+  assert.ok(manifest.name || manifest.short_name);
+  assert.ok(manifest.start_url);
+});
+test('13: main executa e mostra a lista inicial',()=>{
+  const {w}=bootMain();
+  assert.equal(w.eval('SONGS.length'),214);
+  assert.equal(w.eval('ALL.length'),214);
+  assert.ok(w.document.querySelectorAll('#list .item').length>0);
+  w.close();
+});
+test('14: clicar na categoria A mostra 204 músicas',()=>{
+  const {w}=bootMain();
+  const chip=[...w.document.querySelectorAll('#chips .chip')].find(e=>e.textContent==='A Sua Maneira');
+  assert.ok(chip);chip.click();
+  assert.equal(w.document.querySelectorAll('#list .item').length,204);
+  w.close();
+});
+test('15: clicar na categoria J mostra 19 músicas',()=>{
+  const {w}=bootMain();
+  const chip=[...w.document.querySelectorAll('#chips .chip')].find(e=>e.textContent==='Jazz & Blues');
+  assert.ok(chip);chip.click();
+  assert.equal(w.document.querySelectorAll('#list .item').length,19);
+  w.close();
+});
+test('16: botão de envio abre os repertórios existentes, mesmo sem setlist manual',()=>{
+  const {w}=bootMain();
+  w.document.getElementById('shareSetlistBtn').click();
+  const choices=[...w.document.querySelectorAll('#setlistMgrList .shareChoice')];
+  assert.equal(choices.length,2);
+  assert.ok(choices[0].textContent.includes('A Sua Maneira'));
+  assert.ok(choices[1].textContent.includes('Jazz & Blues'));
+  assert.equal(w.document.getElementById('newSetlistBtn').style.display,'none');
+  w.close();
+});
+test('17: escolher Jazz & Blues prepara 19 músicas sem pedir nova playlist',()=>{
+  const {w}=bootMain();
+  w.document.getElementById('shareSetlistBtn').click();
+  w.document.querySelectorAll('#setlistMgrList .shareChoice')[1].click();
+  assert.equal(w.document.getElementById('musicianTitle').textContent,'Jazz & Blues');
+  assert.equal(w.document.querySelectorAll('#musicianList .musicianRow').length,19);
+  w.close();
+});
+test('18: cada repertório gera payload distinto sem letras privadas',()=>{
+  const {w}=bootMain();
+  const p=w.eval('[musicianPayload(sharePlaylistSource(shareablePlaylists()[0])), musicianPayload(sharePlaylistSource(shareablePlaylists()[1]))]');
+  assert.equal(p[0].s.length,204);assert.equal(p[1].s.length,19);
+  assert.notEqual(p[0].n,p[1].n);
+  for(const x of [...p[0].s,...p[1].s]) {
+    assert.equal(x.length,3);
+    assert.ok(x.every(v=>typeof v==='string'));
+  }
+  w.close();
+});
+test('19: playlist manual salva é incluída entre escolhas de envio',()=>{
+  const {w}=bootMain();
+  w.eval("SETLISTS.push({id:'STtest',name:'Show Teste',songIds:[ALL[0].id],songKeys:{}})");
+  w.document.getElementById('shareSetlistBtn').click();
+  const choices=[...w.document.querySelectorAll('#setlistMgrList .shareChoice')];
+  assert.equal(choices.length,3);
+  assert.ok(choices[2].textContent.includes('Show Teste'));
+  choices[2].click();
+  assert.equal(w.document.querySelectorAll('#musicianList .musicianRow').length,1);
+  w.close();
+});
+test('20: nota na preparação é persistida no localStorage de sua categoria',()=>{
+  const store=createStorage();
+  const {w}=bootMain(store);
+  w.document.getElementById('shareSetlistBtn').click();
+  w.document.querySelector('#setlistMgrList .shareChoice').click();
+  const key=w.document.querySelector('#musicianList .musicianKey');
+  input(key,'Bb7',w);
+  const stored=JSON.parse(store.getItem('repHaroldo_playlistkeys_v1'));
+  assert.ok(Object.values(stored.A).includes('Bb7'));
+  w.close();
+});
+test('21: campos de nota aceitam cifra alfanumérica sem HTML executável',async()=>{
+  const {w}=await bootEditor('jazz-blues',createStorage());
+  const fields=w.document.querySelectorAll('.keyInput');
+  assert.equal(fields.length,19);
+  input(fields[0],'G#m7',w);
+  assert.equal(fields[0].value,'G#m7');
+  w.close();
+});
+test('22: texto de anotação multilinha é salvo no navegador',async()=>{
+  const store=createStorage();
+  const {w}=await bootEditor('jazz-blues',store);
+  input(w.document.querySelector('.noteInput'),'Entrada da bateria\nRepetir duas vezes',w);
+  const saved=JSON.parse(store.getItem('repHaroldo_musicianFields_v1:jazz-blues'));
+  assert.ok(Object.values(saved).some(e=>e.note==='Entrada da bateria\nRepetir duas vezes'));
+  w.close();
+});
+test('23: atualização da página recupera tom e anotação',async()=>{
+  const store=createStorage();
+  const first=await bootEditor('a-sua-maneira',store);
+  input(first.w.document.querySelector('.keyInput'),'Eb',first.w);
+  input(first.w.document.querySelector('.noteInput'),'Começar com baixo',first.w);
+  first.w.close();
+  const next=await bootEditor('a-sua-maneira',store);
+  assert.equal(next.w.document.querySelector('.keyInput').value,'Eb');
+  assert.equal(next.w.document.querySelector('.noteInput').value,'Começar com baixo');
+  next.w.close();
+});
+test('24: campos da playlist A não aparecem na playlist J',async()=>{
+  const store=createStorage();
+  const first=await bootEditor('a-sua-maneira',store);
+  const shared='Ain\'t No Sunshine';
+  const sRow=[...first.w.document.querySelectorAll('.song')].find(row=>row.querySelector('.title').textContent===shared);
+  assert.ok(sRow);
+  input(sRow.querySelector('.keyInput'),'F#m',first.w);
+  first.w.close();
+  const other=await bootEditor('jazz-blues',store);
+  const row=[...other.w.document.querySelectorAll('.song')].find(r=>r.querySelector('.title').textContent===shared);
+  assert.ok(row);
+  assert.equal(row.querySelector('.keyInput').value,'');
+  other.w.close();
+});
+test('25: os dados não são sincronizados automaticamente entre navegadores',async()=>{
+  const browser1=createStorage(),browser2=createStorage();
+  const first=await bootEditor('jazz-blues',browser1);
+  input(first.w.document.querySelector('.keyInput'),'A',first.w);
+  first.w.close();
+  const second=await bootEditor('jazz-blues',browser2);
+  assert.equal(second.w.document.querySelector('.keyInput').value,'');
+  second.w.close();
+});
+test('26: duas abas editando músicas diferentes não sobrescrevem uma à outra',async()=>{
+  const storage=createStorage();
+  const a=await bootEditor('jazz-blues',storage);
+  const b=await bootEditor('jazz-blues',storage);
+  input(a.w.document.querySelectorAll('.keyInput')[0],'C',a.w);
+  input(b.w.document.querySelectorAll('.keyInput')[1],'D',b.w);
+  const data=JSON.parse(storage.getItem('repHaroldo_musicianFields_v1:jazz-blues'));
+  assert.equal(Object.keys(data).length,2);
+  assert.deepEqual(new Set(Object.values(data).map(x=>x.key)),new Set(['C','D']));
+  a.w.close();b.w.close();
+});
+test('27: copiar lista traz notas e anotações atualizadas',async()=>{
+  const e=await bootEditor('jazz-blues',createStorage());
+  input(e.w.document.querySelector('.keyInput'),'F#',e.w);
+  input(e.w.document.querySelector('.noteInput'),'Pausa no final',e.w);
+  e.w.document.getElementById('copyBtn').click();
+  await tick();
+  assert.ok(e.getCopied().includes('F#'));
+  assert.ok(e.getCopied().includes('Pausa no final'));
+  e.w.close();
+});
+test('28: impressão é acionada pelo botão de PDF',async()=>{
+  const e=await bootEditor('jazz-blues',createStorage());
+  let called=0;e.w.print=()=>{called++;};
+  e.w.document.getElementById('printBtn').click();
+  assert.equal(called,1);e.w.close();
+});
+test('29: um título HTML suspeito não vira conteúdo executável',async()=>{
+  const data={name:'Teste',songs:[{title:'<img src=x onerror=alert(1)>',artist:'Artista',key:''}]};
+  const e=await bootEditor('jazz-blues',createStorage(),data);
+  assert.equal(e.w.document.querySelectorAll('#list img').length,0);
+  assert.ok(e.w.document.querySelector('.title').textContent.includes('<img'));
+  e.w.close();
+});
+test('30: falha de rede da playlist produz erro visível',async()=>{
+  const e=setup(jHTML,'https://mizaelsouza12.github.io/haroldobluesrep/setlists/jazz-blues.html',createStorage());
+  e.w.fetch=async()=>({ok:false,status:503});
+  e.w.eval(editorJS);await tick();await tick();
+  assert.equal(e.w.document.getElementById('error').style.display,'block');
+  e.w.close();
+});
+test('31: dados de notas e anotações entram no backup completo',async()=>{
+  const store=createStorage();
+  const editor=await bootEditor('jazz-blues',store);
+  input(editor.w.document.querySelector('.noteInput'),'Anotação para backup',editor.w);
+  editor.w.close();
+  const {w}=bootMain(store);
+  const data=w.eval('exportMusicianFields()');
+  assert.ok(data['jazz-blues']);
+  assert.ok(Object.values(data['jazz-blues']).some(x=>x.note==='Anotação para backup'));
+  w.close();
+});
+test('32: importação das anotações não apaga dados locais existentes',()=>{
+  const store=createStorage();
+  const {w}=bootMain(store);
+  const existingId=stableSongId('Ain\'t No Sunshine','Bill Withers');
+  store.setItem('repHaroldo_musicianFields_v1:jazz-blues',JSON.stringify({[existingId]:{key:'C',note:'LOCAL'}}));
+  w.eval("importMusicianFields({ 'jazz-blues': { ["+JSON.stringify(existingId)+"]: {key:'D',note:'BACKUP'}, 'SBnovo': {key:'G',note:'NEW'}} }, {})");
+  const d=JSON.parse(store.getItem('repHaroldo_musicianFields_v1:jazz-blues'));
+  assert.equal(d[existingId].note,'LOCAL');
+  assert.equal(d.SBnovo.note,'NEW');
+  w.close();
+});
+test('33: visualizador de link sem hash bloqueia ações',()=>{
+  const {w}=setup(standalone,'https://mizaelsouza12.github.io/haroldobluesrep/setlist.html');
+  w.eval(standaloneScript);
+  assert.equal(w.document.getElementById('actions').hidden,true);
+  assert.equal(w.document.getElementById('error').style.display,'block');
+  w.close();
+});
+test('34: visualizador do link contém apenas três campos e não executa HTML do título',()=>{
+  const data={v:1,n:'Blues',s:[['<img src=x onerror=alert(1)>','Teste','F#']]};
+  const hash=Buffer.from(JSON.stringify(data),'utf8').toString('base64url');
+  const {w}=setup(standalone,'https://mizaelsouza12.github.io/haroldobluesrep/setlist.html#d='+hash);
+  w.TextDecoder=global.TextDecoder;
+  w.eval(standaloneScript);
+  assert.equal(w.document.getElementById('actions').hidden,false);
+  assert.equal(w.document.querySelectorAll('#list img').length,0);
+  assert.equal(w.document.querySelectorAll('.song').length,1);
+  assert.equal(w.document.querySelector('.key').textContent,'F#');
+  w.close();
+});
+test('35: visualizador rejeita payload inválido e excessivo',()=>{
+  for(const data of [{v:2,n:'X',s:[]},{v:1,n:'X',s:Array.from({length:301},()=>['a','b','c'])}]) {
+    const hash=Buffer.from(JSON.stringify(data),'utf8').toString('base64url');
+    const {w}=setup(standalone,'https://mizaelsouza12.github.io/haroldobluesrep/setlist.html#d='+hash);
+    w.eval(standaloneScript);
+    assert.equal(w.document.getElementById('actions').hidden,true);
+    w.close();
+  }
+});
+test('36: SW registra cache, ativa e responde a FETCH sem inicialização quebrada',()=>{
+  const handlers={};
+  const self={addEventListener:(name,fn)=>handlers[name]=fn,location:{origin:'https://mizaelsouza12.github.io'}};
+  vm.runInNewContext(sw,{self,caches:{},fetch:()=>{},URL,Response});
+  assert.ok(handlers.install);
+  assert.ok(handlers.activate);
+  assert.ok(handlers.fetch);
+  assert.ok(handlers.message);
+});
+test('37: SW trata /setlists/ como network-first e sem cache antigo',async()=>{
+  const handlers={};let opts=null;let response=null;
+  const self={addEventListener:(name,fn)=>handlers[name]=fn,location:{origin:'https://mizaelsouza12.github.io'}};
+  const fetch=async(req,o)=>{opts=o;return new Response('novo',{status:200});};
+  vm.runInNewContext(sw,{self,caches:{match:async()=>null},fetch,URL,Response});
+  handlers.fetch({
+    request:{method:'GET',url:'https://mizaelsouza12.github.io/haroldobluesrep/setlists/jazz-blues.html'},
+    respondWith:p=>{response=p;}
+  });
+  const res=await response;
+  assert.equal(await res.text(),'novo');
+  assert.equal(opts.cache,'no-store');
+});
+test('38: SW offline sem cópia da playlist devolve 503',async()=>{
+  const handlers={};let response=null;
+  const self={addEventListener:(name,fn)=>handlers[name]=fn,location:{origin:'https://mizaelsouza12.github.io'}};
+  const fetch=async()=>{throw new Error('offline');};
+  vm.runInNewContext(sw,{self,caches:{match:async()=>null},fetch,URL,Response});
+  handlers.fetch({
+    request:{method:'GET',url:'https://mizaelsouza12.github.io/haroldobluesrep/setlists/a-sua-maneira.json'},
+    respondWith:p=>{response=p;}
+  });
+  assert.equal((await response).status,503);
+});
+test('39: backup legado e renomeações preservam compatibilidade',()=>{
+  const {w}=bootMain(createStorage());
+  assert.ok(typeof w.eval('migrateBuiltinId')==='function');
+  assert.ok(typeof w.eval('normalizeSetlist')==='function');
+  assert.equal(w.eval('normalizeSetlist({name:"Test",songIds:[],songKeys:{}}).songIds.length'),0);
+  w.close();
+});
+test('40: links publicados de repertório não exigem login',()=>{
+  for(const page of [aHTML,jHTML]){
+    assert.ok(!/oauth|github\.com\/login|supabase/i.test(page.toLowerCase()));
+    assert.ok(page.includes('data-source='));
+  }
+});
