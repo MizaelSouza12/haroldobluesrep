@@ -8558,6 +8558,46 @@ $('alR').onclick = () => { prefs.align = 'right'; done(); };
 $('resetBtn').onclick = () => { if (confirm('Restaurar cores, fonte e velocidade padrão? (não afeta suas letras salvas)')) { prefs = { ...DEF }; done(); } };
 function done(){ applyPrefs(); savePrefs(); syncSet(); if (curSong) $('spdVal').textContent = speedOf(curSong); }
 
+/* ---- campos locais das páginas curtas /setlists/*.html ---- */
+const MUSICIAN_FIELDS_PREFIX = 'repHaroldo_musicianFields_v1:';
+function exportMusicianFields(){
+  const out = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++){
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(MUSICIAN_FIELDS_PREFIX)) continue;
+      const slug = key.slice(MUSICIAN_FIELDS_PREFIX.length);
+      const data = JSON.parse(localStorage.getItem(key) || '{}');
+      if (slug && data && typeof data === 'object' && !Array.isArray(data)) out[slug] = data;
+    }
+  }catch(e){} // erro de uma chave local não deve impedir todo o backup
+  return out;
+}
+function importMusicianFields(source, idMap){
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return;
+  for (const slug of Object.keys(source)){
+    if (!/^[a-z0-9-]{1,80}$/.test(slug)) continue;
+    const incoming = source[slug];
+    if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) continue;
+    const key = MUSICIAN_FIELDS_PREFIX + slug;
+    try {
+      const existing = JSON.parse(localStorage.getItem(key) || '{}');
+      const merged = existing && typeof existing === 'object' && !Array.isArray(existing) ? existing : {};
+      for (const songId of Object.keys(incoming)){
+        const nid = idMap[songId] || migrateBuiltinId(songId);
+        if (Object.prototype.hasOwnProperty.call(merged, nid)) continue;
+        const item = incoming[songId];
+        if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+        merged[nid] = {
+          key:String(item.key || '').slice(0,40),
+          note:String(item.note || '').slice(0,2000)
+        };
+      }
+      localStorage.setItem(key, JSON.stringify(merged));
+    }catch(e){}
+  }
+}
+
 /* ---- backup: exportar / importar minhas letras ---- */
 /* Backup completo: letras próprias, setlists, categorias/abas renomeadas,
    categorias personalizadas, ocultas/excluídas/editadas e velocidades por música. */
@@ -8570,6 +8610,7 @@ $('exportBtn').onclick = () => {
       chipNames: CHIP_NAMES,
       customCats: CUSTOM_CATS,
       playlistKeys: PLAYLIST_KEYS,
+      musicianFields: exportMusicianFields(),
       hidden: [...HIDDEN], removed: [...REMOVED], overrides: OVERRIDES,
       prefs, speeds
     }
@@ -8614,9 +8655,11 @@ $('importFile').addEventListener('change', e => {
 
       // 2) nomes das abas — só preenche o que ainda não foi renomeado localmente
       if (isFull && d.chipNames){
-        Object.keys(d.chipNames).forEach(k => {
-          const hasLocalRename = !!localStorage.getItem(CHIP_NAMES_KEY) && Object.prototype.hasOwnProperty.call(JSON.parse(localStorage.getItem(CHIP_NAMES_KEY) || '{}'), k);
-          if (!hasLocalRename) CHIP_NAMES[k] = d.chipNames[k];
+        let localChipNames = {};
+        try { localChipNames = JSON.parse(localStorage.getItem(CHIP_NAMES_KEY) || '{}') || {}; }catch(e){}
+        ['A','J','C'].forEach(k => {
+          if (!Object.prototype.hasOwnProperty.call(localChipNames, k) && typeof d.chipNames[k] === 'string')
+            CHIP_NAMES[k] = d.chipNames[k];
         });
         saveChipNames();
       }
@@ -8638,6 +8681,8 @@ $('importFile').addEventListener('change', e => {
         saveHidden(); saveRemoved(); saveOverrides();
       }
       rebuildAll();
+      // Importa também as anotações das páginas públicas, sem apagar as locais.
+      if (isFull && d.musicianFields) importMusicianFields(d.musicianFields, idMap);
 
       // notas dos repertórios A Sua Maneira / Jazz & Blues / categorias personalizadas
       if (isFull && d.playlistKeys && typeof d.playlistKeys === 'object'){
