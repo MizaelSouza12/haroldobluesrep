@@ -61,9 +61,15 @@
   }
 
   function save(id, key, note) {
-    state[id] = { key, note };
     try {
-      localStorage.setItem(storageKey, JSON.stringify(state));
+      // Releia antes de gravar: duas abas podem editar músicas diferentes.
+      // Nunca sobrescreva a edição mais recente da outra aba com o snapshot antigo.
+      const newest = readJSON(storageKey, {});
+      const merged = newest && typeof newest === 'object' && !Array.isArray(newest)
+        ? newest : {};
+      merged[id] = { key, note };
+      localStorage.setItem(storageKey, JSON.stringify(merged));
+      Object.assign(state, merged);
       // Sincroniza o tom com a tela de preparo quando tudo é aberto
       // no MESMO navegador/origem. Não publica no GitHub.
       if (category === 'A' || category === 'J') {
