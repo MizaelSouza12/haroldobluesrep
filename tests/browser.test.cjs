@@ -65,6 +65,7 @@ after(async()=>{
   console.log('V8 ACUMULADO:',summary.main.exercised+'/'+summary.main.declared,
     'funções principais;',summary.editor.exercised+'/'+summary.editor.declared,'funções do editor;',
     summary.clickedElements.length,'identificadores de botão clicados.');
+  console.log('V8 FUNÇÕES AINDA NÃO EXERCITADAS:',summary.main.namesNotExercised.join(', '));
   if(browser) await browser.close();
   if(server) await new Promise(resolve=>server.close(resolve));
 });
