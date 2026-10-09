@@ -8792,14 +8792,21 @@ $('importFile').addEventListener('change', e => {
       const idMap = {};
       let addedCustom = 0;
       d.custom.forEach(item => {
-        if (!item || !item.title || !item.text) return;
-        const local = CUSTOM.find(c => norm(c.title) === norm(item.title) && norm(c.artist||'') === norm(item.artist||''));
+        // Arquivos de terceiros podem conter campos em formatos inesperados:
+        // ignore apenas o registro inválido, sem interromper todo o backup.
+        if (!item || typeof item !== 'object' ||
+            typeof item.title !== 'string' || !item.title.trim() ||
+            typeof item.text !== 'string' || !item.text.trim()) return;
+        const importedArtist = typeof item.artist === 'string' ? item.artist : 'Desconhecido';
+        const local = CUSTOM.find(c => norm(c.title) === norm(item.title) && norm(c.artist||'') === norm(importedArtist));
         if (local){ if (item.id) idMap[item.id] = local.id; return; }
         const idTaken = item.id && CUSTOM.some(c => c.id === item.id);
         const newId = (item.id && !idTaken) ? item.id : ('C' + Date.now().toString(36) + Math.random().toString(36).slice(2,7));
         if (item.id && newId !== item.id) idMap[item.id] = newId;
-        CUSTOM.push({ id: newId, title: String(item.title), artist: String(item.artist || 'Desconhecido'),
-          cats: String(item.cats || 'C'), text: String(item.text), color: item.color || null });
+        CUSTOM.push({ id: newId, title: item.title, artist: importedArtist,
+          cats: typeof item.cats === 'string' && item.cats ? item.cats : 'C',
+          text: item.text,
+          color: typeof item.color === 'string' ? item.color : null });
         addedCustom++;
       });
       saveCustom();
@@ -8818,7 +8825,8 @@ $('importFile').addEventListener('change', e => {
       let addedCats = 0;
       if (isFull && Array.isArray(d.customCats)){
         d.customCats.forEach(c => {
-          if (!c || !c.key || !c.name) return;
+          if (!c || typeof c.key !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(c.key) ||
+              typeof c.name !== 'string' || !c.name.trim()) return;
           if (CUSTOM_CATS.some(x => x.key === c.key)) return;
           CUSTOM_CATS.push({ key: c.key, name: c.name }); addedCats++;
         });
@@ -8828,7 +8836,18 @@ $('importFile').addEventListener('change', e => {
       if (isFull){
         if (Array.isArray(d.hidden)) d.hidden.forEach(id => HIDDEN.add(idMap[id] || migrateBuiltinId(id)));
         if (Array.isArray(d.removed)) d.removed.forEach(id => REMOVED.add(idMap[id] || migrateBuiltinId(id)));
-        if (d.overrides) Object.keys(d.overrides).forEach(id => { const nid = idMap[id] || migrateBuiltinId(id); if (!OVERRIDES[nid]) OVERRIDES[nid] = d.overrides[id]; });
+        if (d.overrides && typeof d.overrides === 'object' && !Array.isArray(d.overrides))
+          Object.keys(d.overrides).forEach(id => {
+            const nid = idMap[id] || migrateBuiltinId(id), source = d.overrides[id];
+            if (OVERRIDES[nid] || !source || typeof source !== 'object' || Array.isArray(source)) return;
+            const ov = {};
+            if (typeof source.title === 'string' && source.title.trim()) ov.title = source.title;
+            if (typeof source.artist === 'string') ov.artist = source.artist;
+            if (typeof source.text === 'string') ov.text = source.text;
+            if (typeof source.cats === 'string' && source.cats) ov.cats = source.cats;
+            if (typeof source.color === 'string' || source.color === null) ov.color = source.color;
+            if (Object.keys(ov).length) OVERRIDES[nid] = ov;
+          });
         saveHidden(); saveRemoved(); saveOverrides();
       }
       rebuildAll();
@@ -8853,7 +8872,7 @@ $('importFile').addEventListener('change', e => {
       let addedSetlists = 0;
       if (isFull && Array.isArray(d.setlists)){
         d.setlists.forEach(st => {
-          if (!st || !st.name || !Array.isArray(st.songIds)) return;
+          if (!st || typeof st.name !== 'string' || !st.name.trim() || !Array.isArray(st.songIds)) return;
           const fixedIds = st.songIds.map(id => idMap[id] || migrateBuiltinId(id)).filter(id => SONG_MAP.has(id));
           const already = SETLISTS.some(x => x.id === st.id || x.name === st.name);
           if (already) return;
