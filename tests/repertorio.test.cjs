@@ -897,3 +897,18 @@ test('87: cor do texto sobre destaque respeita contraste claro e escuro',()=>{
   assert.equal(w.eval("accentTextColor('#ff3b30')"),'#101010');
   w.close();
 });
+
+
+test('88: instalação do service worker pré-armazena ambas playlists, scripts e JSON',async()=>{
+  const registered={},assets=[];
+  const self={addEventListener:(name,fn)=>registered[name]=fn,location:{origin:'https://mizaelsouza12.github.io'}};
+  const caches={open:async()=>({addAll:async list=>assets.push(...list)})};
+  vm.runInNewContext(sw,{self,caches,fetch:()=>{},URL,Response});
+  let promise;
+  registered.install({waitUntil:p=>promise=p});
+  await promise;
+  for(const path of [
+    './setlists/a-sua-maneira.html','./setlists/a-sua-maneira.json',
+    './setlists/jazz-blues.html','./setlists/jazz-blues.json','./setlists/editor.js'
+  ]) assert.ok(assets.includes(path),path+' não foi pré-armazenado');
+});
