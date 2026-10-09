@@ -423,3 +423,210 @@ test('Browser 25: cobertura V8 mede funções realmente alcançadas por navegaç
     await s.close();
   }
 });
+
+
+test('Browser 26: todos os botões de preferências persistem após recarregar',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;});
+    await goto(s,MAIN);
+    await s.page.locator('#setBtnHome').click();
+    await s.page.locator('#setView.active').waitFor();
+    for(const id of ['fPlus','fMinus','dPlus','dMinus','posT','posB','fabOff','fabOn','alL','alC','alR']) {
+      await s.page.locator('#'+id).click();
+    }
+    await s.page.locator('#cFg').fill('#123456');
+    await s.page.locator('#cTitle').fill('#654321');
+    await s.page.locator('#cArtist').fill('#abcdef');
+    await s.page.locator('#cBg').fill('#112233');
+    let saved=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_prefs_v1')));
+    assert.equal(saved.fg,'#123456');assert.equal(saved.title,'#654321');
+    assert.equal(saved.artist,'#abcdef');assert.equal(saved.bg,'#112233');
+    assert.equal(saved.align,'right');
+    await s.page.reload();
+    saved=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_prefs_v1')));
+    assert.equal(saved.fg,'#123456');
+    await s.page.locator('#setBtnHome').click();
+    await s.page.locator('#resetBtn').click();
+    saved=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_prefs_v1')));
+    assert.equal(saved.fg,'#ffffff');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 27: gerenciamento cria setlist, seleciona músicas e persiste',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.prompt=()=> 'Show sábado';});
+    await goto(s,MAIN);
+    await s.page.locator('#chips .chip',{hasText:'Setlists'}).click();
+    await s.page.locator('#newSetlistBtn').click();
+    await s.page.locator('#selectBar').waitFor({state:'visible'});
+    await s.page.locator('#list .item').nth(0).click();
+    await s.page.locator('#list .item').nth(1).click();
+    await s.page.locator('#selConfirm').click();
+    const result=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_setlists_v1')));
+    assert.equal(result.list.length,1);
+    assert.equal(result.list[0].name,'Show sábado');
+    assert.equal(result.list[0].songIds.length,2);
+    await s.page.reload();
+    await s.page.locator('#chips .chip',{hasText:'Setlists'}).click();
+    assert.match(await s.page.locator('#setlistMgrList').innerText(),/Show sábado/);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 28: gerenciador renomeia e exclui setlist criado',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      localStorage.setItem('repHaroldo_setlists_v1',JSON.stringify({list:[{id:'STtest',name:'Show teste',songIds:[],songKeys:{}}],active:'STtest'}));
+      window.prompt=()=> 'Show renomeado';window.confirm=()=>true;
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#chips .chip',{hasText:'Setlists'}).click();
+    await s.page.locator('#setlistMgrList [data-a="ren"]').click();
+    assert.match(await s.page.locator('#setlistMgrList').innerText(),/Show renomeado/);
+    await s.page.locator('#setlistMgrList [data-a="del"]').click();
+    const data=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_setlists_v1')));
+    assert.equal(data.list.length,0);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 29: botão de opções oculta música; configurações restaura',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    await s.page.locator('#list .moreBtn').first().click();
+    await s.page.locator('#actionSheet.active').waitFor();
+    await s.page.locator('#actHide').click();
+    assert.equal(await s.page.locator('#list .item').count(),213);
+    await s.page.locator('#setBtnHome').click();
+    await s.page.locator('#hiddenList .manageRow button').first().click();
+    assert.equal(await s.page.locator('#subInfo').innerText(),'214 músicas no repertório');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 30: botão excluir retira e restaura música pela configuração',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;});
+    await goto(s,MAIN);
+    await s.page.locator('#list .moreBtn').first().click();
+    await s.page.locator('#actDelete').click();
+    assert.equal(await s.page.locator('#list .item').count(),213);
+    await s.page.locator('#setBtnHome').click();
+    await s.page.locator('#removedList .manageRow button').first().click();
+    assert.match(await s.page.locator('#subInfo').innerText(),/214/);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 31: filtrar por artista e voltar para todas',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    await s.page.locator('#chips .chip',{hasText:'Artistas'}).click();
+    assert.match(await s.page.locator('#count').innerText(),/artistas/);
+    await s.page.locator('#list .item').first().click();
+    assert.ok((await s.page.locator('#list .item').count())>=1);
+    await s.page.locator('#chips .chip',{hasText:'Todas'}).click();
+    assert.equal(await s.page.locator('#list .item').count(),214);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 32: botão Editar no menu altera música e sobrevive ao reload',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    await s.page.locator('#list .moreBtn').first().click();
+    await s.page.locator('#actEdit').click();
+    await s.page.locator('#editView.active').waitFor();
+    await s.page.locator('#inTitle').fill('Música revisada pelo browser');
+    await s.page.locator('#saveSong').click();
+    await s.page.reload();
+    await s.page.locator('#search').fill('Música revisada pelo browser');
+    assert.equal(await s.page.locator('#list .item').count(),1);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 33: barra de ferramentas da letra funciona sem destruir conteúdo',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      Object.defineProperty(navigator,'clipboard',{configurable:true,
+        value:{readText:async()=> 'Nova letra copiada',writeText:async v=>{window.__clip=v;}}});
+      window.confirm=()=>true;window.alert=()=>{};
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#addBtn').click();
+    await s.page.locator('#inLyrics').fill('Teste prévio');
+    await s.page.locator('#taFontUp').click();
+    await s.page.locator('#taFontDown').click();
+    await s.page.locator('#taCopy').click();
+    assert.equal(await s.page.evaluate(()=>window.__clip),'Teste prévio');
+    await s.page.locator('#taPaste').click();
+    assert.equal(await s.page.locator('#inLyrics').inputValue(),'Nova letra copiada');
+    await s.page.locator('#taColor').fill('#aabbcc');
+    await s.page.locator('#taColorReset').click();
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 34: navegação Anterior/Próxima e Play/Pausa no teleprompter',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    await s.page.locator('#list .item').nth(1).click();
+    await s.page.locator('#songView.active').waitFor();
+    const current=await s.page.locator('#songTitle').innerText();
+    await s.page.locator('#nextBtn').click();
+    assert.notEqual(await s.page.locator('#songTitle').innerText(),current);
+    await s.page.locator('#prevBtn').click();
+    assert.equal(await s.page.locator('#songTitle').innerText(),current);
+    await s.page.locator('#playBtn').click();
+    assert.match(await s.page.locator('#playBtn').innerText(),/PAUSA/);
+    await s.page.locator('#playBtn').click();
+    assert.match(await s.page.locator('#playBtn').innerText(),/PLAY/);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 35: estresse de 100 buscas consecutivas sem exceção',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    const names=['a','be','jazz','rock','ac','Água','Ira!','Beatles','ZZsem',''];
+    await s.page.evaluate((queries)=>{
+      const search=document.getElementById('search');
+      for(let i=0;i<100;i++){
+        search.value=queries[i%queries.length];
+        search.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+    },names);
+    assert.equal(await s.page.locator('#list .item').count(),214);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 36: falha da rede JSON mostra erro sem travar HTML',async()=>{
+  const s=await fresh();try{
+    await s.page.route('**/setlists/jazz-blues.json',route=>route.abort());
+    await goto(s,J);
+    await s.page.locator('#error').waitFor({state:'visible'});
+    assert.match(await s.page.locator('#meta').innerText(),/Erro/);
+    assert.equal(await s.page.locator('.song').count(),0);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 37: copiar link A e J usa páginas fixas curtas',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.__clipboard='';
+      Object.defineProperty(navigator,'clipboard',{configurable:true,
+        value:{writeText:async v=>{window.__clipboard=v;},readText:async()=>window.__clipboard}});
+      window.confirm=()=>true;window.alert=()=>{};
+    });
+    await goto(s,MAIN);await openPrep(s.page,0);
+    await s.page.locator('#musicianCopyLink').click();
+    assert.equal(await s.page.evaluate(()=>window.__clipboard),
+      'https://mizaelsouza12.github.io/haroldobluesrep/setlists/a-sua-maneira.html');
+    await s.page.reload();await openPrep(s.page,1);
+    await s.page.locator('#musicianCopyLink').click();
+    assert.equal(await s.page.evaluate(()=>window.__clipboard),
+      'https://mizaelsouza12.github.io/haroldobluesrep/setlists/jazz-blues.html');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 38: visualizador antigo sem hash não habilita download',async()=>{
+  const s=await fresh();try{
+    await goto(s,'/setlist.html');
+    assert.equal(await s.page.locator('#actions').isVisible(),false);
+    assert.equal(await s.page.locator('#error').isVisible(),true);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
