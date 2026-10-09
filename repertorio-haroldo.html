@@ -7620,10 +7620,35 @@ const DEF = { fg:'#ffffff', title:'#ff3b30', artist:'#ffd60a', bg:'#000000',
               font:22, defSpeed:30, barPos:'bottom', align:'center', fabEnabled:true };
 const LSK = 'repHaroldo_prefs_v1', LSS = 'repHaroldo_speeds_v1';
 let prefs = { ...DEF }, speeds = {};
-try { Object.assign(prefs, JSON.parse(localStorage.getItem(LSK) || '{}')); } catch(e) {}
+// Nunca use diretamente valores de configuração importados do localStorage:
+// backups legados ou dados corrompidos podem conter strings, null e números
+// fora dos limites, quebrando a CSS e a rolagem do teleprompter.
+function validColor(value){
+  return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
+}
+function validSpeed(value){
+  return typeof value === 'number' && Number.isFinite(value) && value >= 4 && value <= 150;
+}
 try {
-  const loaded = JSON.parse(localStorage.getItem(LSS) || '{}') || {};
-  Object.keys(loaded).forEach(id => speeds[migrateBuiltinId(id)] = loaded[id]);
+  const stored = JSON.parse(localStorage.getItem(LSK) || '{}');
+  if (stored && typeof stored === 'object' && !Array.isArray(stored)){
+    for (const key of ['fg','title','artist','bg'])
+      if (validColor(stored[key])) prefs[key] = stored[key];
+    if (typeof stored.font === 'number' && Number.isInteger(stored.font) &&
+        stored.font >= 14 && stored.font <= 44) prefs.font = stored.font;
+    if (validSpeed(stored.defSpeed)) prefs.defSpeed = stored.defSpeed;
+    if (stored.barPos === 'bottom' || stored.barPos === 'top') prefs.barPos = stored.barPos;
+    if (['left','center','right'].includes(stored.align)) prefs.align = stored.align;
+    if (typeof stored.fabEnabled === 'boolean') prefs.fabEnabled = stored.fabEnabled;
+  }
+} catch(e) {}
+try {
+  const loaded = JSON.parse(localStorage.getItem(LSS) || '{}');
+  if (loaded && typeof loaded === 'object' && !Array.isArray(loaded))
+    Object.keys(loaded).forEach(id => {
+      if (!['__proto__','constructor','prototype'].includes(id) && validSpeed(loaded[id]))
+        speeds[migrateBuiltinId(id)] = loaded[id];
+    });
 } catch(e) {}
 let lastSavedPrefs = { ...prefs };
 function savePrefs(){
