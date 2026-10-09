@@ -8566,11 +8566,13 @@ function exportMusicianFields(){
     for (let i = 0; i < localStorage.length; i++){
       const key = localStorage.key(i);
       if (!key || !key.startsWith(MUSICIAN_FIELDS_PREFIX)) continue;
-      const slug = key.slice(MUSICIAN_FIELDS_PREFIX.length);
-      const data = JSON.parse(localStorage.getItem(key) || '{}');
-      if (slug && data && typeof data === 'object' && !Array.isArray(data)) out[slug] = data;
+      try {
+        const slug = key.slice(MUSICIAN_FIELDS_PREFIX.length);
+        const data = JSON.parse(localStorage.getItem(key) || '{}');
+        if (slug && data && typeof data === 'object' && !Array.isArray(data)) out[slug] = data;
+      }catch(e){} // ignora só esta chave corrompida; continua exportando as outras
     }
-  }catch(e){} // erro de uma chave local não deve impedir todo o backup
+  }catch(e){} // indisponibilidade de armazenamento não impede o backup das demais informações
   return out;
 }
 function importMusicianFields(source, idMap){
