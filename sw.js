@@ -9,7 +9,12 @@ const ASSETS = [
   './manifest.json',
   './icon.svg',
   './setlist.html',
-  './musicos.html'
+  './musicos.html',
+  './setlists/a-sua-maneira.html',
+  './setlists/a-sua-maneira.json',
+  './setlists/jazz-blues.html',
+  './setlists/jazz-blues.json',
+  './setlists/editor.js'
 ];
 
 self.addEventListener('install', (event) => {
