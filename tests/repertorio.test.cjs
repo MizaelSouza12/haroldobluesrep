@@ -737,3 +737,16 @@ test('75: setlist local de nome inválido não derruba gerenciador',()=>{
   assert.equal(typeof w.eval('SETLISTS[0].name'),'string');
   w.close();
 });
+
+
+test('76: duas abas do aplicativo preparam notas distintas sem perda',()=>{
+  const store=createStorage();
+  const a=bootMain(store),b=bootMain(store);
+  const ids=a.w.eval('shareablePlaylists()[0].songIds.slice(0,2)');
+  a.w.eval("setSetlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(ids[0])+",'Ab')");
+  b.w.eval("setSetlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(ids[1])+",'C7')");
+  const persisted=JSON.parse(store.getItem('repHaroldo_playlistkeys_v1'));
+  assert.equal(persisted.A[ids[0]],'Ab');
+  assert.equal(persisted.A[ids[1]],'C7');
+  a.w.close();b.w.close();
+});
