@@ -13,6 +13,7 @@
     "jsdom": "26.1.0",
     "playwright": "1.58.2",
     "pdf-lib": "1.17.1",
-    "acorn": "8.15.0"
+    "acorn": "8.15.0",
+    "@axe-core/playwright": "4.10.2"
   }
 }
