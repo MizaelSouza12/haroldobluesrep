@@ -1,0 +1,22 @@
+name: Verificação diária da produção
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 9 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: GitHub Pages - verificação HTTP real
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar páginas, JS, service worker e JSON publicados
+        run: npm run test:production
