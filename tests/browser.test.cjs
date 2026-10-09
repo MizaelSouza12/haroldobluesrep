@@ -6,6 +6,7 @@ const path = require('node:path');
 const http = require('node:http');
 const { chromium } = require('playwright');
 const { PDFDocument } = require('pdf-lib');
+const AxeBuilder=require('@axe-core/playwright').default;
 
 const ROOT=path.resolve(__dirname,'..');
 const MIME={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8',
@@ -1310,4 +1311,48 @@ test('Browser 72: uma playlist não perde os dados ao alternar entre online e of
     await s.context.setOffline(false).catch(()=>{});
     await s.close();
   }
+});
+
+
+async function assertAccessiblePage(page,label){
+  const audit=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+  const meaningful=audit.violations.filter(v=>v.impact==='critical'||v.impact==='serious');
+  assert.deepEqual(meaningful.map(v=>({
+    rule:v.id,impact:v.impact,affected:v.nodes.slice(0,6).map(n=>n.target)
+  })),[],'Falhas WCAG relevantes em '+label);
+}
+test('Browser 73: acessibilidade WCAG da página de músicos (leitura e edição)',async()=>{
+  const s=await fresh();
+  try{
+    await goto(s,J);
+    await s.page.locator('.song').first().waitFor();
+    await assertAccessiblePage(s.page,'Jazz & Blues');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 74: acessibilidade WCAG do aplicativo principal',async()=>{
+  const s=await fresh();
+  try{
+    await goto(s,MAIN);
+    await assertAccessiblePage(s.page,'Tela principal');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 75: acessibilidade WCAG no editor de letras',async()=>{
+  const s=await fresh();
+  try{
+    await goto(s,MAIN);
+    await s.page.locator('#addBtn').click();
+    await assertAccessiblePage(s.page,'Nova letra');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 76: acessibilidade WCAG no preparo para os músicos',async()=>{
+  const s=await fresh();
+  try{
+    await goto(s,MAIN);
+    await openPrep(s.page,1);
+    await assertAccessiblePage(s.page,'Preparar playlist');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
 });
