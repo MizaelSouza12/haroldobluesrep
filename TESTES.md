@@ -1,57 +1,92 @@
-# Auditoria de regressão — Repertório Haroldo
-Data: 2026-10-09
+# Auditoria profunda — Repertório Haroldo
+Data: 9 de outubro de 2026
 
-## Execução
-- Workflow: [Testes do Repertório](../actions/workflows/testes.yml)
-- Execução validada: [37883128803](../actions/runs/37883128803)
-- Resultado: **61 testes executados, 61 aprovados**, Node.js 22 / JSDOM 26.1.0.
-- Arquivo da suíte: [tests/repertorio.test.cjs](tests/repertorio.test.cjs)
-- Executar novamente: `npm install && npm test`
+## Escopo e método
 
-## Sistemas verificados
-| Módulo | Casos |
-| --- | --- |
-| HTML, JavaScript, manifest, inicialização | sintaxe, boot, carregamento, integridade dos dados |
-| Repertório principal | 214 músicas, IDs estáveis, busca, acentos, ocultação, edição de letra |
-| Categorias A / J / AJ | 204 músicas em A, 19 em J, 9 compartilhadas |
-| Criação e renomeação | criação de letra, categoria personalizada, renomeação, persistência |
-| Setlists de palco | criar, selecionar, salvar, setlist vazio, compartilhar |
-| Preparação para músicos | 3 campos apenas (título, artista e nota), tons separados por repertório, contagem de notas faltantes |
-| Links | codificação base64url, formato do payload, rejeição de payload inválido |
-| Páginas curtas | HTML e JSON próprios, 204/19 músicas, ausência de letras privadas nesses arquivos |
-| Editor público | cifra, anotações multiline, recarga, armazenamento por playlist, atualização concorrente em abas |
-| Segurança da interface | texto suspeito renderizado como texto, não como HTML executável |
-| Backup | exportar e importar dados locais de tom/anotação sem sobrescrever versões locais |
-| Exportação | cópia com notas, PDF de 19 e 204 músicas, HTML escaping |
-| Voz | algoritmo de distância textual e correspondência aproximada |
-| Teleprompter | abertura de música, aumento de velocidade, integridade da lista |
-| Service worker | registro dos eventos, busca network-first em /setlists/ e resposta de erro offline |
+**Repositório auditado:** `MizaelSouza12/haroldobluesrep` (`main`). A auditoria cobre o aplicativo principal, as páginas curtas dos dois repertórios, o visualizador de links, arquivos JSON publicados, importação/exportação, PWA, service worker e as rotas de execução implementadas. Não existe backend de gravação próprio: o GitHub Pages hospeda arquivos estáticos e as edições sem login são mantidas no localStorage.
 
-## Correções realizadas durante a auditoria
-1. **Salvamento concorrente** — o editor relê o estado antes de atualizar uma música, evitando apagar a edição mais recente de outra aba na mesma origem/navegador.
-2. **Backup das anotações** — o backup completo do app agora inclui `repHaroldo_musicianFields_v1:*`, restaurando observações e notas sem apagar campos locais existentes.
-3. **Exportação tolerante a JSON corrompido** — uma chave de anotações local danificada não impede que outras playlists sejam incluídas no backup.
-4. **Importação robusta dos nomes das abas** — dados de `CHIP_NAMES_KEY` inválidos não provocam falha geral na importação.
+**Execução final aprovada:** https://github.com/MizaelSouza12/haroldobluesrep/actions/runs/37884730263
 
-## Limitações NÃO resolvidas pelos testes
-- **Sem sincronização entre aparelhos:** GitHub Pages é estático; `localStorage` persiste apenas no navegador/origem. As notas digitadas por um músico não ficam disponíveis automaticamente para Haroldo em outro aparelho.
-- **Publicação de páginas curtas:** adicionar um novo setlist no aparelho **não cria automaticamente** `/setlists/nome.html` no GitHub. Isso exige um processo de publicação autenticado.
-- **Atualização dos JSONs publicados:** alterar letras ou repertórios no navegador não atualiza automaticamente os JSONs já publicados no repositório.
-- **URL dinâmica longa:** o compartilhamento dinâmico `setlist.html#d=...` continua embutindo o conteúdo da playlist no link. Os dois endereços fixos curtos são alternativas, mas suas notas locais não sincronizam entre aparelhos.
-- **Privacidade:** o repositório principal é público; uma página que não exibe letras não protege as letras que já estão disponíveis nos arquivos públicos do repositório.
-- **Word:** a opção denominada Word gera HTML com extensão `.doc`, não um arquivo Office Open XML `.docx` genuíno.
-- **PDF:** o gerador usa fonte e codificação limitadas; caracteres Unicode fora de Latin-1 podem ser substituídos por `?`.
-- **Dispositivos reais:** JSDOM testa lógica e DOM, mas não substitui testes manuais em Chrome Android, Safari iOS, instalação PWA e Web Speech API.
+| Métrica | Resultado |
+| --- | ---: |
+| Total de testes automatizados | **124 aprovados / 124 executados** |
+| Testes em Chromium real (Playwright) | **57** |
+| Testes unitários/de integração simulada (Node/JSDOM) | **67** |
+| Funções nomeadas do aplicativo alcançadas por cobertura V8 acumulada | **106 / 106** |
+| Funções do editor público alcançadas | **7 / 7** |
+| Botões estáticos com ID clicados nas execuções em navegador | **53 / 53** |
+| Identificadores de botões distintos registrados (inclui botões dinâmicos) | **65** |
+| IDs HTML sem referência válida no código JS | **0** |
+| Deploy do Pages referente à última versão do aplicativo | **success** |
 
-## Roteiro de homologação manual
-1. Fazer **Exportar backup completo** em Configurações e guardar o JSON.
-2. Abrir as duas páginas curtas em Chrome. Digitar tom e anotação; atualizar, confirmar persistência.
-3. Abrir as páginas em outro navegador: confirmar que os dados não sincronizam, como avisado pela interface.
-4. Abrir duas abas da mesma playlist, editar músicas diferentes e atualizar as duas.
-5. Copiar lista, exportar PDF, verificar acentos e paginação.
-6. Entrar no app principal, conferir 214 músicas, 204/19 por categoria e os dois repertórios na opção de compartilhar.
-7. Criar letra de teste, renomear uma aba, criar um setlist e conferir persistência após atualizar.
-8. Exportar backup, restaurar em perfil de teste e conferir nota/anotação recuperadas.
-9. Exercitar teleprompter, velocidade, busca por voz e retorno via botão Android em dispositivo físico.
+**Atenção sobre cobertura:** 106/106 funções alcançadas significa que o profiler V8 observou ao menos uma invocação de cada função nomeada. **Não significa 100% de branch coverage, de linhas ou de todas as condições e combinações de eventos**. O analisador AST encontrou 105 nós `FunctionDeclaration` do app principal (o inventário lexical/Profiler lista 106 nomes de função); isso não representa um erro funcional. Além desses procedimentos existem callbacks anônimos e expressões que não aparecem na contagem de funções nomeadas.
 
-**Nota:** Aprovação dos testes automatizados significa que os cenários cobertos passaram. Não equivale a 100% de cobertura das 106 funções nomeadas do aplicativo, nem resolve as limitações de arquitetura listadas acima.
+## Evidências geradas automaticamente
+
+- `tests/repertorio.test.cjs`: verificações unitárias, integração JSDOM, dados e falhas de persistência.
+- `tests/browser.test.cjs`: testes completos em Chromium real via servidor HTTP local isolado, com ciclo de abertura, clique, digitação, atualização, download, importação e offline.
+- `scripts/review-source.cjs`: auditoria de sintaxe/AST e inventário função por função, com linhas relativas ao script, sites de `innerHTML`, IDs e botões.
+- Artefato `auditoria-browser` anexado à execução GitHub Actions: `function-coverage.json`, `coverage-all-browser-tests.json`, `code-review-inventory.json` e `code-review-inventory.md`.
+
+A automação roda com Node.js 22, JSDOM 26 e navegador Chromium real instalado via Playwright. O PDF gerado é analisado pelo leitor externo `pdf-lib`, em vez de apenas procurar pela extensão `.pdf`.
+
+Para executar localmente:
+
+```bash
+npm install
+npx playwright install chromium
+npm test
+npm run audit:source
+```
+
+## Fluxos efetivamente exercitados
+
+1. Abertura e renderização das 214 músicas originais; categorias A (204), J (19), combinações AJ e nomes personalizados.
+2. Buscas e pesquisa aproximada, 100 buscas consecutivas sob carga, filtro de artistas e estado sem resultados.
+3. Setlists manuais: criação, edição, seleção, renomeação, exclusão, cancelamento, fluxo de voz simulado e isolamento entre repertórios.
+4. UI da preparação para músicos, links curtos A/J, links dinâmicos para listas sem página fixa, texto compartilhado e Web Share API simulada.
+5. Editor público: digitação real de notas/cifras e anotações, recarregamento, persistência por repertório e diferentes perfis de navegador.
+6. Estresse de **204 tons e 100 anotações**, persistência e integridade de todos os valores após reload; edição em duas abas.
+7. Falhas de localStorage (limite/permissão), JSON malformado e operação de salvar recusada.
+8. Exportação PDF pequena/grande, validação com parser externo, exportação Word compatível (.doc), impressão e cópia.
+9. Backup JSON baixado pelo Chrome e importado por seletor de arquivos real, contendo os campos públicos editados.
+10. Teleprompter com letras, controle de velocidade, Play/Pausa, Próxima/Anterior, opções, edição, ocultação e restauração.
+11. Preferências, cores, fonte, alinhamento, barra, botão flutuante e armazenamento.
+12. Busca/criação de lista por voz usando **eventos simulados da Web Speech API**; erros de permissão e falta de suporte.
+13. Botão flutuante arrastado com mouse real, estado persistente, modo responsivo móvel e registro da PWA.
+14. Service worker ativo em Chromium, com abertura da página principal mesmo offline após instalar o cache.
+15. Proteção básica contra HTML executável em títulos, tratamento de URL incompleta e falhas de rede JSON.
+
+## Defeitos reais reproduzidos, corrigidos e regredidos
+
+- **Perda de músicas em setlists:** a função de reconstrução removia IDs da lista persistente ao ocultar uma música. Agora preserva a associação para restauração posterior.
+- **Falso salvamento de letras:** uma falha de gravação podia fechar o editor sem salvar. Agora verifica a persistência, mantém a edição aberta e avisa.
+- **Links de compartilhamento errados:** A Sua Maneira e Jazz & Blues ainda geravam URL longa. Agora usam suas páginas estáticas curtas.
+- **Falso salvamento de setlists:** erro de armazenamento era silenciosamente ignorado. Agora criação, confirmação de seleção e criação por voz interrompem a operação e alertam em caso de falha.
+- **Dados locais malformados:** objetos de letras e categorias inválidos podiam impedir a inicialização. Agora são validados antes do uso.
+- **Edições concorrentes:** o editor de notas podia sobrescrever alterações de outra aba. Agora mescla a entrada atual antes de gravar a música.
+- **Backup incompleto:** anotações das páginas curtas não estavam sendo incluídas. Agora fazem parte do backup completo.
+- **Backup bloqueado por JSON local corrompido:** um registro de anotações inválido podia impedir a exportação das outras playlists. Agora apenas a entrada inválida é ignorada.
+- **Importação vulnerável a configurações locais inválidas:** a leitura dos nomes das abas era passível de falha. Agora trata dados ilegíveis.
+- **Cache PWA desatualizado:** o service worker foi atualizado para `v15` e as páginas de `/setlists/` procuram conteúdo atualizado pela rede.
+
+As reprovações usadas para demonstrar bugs reais ocorreram **antes das correções**, e todos esses casos passaram na rodada final. Também houve reprovações **do próprio teste**, por sincronização de `fetch` assíncrono e hipóteses antigas sobre links, corrigidas sem alterar o app indevidamente.
+
+## Limitações e riscos ainda existentes
+
+1. **Sem servidor gravável / sem sincronização entre pessoas:** editar tom/anotação sem login em GitHub Pages salva apenas no browser. Outro músico e Haroldo em outro aparelho não recebem automaticamente a alteração.
+2. **Publicação automática inexistente:** criar nova playlist no app não cria o arquivo `setlists/nova-playlist.html` no GitHub. As páginas curtas são publicações independentes; alterações locais no repertório não atualizam o JSON hospedado.
+3. **Privacidade:** o repositório principal é público e contém letras dentro do HTML. Esconder a navegação do link do músico não torna essas letras confidenciais.
+4. **Formato Word:** o arquivo exportado como `.doc` contém HTML compatível com Word, não é `.docx` Office Open XML genuíno.
+5. **Unicode em PDF:** o gerador manual usa WinAnsi/Latin-1, podendo substituir alguns símbolos por `?`.
+6. **Microfone real:** o parser e a UI de voz foram exercitados com eventos simulados; o serviço Web Speech e as permissões de hardware precisam de homologação manual em celulares reais.
+7. **Dispositivos físicos e navegadores:** Chromium desktop e viewport móvel foram testados; não houve prova em Safari/iOS nem em aparelhos Android físicos.
+8. **Dados exclusivamente locais:** limpar o armazenamento do site, trocar de navegador ou aparelho pode fazer os dados desaparecerem. O backup manual completo continua necessário.
+9. **Gate de implantação:** o build padrão do GitHub Pages é independente do workflow de testes; uma alteração futura com testes reprovados ainda poderá ser publicada, a menos que a implantação seja condicionada às verificações.
+10. **Cobertura de ramos:** 100% das funções nomeadas foram alcançadas, mas não todos os ramos, exceções, entradas possíveis ou limites de memória.
+
+## Homologação manual recomendada
+
+Depois da execução automatizada aprovada, testar em aparelhos reais a instalação/atualização PWA, reconhecimento de voz com microfone, modo sem rede, compartilhamento pelo sistema operacional, acessibilidade, restauração de um backup de produção e atualização por outro usuário/dispositivo. Fazer backup antes de importar ou modificar dados reais.
+
+A auditoria **não alterou ou leu o localStorage real do dispositivo do Haroldo**; os testes foram executados em contextos isolados com dados fictícios. As letras originais e os arquivos do repositório não foram removidos.
