@@ -25,6 +25,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Executar testes unitários e em navegador real
         run: npm test
+      - name: Inventariar funções, interfaces e fluxo de chamadas
+        run: npm run audit:source
       - name: Publicar evidências de cobertura do navegador
         if: always()
         uses: actions/upload-artifact@v4
