@@ -743,8 +743,11 @@ test('76: duas abas do aplicativo preparam notas distintas sem perda',()=>{
   const store=createStorage();
   const a=bootMain(store),b=bootMain(store);
   const ids=a.w.eval('shareablePlaylists()[0].songIds.slice(0,2)');
-  a.w.eval("setSetlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(ids[0])+",'Ab')");
-  b.w.eval("setSetlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(ids[1])+",'C7')");
+  // Ambos os editores já estão abertos antes da primeira alteração.
+  a.w.eval('window.openedList=sharePlaylistSource(shareablePlaylists()[0])');
+  b.w.eval('window.openedList=sharePlaylistSource(shareablePlaylists()[0])');
+  a.w.eval("setSetlistKey(window.openedList,"+JSON.stringify(ids[0])+",'Ab')");
+  b.w.eval("setSetlistKey(window.openedList,"+JSON.stringify(ids[1])+",'C7')");
   const persisted=JSON.parse(store.getItem('repHaroldo_playlistkeys_v1'));
   assert.equal(persisted.A[ids[0]],'Ab');
   assert.equal(persisted.A[ids[1]],'C7');
