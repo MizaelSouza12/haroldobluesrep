@@ -780,3 +780,49 @@ test('78: falha ao restaurar música oculta mantém item no conjunto original',(
   assert.ok(warnings.some(x=>/salvar|armazenamento|espaço/i.test(x)));
   w.close();
 });
+
+
+test('79: renomear setlist com storage bloqueado preserva nome antigo',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_setlists_v1',JSON.stringify({list:[{id:'STone',name:'Nome antigo',songIds:[],songKeys:{}}],active:'STone'}));
+  const native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_setlists_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warn=[];w.alert=t=>warn.push(String(t));w.prompt=()=> 'Novo nome';
+  w.eval("openSetlistManager('manage')");
+  w.document.querySelector('#setlistMgrList [data-a="ren"]').click();
+  assert.equal(w.eval('SETLISTS[0].name'),'Nome antigo');
+  assert.ok(warn.some(t=>/salvar|armazenamento|espaço/i.test(t)));
+  w.close();
+});
+test('80: excluir setlist sem gravação não exclui lista de memória',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_setlists_v1',JSON.stringify({list:[{id:'STone',name:'Lista imprescindível',songIds:[],songKeys:{}}],active:'STone'}));
+  const native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_setlists_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warn=[];w.alert=t=>warn.push(String(t));w.confirm=()=>true;
+  w.eval("openSetlistManager('manage')");
+  w.document.querySelector('#setlistMgrList [data-a="del"]').click();
+  assert.equal(w.eval('SETLISTS.length'),1);
+  assert.ok(warn.some(t=>/salvar|armazenamento|espaço/i.test(t)));
+  w.close();
+});
+test('81: renomear aba com falha não apresenta nome fantasma',()=>{
+  const store=createStorage(),native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_chipnames_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warn=[];w.alert=t=>warn.push(String(t));w.prompt=()=> 'Fantasma';
+  w.eval("renameChip('A')");
+  assert.equal(w.eval('CHIP_NAMES.A'),'A Sua Maneira');
+  assert.ok(warn.some(t=>/salvar|armazenamento|espaço/i.test(t)));
+  w.close();
+});
+test('82: ajustar velocidade sem salvar deve reverter valor do palco',()=>{
+  const store=createStorage(),native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_speeds_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warn=[];w.alert=t=>warn.push(String(t));
+  w.document.querySelector('#list .item').click();
+  const before=Number(w.document.getElementById('spdVal').textContent);
+  w.document.getElementById('spdUp').click();
+  assert.equal(Number(w.document.getElementById('spdVal').textContent),before);
+  assert.ok(warn.some(t=>/salvar|armazenamento|espaço/i.test(t)));
+  w.close();
+});
