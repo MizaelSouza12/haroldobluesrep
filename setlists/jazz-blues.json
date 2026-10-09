@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "slug": "jazz-blues",
+  "name": "Jazz & Blues",
+  "songs": [
+    {
+      "title": "Ain't No Sunshine",
+      "artist": "Bill Withers",
+      "key": ""
+    },
+    {
+      "title": "All Your Love",
+      "artist": "Otis Rush",
+      "key": ""
+    },
+    {
+      "title": "California Dreamin'",
+      "artist": "Rosa Maria",
+      "key": ""
+    },
+    {
+      "title": "Hit The Road Jack",
+      "artist": "Ray Charles",
+      "key": ""
+    },
+    {
+      "title": "Layla",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "Mercedes Benz",
+      "artist": "Janis Joplin",
+      "key": ""
+    },
+    {
+      "title": "Mustang Sally",
+      "artist": "Buddy Guy",
+      "key": ""
+    },
+    {
+      "title": "Old Love",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "The Thrill Is Gone",
+      "artist": "BB King",
+      "key": ""
+    },
+    {
+      "title": "Fly Me To The Moon",
+      "artist": "Frank Sinatra",
+      "key": ""
+    },
+    {
+      "title": "Just The Two Of Us",
+      "artist": "Grover Washington Jr",
+      "key": ""
+    },
+    {
+      "title": "Feeling Good",
+      "artist": "Nina Simone",
+      "key": ""
+    },
+    {
+      "title": "I've Got You Under My Skin",
+      "artist": "Frank Sinatra",
+      "key": ""
+    },
+    {
+      "title": "Boom Boom",
+      "artist": "John Lee Hooker",
+      "key": ""
+    },
+    {
+      "title": "I Got A Woman",
+      "artist": "Ray Charles",
+      "key": ""
+    },
+    {
+      "title": "La Grange",
+      "artist": "Z.Z. Top",
+      "key": ""
+    },
+    {
+      "title": "Sweet Home Chicago",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "Cantaloupe Island",
+      "artist": "Herbie Hancock",
+      "key": ""
+    },
+    {
+      "title": "Walkin Blues",
+      "artist": "Robert Johnson",
+      "key": ""
+    }
+  ]
+}
