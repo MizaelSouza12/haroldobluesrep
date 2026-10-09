@@ -1,0 +1,1027 @@
+{
+  "version": 1,
+  "slug": "a-sua-maneira",
+  "name": "A Sua Maneira",
+  "songs": [
+    {
+      "title": "(Sittin' On) The Dock Of The Bay",
+      "artist": "Otis Redding",
+      "key": ""
+    },
+    {
+      "title": "15 Anos",
+      "artist": "Ira!",
+      "key": ""
+    },
+    {
+      "title": "Admirável Gado Novo",
+      "artist": "Zé Ramalho",
+      "key": ""
+    },
+    {
+      "title": "A Feira",
+      "artist": "O Rappa",
+      "key": ""
+    },
+    {
+      "title": "A Letra A",
+      "artist": "Nando Reis",
+      "key": ""
+    },
+    {
+      "title": "A Whiter Shade of Pale",
+      "artist": "Procol Harum",
+      "key": ""
+    },
+    {
+      "title": "Águas de Março",
+      "artist": "Tom Jobim",
+      "key": ""
+    },
+    {
+      "title": "Ain't No Sunshine",
+      "artist": "Bill Withers",
+      "key": ""
+    },
+    {
+      "title": "Ali",
+      "artist": "Skank",
+      "key": ""
+    },
+    {
+      "title": "Alívio Imediato",
+      "artist": "Engenheiros do Hawaii",
+      "key": ""
+    },
+    {
+      "title": "All Star",
+      "artist": "Nando Reis",
+      "key": ""
+    },
+    {
+      "title": "All Your Love",
+      "artist": "Otis Rush",
+      "key": ""
+    },
+    {
+      "title": "Amor, Meu Grande Amor",
+      "artist": "Barão Vermelho",
+      "key": ""
+    },
+    {
+      "title": "Angie",
+      "artist": "The Rolling Stones",
+      "key": ""
+    },
+    {
+      "title": "Apenas Mais Uma de Amor",
+      "artist": "Lulu Santos",
+      "key": ""
+    },
+    {
+      "title": "As Coisas Tão Mais Lindas",
+      "artist": "Cássia Eller",
+      "key": ""
+    },
+    {
+      "title": "Até Quando Esperar",
+      "artist": "Plebe Rude",
+      "key": ""
+    },
+    {
+      "title": "Avôhai",
+      "artist": "Zé Ramalho",
+      "key": ""
+    },
+    {
+      "title": "Back To Black",
+      "artist": "Amy Winehouse",
+      "key": ""
+    },
+    {
+      "title": "Bad To The Bone",
+      "artist": "George Thorogood",
+      "key": ""
+    },
+    {
+      "title": "Balada Do Amor Inabalável",
+      "artist": "Skank",
+      "key": ""
+    },
+    {
+      "title": "Bandeiras",
+      "artist": "Zeca Baleiro",
+      "key": ""
+    },
+    {
+      "title": "Bebendo Vinho",
+      "artist": "Ira!",
+      "key": ""
+    },
+    {
+      "title": "Before You Accuse Me",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "Black",
+      "artist": "Pearl Jam",
+      "key": ""
+    },
+    {
+      "title": "Born To Be Wild",
+      "artist": "Steppenwolf",
+      "key": ""
+    },
+    {
+      "title": "Cada Um, Cada Um",
+      "artist": "Claudio Zoli",
+      "key": ""
+    },
+    {
+      "title": "Cai A Noite",
+      "artist": "Capital Inicial",
+      "key": ""
+    },
+    {
+      "title": "Caleidoscópio",
+      "artist": "Os Paralamas do Sucesso",
+      "key": ""
+    },
+    {
+      "title": "California Dreamin'",
+      "artist": "Rosa Maria",
+      "key": ""
+    },
+    {
+      "title": "Carolina",
+      "artist": "Seu Jorge",
+      "key": ""
+    },
+    {
+      "title": "Céu Azul",
+      "artist": "Charlie Brown Jr.",
+      "key": ""
+    },
+    {
+      "title": "Change The World",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "Cidadão",
+      "artist": "Zé Geraldo",
+      "key": ""
+    },
+    {
+      "title": "Clandestino",
+      "artist": "Manu Chao",
+      "key": ""
+    },
+    {
+      "title": "Cocaine",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "Come As You Are",
+      "artist": "Nirvana",
+      "key": ""
+    },
+    {
+      "title": "Come Together",
+      "artist": "Beatles",
+      "key": ""
+    },
+    {
+      "title": "Comfortably Numb",
+      "artist": "Pink Floyd",
+      "key": ""
+    },
+    {
+      "title": "Corazon Espinado",
+      "artist": "Carlos Santana",
+      "key": ""
+    },
+    {
+      "title": "Corcovado",
+      "artist": "Tom Jobim",
+      "key": ""
+    },
+    {
+      "title": "Cotidiano",
+      "artist": "Chico Buarque",
+      "key": ""
+    },
+    {
+      "title": "Crazy",
+      "artist": "Seal",
+      "key": ""
+    },
+    {
+      "title": "Daughters",
+      "artist": "John Mayer",
+      "key": ""
+    },
+    {
+      "title": "Depois",
+      "artist": "Pato Fu",
+      "key": ""
+    },
+    {
+      "title": "Diamonds On The Inside",
+      "artist": "Ben Harper",
+      "key": ""
+    },
+    {
+      "title": "Dias de Luta",
+      "artist": "Ira!",
+      "key": ""
+    },
+    {
+      "title": "Dias de Luta, Dias de Glória",
+      "artist": "Charlie Brown Jr.",
+      "key": ""
+    },
+    {
+      "title": "É Isso Aí",
+      "artist": "Ana Carolina",
+      "key": ""
+    },
+    {
+      "title": "Easy",
+      "artist": "Lionel Richie",
+      "key": ""
+    },
+    {
+      "title": "Eduardo e Mônica",
+      "artist": "Legião Urbana",
+      "key": ""
+    },
+    {
+      "title": "Enquanto Ela Não Chegar",
+      "artist": "Barão Vermelho",
+      "key": ""
+    },
+    {
+      "title": "Enquanto Houver Sol",
+      "artist": "Titãs",
+      "key": ""
+    },
+    {
+      "title": "Epitáfio",
+      "artist": "Titãs",
+      "key": ""
+    },
+    {
+      "title": "Espelhos D'água",
+      "artist": "Dalto",
+      "key": ""
+    },
+    {
+      "title": "Espere Por Mim, Morena",
+      "artist": "Gonzaguinha",
+      "key": ""
+    },
+    {
+      "title": "Every Breath You Take",
+      "artist": "The Police",
+      "key": ""
+    },
+    {
+      "title": "Exagerado",
+      "artist": "Cazuza",
+      "key": ""
+    },
+    {
+      "title": "Eyes Without A Face",
+      "artist": "Billy Idol",
+      "key": ""
+    },
+    {
+      "title": "Fico Assim Sem Você",
+      "artist": "Adriana Calcanhotto",
+      "key": ""
+    },
+    {
+      "title": "Fields Of Gold",
+      "artist": "The Police",
+      "key": ""
+    },
+    {
+      "title": "Flores do Mal",
+      "artist": "Barão Vermelho",
+      "key": ""
+    },
+    {
+      "title": "Flores Em Você",
+      "artist": "Ira!",
+      "key": ""
+    },
+    {
+      "title": "Fogo",
+      "artist": "Capital Inicial",
+      "key": ""
+    },
+    {
+      "title": "Free Fallin'",
+      "artist": "John Mayer",
+      "key": ""
+    },
+    {
+      "title": "Go Back",
+      "artist": "Titãs",
+      "key": ""
+    },
+    {
+      "title": "Handy Man",
+      "artist": "James Taylor",
+      "key": ""
+    },
+    {
+      "title": "Happy",
+      "artist": "Pharrell Williams",
+      "key": ""
+    },
+    {
+      "title": "Have You Ever Seen The Rain?",
+      "artist": "Creedence Clearwater Revival",
+      "key": ""
+    },
+    {
+      "title": "Hey Hey",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "Hey Joe",
+      "artist": "O Rappa",
+      "key": ""
+    },
+    {
+      "title": "Hit The Road Jack",
+      "artist": "Ray Charles",
+      "key": ""
+    },
+    {
+      "title": "Hoochie Coochie Man",
+      "artist": "Muddy Waters",
+      "key": ""
+    },
+    {
+      "title": "Hotel California",
+      "artist": "Eagles",
+      "key": ""
+    },
+    {
+      "title": "Hound Dog",
+      "artist": "Elvis Presley",
+      "key": ""
+    },
+    {
+      "title": "I Heard It Through The Grapevine",
+      "artist": "Marvin Gaye",
+      "key": ""
+    },
+    {
+      "title": "I Started A Joke",
+      "artist": "The Wallflowers",
+      "key": ""
+    },
+    {
+      "title": "I'd Rather Go Blind",
+      "artist": "Beyoncé",
+      "key": ""
+    },
+    {
+      "title": "I'm Yours",
+      "artist": "Jason Mraz",
+      "key": ""
+    },
+    {
+      "title": "Imunização Racional (Que Beleza)",
+      "artist": "Tim Maia",
+      "key": ""
+    },
+    {
+      "title": "In The Colors",
+      "artist": "Ben Harper",
+      "key": ""
+    },
+    {
+      "title": "Independência",
+      "artist": "Capital Inicial",
+      "key": ""
+    },
+    {
+      "title": "Isn't She Lovely",
+      "artist": "Stevie Wonder",
+      "key": ""
+    },
+    {
+      "title": "Is This Love",
+      "artist": "Whitesnake",
+      "key": ""
+    },
+    {
+      "title": "Johnny B. Goode",
+      "artist": "Chuck Berry",
+      "key": ""
+    },
+    {
+      "title": "Just Breathe",
+      "artist": "Pearl Jam",
+      "key": ""
+    },
+    {
+      "title": "Just The Way You Are",
+      "artist": "Barry White",
+      "key": ""
+    },
+    {
+      "title": "Juvenar",
+      "artist": "Karnak",
+      "key": ""
+    },
+    {
+      "title": "Knockin' On Heaven's Door",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "Lay, Lady, Lay",
+      "artist": "Bob Dylan",
+      "key": ""
+    },
+    {
+      "title": "Layla",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "Learn To Fly",
+      "artist": "Foo Fighters",
+      "key": ""
+    },
+    {
+      "title": "Lenha",
+      "artist": "Zeca Baleiro",
+      "key": ""
+    },
+    {
+      "title": "Let It Be",
+      "artist": "The Beatles",
+      "key": ""
+    },
+    {
+      "title": "Let's Get It On",
+      "artist": "Marvin Gaye",
+      "key": ""
+    },
+    {
+      "title": "Light My Fire",
+      "artist": "The Doors",
+      "key": ""
+    },
+    {
+      "title": "Like A Rolling Stone",
+      "artist": "Bob Dylan",
+      "key": ""
+    },
+    {
+      "title": "Losing My Religion",
+      "artist": "R.E.M.",
+      "key": ""
+    },
+    {
+      "title": "Love Me Two Times",
+      "artist": "The Doors",
+      "key": ""
+    },
+    {
+      "title": "Luz Dos Olhos",
+      "artist": "Cássia Eller",
+      "key": ""
+    },
+    {
+      "title": "Mais Uma Vez",
+      "artist": "Legião Urbana",
+      "key": ""
+    },
+    {
+      "title": "Mais Uma Vez",
+      "artist": "Jota Quest",
+      "key": ""
+    },
+    {
+      "title": "Malted Milk",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "Man On The Moon",
+      "artist": "R.E.M.",
+      "key": ""
+    },
+    {
+      "title": "Manguetown",
+      "artist": "Chico Science",
+      "key": ""
+    },
+    {
+      "title": "Maracatu Atomico",
+      "artist": "Chico Science",
+      "key": ""
+    },
+    {
+      "title": "Me And Bobby McGee",
+      "artist": "Janis Joplin",
+      "key": ""
+    },
+    {
+      "title": "Me Liga",
+      "artist": "Os Paralamas do Sucesso",
+      "key": ""
+    },
+    {
+      "title": "Mercedes Benz",
+      "artist": "Janis Joplin",
+      "key": ""
+    },
+    {
+      "title": "Meu Novo Mundo",
+      "artist": "Charlie Brown Jr.",
+      "key": ""
+    },
+    {
+      "title": "Mina Do Condomínio",
+      "artist": "Seu Jorge",
+      "key": ""
+    },
+    {
+      "title": "Mustang Sally",
+      "artist": "Buddy Guy",
+      "key": ""
+    },
+    {
+      "title": "More Than Words",
+      "artist": "Extreme",
+      "key": ""
+    },
+    {
+      "title": "Mother",
+      "artist": "Pink Floyd",
+      "key": ""
+    },
+    {
+      "title": "Mudança de Comportamento",
+      "artist": "Ira!",
+      "key": ""
+    },
+    {
+      "title": "Muito Estranho",
+      "artist": "Dalto",
+      "key": ""
+    },
+    {
+      "title": "My Girl",
+      "artist": "Tiago Iorc",
+      "key": ""
+    },
+    {
+      "title": "Nega Do Cabelo Duro",
+      "artist": "Planet Hemp",
+      "key": ""
+    },
+    {
+      "title": "Nem 5 Minutos Guardados",
+      "artist": "Titãs",
+      "key": ""
+    },
+    {
+      "title": "Never Can Say Goodbye",
+      "artist": "Jackson 5",
+      "key": ""
+    },
+    {
+      "title": "New Year's Day",
+      "artist": "U2",
+      "key": ""
+    },
+    {
+      "title": "New York, New York",
+      "artist": "Frank Sinatra",
+      "key": ""
+    },
+    {
+      "title": "No Woman No Cry",
+      "artist": "Bob Marley",
+      "key": ""
+    },
+    {
+      "title": "Nós Dois",
+      "artist": "Tadeu Franco",
+      "key": ""
+    },
+    {
+      "title": "Nothing Else Matters",
+      "artist": "Metallica",
+      "key": ""
+    },
+    {
+      "title": "Núcleo Base",
+      "artist": "IRA!",
+      "key": ""
+    },
+    {
+      "title": "O Amor Não Sabe Esperar",
+      "artist": "Marisa Monte",
+      "key": ""
+    },
+    {
+      "title": "O Descobridor Dos Sete Mares",
+      "artist": "Tim Maia",
+      "key": ""
+    },
+    {
+      "title": "O Girassol",
+      "artist": "Ira!",
+      "key": ""
+    },
+    {
+      "title": "O Mundo",
+      "artist": "Karnak",
+      "key": ""
+    },
+    {
+      "title": "O Que Eu Também Não Entendo",
+      "artist": "Jota Quest",
+      "key": ""
+    },
+    {
+      "title": "O Segundo Sol",
+      "artist": "Cássia Eller",
+      "key": ""
+    },
+    {
+      "title": "O Vento",
+      "artist": "Los Hermanos",
+      "key": ""
+    },
+    {
+      "title": "Old Love",
+      "artist": "Eric Clapton",
+      "key": ""
+    },
+    {
+      "title": "On The Turning Away",
+      "artist": "Pink Floyd",
+      "key": ""
+    },
+    {
+      "title": "One",
+      "artist": "U2",
+      "key": ""
+    },
+    {
+      "title": "Os Cegos Do Castelo",
+      "artist": "Titãs",
+      "key": ""
+    },
+    {
+      "title": "Paciência",
+      "artist": "Lenine",
+      "key": ""
+    },
+    {
+      "title": "Polly",
+      "artist": "Nirvana",
+      "key": ""
+    },
+    {
+      "title": "Por Que a Gente é Assim?",
+      "artist": "Barão Vermelho",
+      "key": ""
+    },
+    {
+      "title": "Por Você",
+      "artist": "Barão Vermelho",
+      "key": ""
+    },
+    {
+      "title": "Pra Dizer Adeus",
+      "artist": "Titãs",
+      "key": ""
+    },
+    {
+      "title": "Primeiros Erros",
+      "artist": "Capital Inicial",
+      "key": ""
+    },
+    {
+      "title": "Proud Mary",
+      "artist": "Creedence Clearwater Revival",
+      "key": ""
+    },
+    {
+      "title": "Quando a Maré Encher",
+      "artist": "Nação Zumbi",
+      "key": ""
+    },
+    {
+      "title": "Quando Você Não Está Por Perto",
+      "artist": "Frejat",
+      "key": ""
+    },
+    {
+      "title": "Quase Nada",
+      "artist": "Zeca Baleiro",
+      "key": ""
+    },
+    {
+      "title": "Que Nem Maré",
+      "artist": "Jorge Vercillo",
+      "key": ""
+    },
+    {
+      "title": "Queixa",
+      "artist": "Caetano Veloso",
+      "key": ""
+    },
+    {
+      "title": "Rehab",
+      "artist": "Amy Winehouse",
+      "key": ""
+    },
+    {
+      "title": "Raindrops Keep Falling On My Head",
+      "artist": "B.J. Thomas",
+      "key": ""
+    },
+    {
+      "title": "Redemption Song",
+      "artist": "Bob Marley",
+      "key": ""
+    },
+    {
+      "title": "Refrão de Bolero",
+      "artist": "Engenheiros do Hawaii",
+      "key": ""
+    },
+    {
+      "title": "Roda Viva",
+      "artist": "Chico Buarque",
+      "key": ""
+    },
+    {
+      "title": "Roxanne",
+      "artist": "The Police",
+      "key": ""
+    },
+    {
+      "title": "Saber Amar",
+      "artist": "Os Paralamas do Sucesso",
+      "key": ""
+    },
+    {
+      "title": "Sabotagem",
+      "artist": "Cássia Eller",
+      "key": ""
+    },
+    {
+      "title": "Samba de Uma Nota Só",
+      "artist": "Tom Jobim",
+      "key": ""
+    },
+    {
+      "title": "Samba Makossa",
+      "artist": "Planet Hemp",
+      "key": ""
+    },
+    {
+      "title": "Scarborough Fair-Canticle",
+      "artist": "Simon & Garfunkel",
+      "key": ""
+    },
+    {
+      "title": "Segredos",
+      "artist": "Frejat",
+      "key": ""
+    },
+    {
+      "title": "Show Me The Way",
+      "artist": "Peter Frampton",
+      "key": ""
+    },
+    {
+      "title": "Sitting, Waiting, Wishing",
+      "artist": "Jack Johnson",
+      "key": ""
+    },
+    {
+      "title": "Smooth",
+      "artist": "Carlos Santana",
+      "key": ""
+    },
+    {
+      "title": "Só Love",
+      "artist": "Claudinho e Buchecha",
+      "key": ""
+    },
+    {
+      "title": "Somos Quem Podemos Ser",
+      "artist": "Engenheiros do Hawaii",
+      "key": ""
+    },
+    {
+      "title": "Sowing The Seeds Of Love",
+      "artist": "Tears For Fears",
+      "key": ""
+    },
+    {
+      "title": "Stand By Me",
+      "artist": "Oasis",
+      "key": ""
+    },
+    {
+      "title": "Stand By Me",
+      "artist": "Marvin Gaye",
+      "key": ""
+    },
+    {
+      "title": "Summertime",
+      "artist": "Janis Joplin",
+      "key": ""
+    },
+    {
+      "title": "Sunday Bloody Sunday",
+      "artist": "U2",
+      "key": ""
+    },
+    {
+      "title": "Suspicious Minds",
+      "artist": "Elvis Presley",
+      "key": ""
+    },
+    {
+      "title": "Sutilmente",
+      "artist": "Skank",
+      "key": ""
+    },
+    {
+      "title": "Suzie Q",
+      "artist": "Creedence Clearwater Revival",
+      "key": ""
+    },
+    {
+      "title": "Sweet Child O' Mine",
+      "artist": "Guns N' Roses",
+      "key": ""
+    },
+    {
+      "title": "Tão Bem",
+      "artist": "Lulu Santos",
+      "key": ""
+    },
+    {
+      "title": "Tarde Vazia",
+      "artist": "IRA!",
+      "key": ""
+    },
+    {
+      "title": "Terra de Gigantes",
+      "artist": "Engenheiros do Hawaii",
+      "key": ""
+    },
+    {
+      "title": "The Lazy Song",
+      "artist": "Bruno Mars",
+      "key": ""
+    },
+    {
+      "title": "The Scientist",
+      "artist": "Coldplay",
+      "key": ""
+    },
+    {
+      "title": "The Thrill Is Gone",
+      "artist": "BB King",
+      "key": ""
+    },
+    {
+      "title": "Trac Trac",
+      "artist": "Os Paralamas do Sucesso",
+      "key": ""
+    },
+    {
+      "title": "Trem Do Amor",
+      "artist": "Sine Calmon & Morrão Fumegante",
+      "key": ""
+    },
+    {
+      "title": "Tudo Bem",
+      "artist": "Lulu Santos",
+      "key": ""
+    },
+    {
+      "title": "Tudo Que Vai",
+      "artist": "Capital Inicial",
+      "key": ""
+    },
+    {
+      "title": "Último Romance",
+      "artist": "Los Hermanos",
+      "key": ""
+    },
+    {
+      "title": "Um Dia de Domingo",
+      "artist": "Tim Maia",
+      "key": ""
+    },
+    {
+      "title": "Um Anjo Do Céu",
+      "artist": "Maskavo",
+      "key": ""
+    },
+    {
+      "title": "Unchain My Heart",
+      "artist": "Joe Cocker",
+      "key": ""
+    },
+    {
+      "title": "Under The Bridge",
+      "artist": "Red Hot Chili Peppers",
+      "key": ""
+    },
+    {
+      "title": "Upside Down",
+      "artist": "Jack Johnson",
+      "key": ""
+    },
+    {
+      "title": "Valerie",
+      "artist": "Amy Winehouse",
+      "key": ""
+    },
+    {
+      "title": "Ventura Highway",
+      "artist": "America",
+      "key": ""
+    },
+    {
+      "title": "Viva La Vida",
+      "artist": "Coldplay",
+      "key": ""
+    },
+    {
+      "title": "What's Going On",
+      "artist": "Marvin Gaye",
+      "key": ""
+    },
+    {
+      "title": "While My Guitar Gently Weeps",
+      "artist": "The Beatles",
+      "key": ""
+    },
+    {
+      "title": "White Room",
+      "artist": "Cream",
+      "key": ""
+    },
+    {
+      "title": "Wish You Were Here",
+      "artist": "Pink Floyd",
+      "key": ""
+    },
+    {
+      "title": "With Arms Wide Open",
+      "artist": "Creed",
+      "key": ""
+    },
+    {
+      "title": "With Or Without You",
+      "artist": "U2",
+      "key": ""
+    },
+    {
+      "title": "Wonderwall",
+      "artist": "Oasis",
+      "key": ""
+    },
+    {
+      "title": "You Give Me Something",
+      "artist": "James Morrison",
+      "key": ""
+    },
+    {
+      "title": "You Know I'm No Good",
+      "artist": "Amy Winehouse",
+      "key": ""
+    },
+    {
+      "title": "Your Body Is a Wonderland",
+      "artist": "John Mayer",
+      "key": ""
+    }
+  ]
+}
