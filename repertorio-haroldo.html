@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,7 +13,7 @@
 <style>
 :root{
   --bg:#000000; --fg:#ffffff; --title:#ff3b30; --artist:#ffd60a;
-  --accent:#ff3b30; --bar:#111111; --muted:#8e8e93;
+  --accent:#ff3b30; --accent-text:#101010; --bar:#111111; --muted:#8e8e93;
   --lyr:22px; --align:center;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -35,7 +35,7 @@ button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:po
 .iconBtn{flex:0 0 auto;font-size:22px;line-height:1;color:var(--accent);background:#1c1c1e;
   width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-weight:700}
 .iconBtn:active{background:#262626}
-.iconBtn.on{background:var(--accent);color:#fff}
+.iconBtn.on{background:var(--accent);color:var(--accent-text)}
 #shareSetlistBtn{margin:6px 16px 4px;width:calc(100% - 32px);padding:12px 14px;border-radius:12px;
   background:#4a1e1b;color:#ff9b93;border:1px solid #6d2b27;font-size:15px;font-weight:800;text-align:center}
 #shareSetlistBtn:active{background:#5a2420}
@@ -46,11 +46,11 @@ button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:po
 #chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;padding:8px 14px;border-radius:20px;background:#1c1c1e;color:var(--fg);
   font-size:14px;border:1px solid #2c2c2e;white-space:nowrap}
-.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:700}
 .chipAdd{padding:8px 12px !important;font-weight:800;border:1px dashed #555 !important;color:var(--muted)}
 .shareSetlistChip{background:#2a1716 !important;border-color:#6d2b27 !important;color:#ff8b82 !important;font-weight:800}
 #updateBanner{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));
-  background:var(--accent);color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;
+  background:var(--accent);color:var(--accent-text);border-radius:12px;padding:12px 14px;font-size:14px;
   display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:99999;
   box-shadow:0 4px 16px rgba(0,0,0,.4)}
 #updateBanner button{background:#fff;color:#000;border-radius:8px;padding:7px 12px;font-weight:700;font-size:13px}
@@ -67,13 +67,13 @@ button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:po
 .moreBtn:active{background:#262626}
 .selBadge{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
   justify-content:center;font-size:12px;font-weight:800;color:var(--muted);background:#1c1c1e}
-.selBadge.on{background:var(--accent);color:#fff}
+.selBadge.on{background:var(--accent);color:var(--accent-text)}
 #selectBar{display:none;align-items:center;justify-content:space-between;gap:10px;flex:0 0 auto;
   padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--bar);border-top:1px solid #262626}
 #selectBar button{font-size:14px;font-weight:700;padding:10px 14px;border-radius:11px}
 #selCancel{color:var(--muted);background:#1c1c1e}
 #selClear{color:var(--title);background:#1c1c1e}
-#selConfirm{color:#fff;background:var(--accent)}
+#selConfirm{color:var(--accent-text);background:var(--accent)}
 #selCount{font-size:13px;color:var(--muted);font-weight:600;flex:1;text-align:center}
 .groupHead{padding:16px 12px 6px;font-size:13px;font-weight:800;color:var(--accent);
   text-transform:uppercase;letter-spacing:1px}
@@ -126,7 +126,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 .setRow input[type=range]{width:150px;accent-color:var(--accent)}
 .seg{display:flex;background:#2c2c2e;border-radius:9px;overflow:hidden}
 .seg button{padding:7px 14px;font-size:13px;color:var(--fg)}
-.seg button.on{background:var(--accent);font-weight:700}
+.seg button.on{background:var(--accent);color:var(--accent-text);font-weight:700}
 .stepper{display:flex;align-items:center;gap:8px}
 .stepper button{width:38px;height:34px;font-size:20px;background:#2c2c2e;border-radius:8px}
 .stepper span{min-width:44px;text-align:center;font-weight:700;color:var(--artist)}
@@ -135,7 +135,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 #exportBtn,#importBtn{margin-top:10px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
   color:var(--fg);font-size:15px;font-weight:600}
 #closeSet{margin-top:10px;width:100%;padding:13px;border-radius:12px;background:var(--accent);
-  color:#fff;font-size:16px;font-weight:700}
+  color:var(--accent-text);font-size:16px;font-weight:700}
 .manageList{max-height:150px;overflow-y:auto;margin:0 0 8px}
 .manageRow{display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding:8px 0;font-size:13px;border-bottom:1px solid #232325}
@@ -153,7 +153,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 #actionPanel button{display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;
   font-weight:700;margin-bottom:10px;background:#2c2c2e;color:var(--fg)}
 #actDelete{color:#ff453a}
-#actCancel{background:var(--accent);color:#fff;margin-bottom:0}
+#actCancel{background:var(--accent);color:var(--accent-text);margin-bottom:0}
 
 /* ===== GERENCIAR SETLISTS ===== */
 #setlistSheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60}
@@ -176,7 +176,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 .setlistRow.shareChoice .slName{color:var(--fg)}
 .shareArrow{font-size:26px;color:var(--accent);font-weight:300;padding-left:10px}
 #newSetlistBtn{margin-top:14px;width:100%;padding:13px;border-radius:12px;background:var(--accent);
-  color:#fff;font-size:15px;font-weight:700}
+  color:var(--accent-text);font-size:15px;font-weight:700}
 #closeSetlistMgr{margin-top:10px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
   color:var(--fg);font-size:15px;font-weight:600}
 
@@ -196,7 +196,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 .musicianKey:focus{border-color:var(--accent)}
 #musicianActions{position:fixed;left:0;right:0;bottom:0;z-index:66;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#151517;border-top:1px solid #2c2c2e}
 #musicianActions button{padding:12px 8px;border-radius:11px;background:#2c2c2e;color:#fff;font-size:13px;font-weight:700}
-#musicianActions button.primary{background:var(--accent);grid-column:1/-1}
+#musicianActions button.primary{background:var(--accent);color:var(--accent-text);grid-column:1/-1}
 #musicianActions button:disabled{opacity:.35;cursor:not-allowed}
 
 /* ===== BUSCA POR VOZ ===== */
@@ -216,7 +216,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 .voiceCandArtist{color:var(--muted)}
 .voiceSectionLabel{font-size:12px;color:var(--muted);margin:10px 0 6px;font-weight:700;text-transform:uppercase}
 #voiceRetry{margin-top:8px;width:100%;padding:13px;border-radius:12px;background:var(--accent);
-  color:#fff;font-size:15px;font-weight:700}
+  color:var(--accent-text);font-size:15px;font-weight:700}
 #voiceCancel{margin-top:10px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
   color:var(--fg);font-size:15px;font-weight:600}
 
@@ -261,10 +261,10 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 #editBody textarea{min-height:38vh;line-height:1.5;resize:vertical;white-space:pre-wrap}
 #catSeg{display:flex;flex-wrap:wrap;gap:6px}
 #catSeg button{padding:8px 12px;border-radius:9px;background:#2c2c2e;color:var(--fg);font-size:13px}
-#catSeg button.on{background:var(--accent);font-weight:700;color:#fff}
+#catSeg button.on{background:var(--accent);font-weight:700;color:var(--accent-text)}
 #catSeg button.catAddBtn2{background:transparent;border:1px dashed #666;color:var(--muted)}
 #saveSong{margin-top:24px;width:100%;padding:14px;border-radius:12px;background:var(--accent);
-  color:#fff;font-size:16px;font-weight:700}
+  color:var(--accent-text);font-size:16px;font-weight:700}
 </style>
 </head>
 <body>
@@ -342,10 +342,10 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
     <div class="setRow"><span>Alinhamento da letra</span>
       <div class="seg"><button id="alL">Esquerda</button><button id="alC">Centro</button><button id="alR">Direita</button></div>
     </div>
-    <div class="setRow"><span>Cor da letra</span><input type="color" id="cFg"></div>
-    <div class="setRow"><span>Cor do título</span><input type="color" id="cTitle"></div>
-    <div class="setRow"><span>Cor do artista</span><input type="color" id="cArtist"></div>
-    <div class="setRow"><span>Cor do fundo</span><input type="color" id="cBg"></div>
+    <div class="setRow"><span>Cor da letra</span><input type="color" id="cFg" aria-label="Cor da letra"></div>
+    <div class="setRow"><span>Cor do título</span><input type="color" id="cTitle" aria-label="Cor do título"></div>
+    <div class="setRow"><span>Cor do artista</span><input type="color" id="cArtist" aria-label="Cor do artista"></div>
+    <div class="setRow"><span>Cor do fundo</span><input type="color" id="cBg" aria-label="Cor do fundo"></div>
     <div class="setRow"><span>Minhas letras salvas</span><span id="customCount">0</span></div>
     <button id="exportBtn">⬇ Exportar backup completo (.json)</button>
     <button id="importBtn">⬆ Importar backup</button>
@@ -433,7 +433,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
     <input id="inArtist" type="text" placeholder="Ex: Nome do Artista" autocomplete="off">
     <label>Categoria</label>
     <div class="seg" id="catSeg"></div>
-    <label>Cor da letra desta música (opcional)</label>
+    <label for="taColor">Cor da letra desta música (opcional)</label>
     <div class="colorRow">
       <input type="color" id="taColor">
       <button type="button" id="taColorReset">Usar cor padrão</button>
@@ -7662,11 +7662,19 @@ function saveSpeeds(){
   try{ localStorage.setItem(LSS, JSON.stringify(speeds)); return true; }
   catch(e){ return false; }
 }
+function accentTextColor(color){
+  if (!validColor(color)) return '#101010';
+  const parts = [1,3,5].map(i=>parseInt(color.slice(i,i+2),16)/255)
+    .map(x=>x <= 0.04045 ? x/12.92 : Math.pow((x+0.055)/1.055,2.4));
+  const luminosity=parts[0]*0.2126+parts[1]*0.7152+parts[2]*0.0722;
+  return luminosity > 0.179 ? '#101010' : '#ffffff';
+}
 function applyPrefs(){
   const r = document.documentElement.style;
   r.setProperty('--fg', prefs.fg); r.setProperty('--title', prefs.title);
   r.setProperty('--artist', prefs.artist); r.setProperty('--bg', prefs.bg);
   r.setProperty('--accent', prefs.title);
+  r.setProperty('--accent-text', accentTextColor(prefs.title));
   r.setProperty('--lyr', prefs.font + 'px');
   r.setProperty('--align', prefs.align || 'center');
   document.body.classList.toggle('barTop', prefs.barPos === 'top');
@@ -8597,7 +8605,7 @@ function handleVoiceCreateList(fragmentText){
   }
   if (voiceListDraft.length){
     const confirmBtn = document.createElement('button'); confirmBtn.className = 'voiceCand';
-    confirmBtn.style.cssText = 'background:var(--accent);color:#fff;text-align:center;font-weight:700';
+    confirmBtn.style.cssText = 'background:var(--accent);color:var(--accent-text);text-align:center;font-weight:700';
     confirmBtn.textContent = '✔ Criar setlist com estas músicas';
     confirmBtn.onclick = finalizeVoiceList;
     wrap.appendChild(confirmBtn);
