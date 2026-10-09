@@ -70,13 +70,13 @@ after(async()=>{
   if(server) await new Promise(resolve=>server.close(resolve));
 });
 
-async function fresh({mobile=false,locale='pt-BR'}={}){
+async function fresh({mobile=false,locale='pt-BR',allowServiceWorkers=false}={}){
   const context=await browser.newContext({
     viewport:mobile?{width:390,height:844}:{width:1440,height:900},
     isMobile:mobile,hasTouch:mobile,locale,
     acceptDownloads:true,
     permissions:['clipboard-read','clipboard-write'],
-    serviceWorkers:'block'
+    serviceWorkers:allowServiceWorkers?'allow':'block'
   });
   await context.addInitScript(()=>{
     window.__auditClicks=[];
@@ -679,4 +679,201 @@ test('Browser 38: visualizador antigo sem hash não habilita download',async()=>
     assert.equal(await s.page.locator('#error').isVisible(),true);
     await checkNoPageErrors(s);
   }finally{await s.close();}
+});
+
+
+test('Browser 39: reconhecimento de fala simulado pesquisa e abre Wonderwall',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.SpeechRecognition=class {
+        start(){
+          setTimeout(()=>{
+            const item=[{transcript:'Wonderwall'}];item.isFinal=true;
+            if(this.onresult)this.onresult({results:[item]});
+          },20);
+        }
+        abort(){}
+      };
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#voiceFab').click({force:true});
+    await s.page.locator('#songView.active').waitFor({timeout:5000});
+    assert.equal(await s.page.locator('#songTitle').innerText(),'Wonderwall');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 40: reconhecimento simulado monta setlist com duas músicas',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.prompt=()=> 'Show criado por voz';
+      window.alert=()=>{};
+      window.SpeechRecognition=class {
+        start(){
+          setTimeout(()=>{
+            const item=[{transcript:'criar uma lista com Wonderwall, 15 Anos'}];
+            item.isFinal=true;
+            if(this.onresult)this.onresult({results:[item]});
+          },20);
+        }
+        abort(){}
+      };
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#voiceFab').click({force:true});
+    const confirm=s.page.locator('#voiceCandidates button',{hasText:'Criar setlist'});
+    await confirm.waitFor({timeout:5000});
+    await confirm.click();
+    const saved=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_setlists_v1')));
+    assert.equal(saved.list.length,1);
+    assert.equal(saved.list[0].name,'Show criado por voz');
+    assert.equal(saved.list[0].songIds.length,2);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 41: erro de permissão de microfone simulado exibe recuperação',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.SpeechRecognition=class {
+        start(){setTimeout(()=>{if(this.onerror)this.onerror({error:'not-allowed'});},20);}
+        abort(){}
+      };
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#voiceFab').click({force:true});
+    await s.page.waitForFunction(()=>document.getElementById('voiceStatus').textContent.includes('Permissão'));
+    assert.match(await s.page.locator('#voiceStatus').innerText(),/microfone/);
+    assert.equal(await s.page.locator('#voiceRetry').isVisible(),true);
+    await s.page.locator('#voiceCancel').click();
+    assert.equal(await s.page.locator('#voiceSheet').isVisible(),false);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 42: ausência de Web Speech mostra mensagem sem crash',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.__alerts=[];window.alert=t=>window.__alerts.push(String(t));
+      Object.defineProperty(window,'SpeechRecognition',{value:undefined,configurable:true});
+      Object.defineProperty(window,'webkitSpeechRecognition',{value:undefined,configurable:true});
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#voiceFab').click({force:true});
+    const messages=await s.page.evaluate(()=>window.__alerts);
+    assert.ok(messages.some(x=>x.includes('não é compatível')));
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 43: arrastar botão flutuante persiste posição',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    const fab=s.page.locator('#voiceFab');
+    const box=await fab.boundingBox();assert.ok(box);
+    await s.page.mouse.move(box.x+box.width/2,box.y+box.height/2);
+    await s.page.mouse.down();
+    await s.page.mouse.move(box.x+box.width/2-90,box.y+box.height/2-60,{steps:8});
+    await s.page.mouse.up();
+    const pos=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_fabpos_v1')||'null'));
+    assert.ok(pos && pos.xPct>0 && pos.xPct<1);
+    assert.ok(pos.yPct>0 && pos.yPct<1);
+    await s.page.reload();
+    assert.ok(await fab.isVisible());
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 44: abandonar edição com texto exige confirmação',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>false;});
+    await goto(s,MAIN);
+    await s.page.locator('#addBtn').click();
+    await s.page.locator('#inTitle').fill('Não pode sumir');
+    await s.page.locator('#inLyrics').fill('Texto não salvo');
+    await s.page.locator('#editBack').click();
+    assert.equal(await s.page.locator('#editView.active').count(),1);
+    assert.equal(await s.page.locator('#inLyrics').inputValue(),'Texto não salvo');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 45: duplo clique em aba renomeia e persiste nome',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.prompt=()=> 'Meu Repertório A';});
+    await goto(s,MAIN);
+    await s.page.locator('#chips .chip',{hasText:'A Sua Maneira'}).dblclick();
+    assert.equal(await s.page.locator('#chips .chip',{hasText:'Meu Repertório A'}).count(),1);
+    await s.page.reload();
+    assert.equal(await s.page.locator('#chips .chip',{hasText:'Meu Repertório A'}).count(),1);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 46: criar e renomear categoria personalizada realmente persiste',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      let i=0;window.prompt=()=>++i===1?'Repertório Personalizado':'Repertório Alterado';
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#addBtn').click();
+    await s.page.locator('#catSeg .catAddBtn2').click();
+    await s.page.locator('#inTitle').fill('Canção da Categoria');
+    await s.page.locator('#inArtist').fill('E2E');
+    await s.page.locator('#inLyrics').fill('Letra exemplo');
+    await s.page.locator('#saveSong').click();
+    const chip=s.page.locator('#chips .chip',{hasText:'Repertório Personalizado'});
+    assert.equal(await chip.count(),1);
+    await chip.dblclick();
+    assert.equal(await s.page.locator('#chips .chip',{hasText:'Repertório Alterado'}).count(),1);
+    await s.page.reload();
+    const cats=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_customcats_v1')));
+    assert.equal(cats[0].name,'Repertório Alterado');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 47: setlist manual mantém payload e cópia em texto',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.prompt=()=> 'Show com link dinâmico';
+      window.confirm=()=>true;window.alert=()=>{};
+      window.__clip='';
+      Object.defineProperty(navigator,'clipboard',{configurable:true,
+        value:{writeText:async v=>{window.__clip=v;},readText:async()=>window.__clip}});
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#selectBtn').click();
+    await s.page.locator('#list .item').first().click();
+    await s.page.locator('#selConfirm').click();
+    await s.page.locator('#shareSetlistBtn').click();
+    await s.page.locator('#setlistMgrList .shareChoice').last().click();
+    await s.page.locator('#musicianText').click();
+    let clip=await s.page.evaluate(()=>window.__clip);
+    assert.match(clip,/REPERTÓRIO - Show com link dinâmico/);
+    await s.page.locator('#musicianCopyLink').click();
+    clip=await s.page.evaluate(()=>window.__clip);
+    assert.ok(clip.includes('/setlist.html#d='));
+    await s.page.locator('#musicianBack').click();
+    await s.page.waitForTimeout(100);
+    assert.equal(await s.page.locator('#musicianSheet.active').count(),0);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 48: banner de atualização solicita SKIP_WAITING',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    await s.page.evaluate(()=>{
+      window.__message='';
+      showUpdateBanner({waiting:{postMessage:v=>{window.__message=v;}}});
+    });
+    assert.equal(await s.page.locator('#updateBanner').count(),1);
+    await s.page.locator('#updateBanner button').click();
+    assert.equal(await s.page.evaluate(()=>window.__message),'SKIP_WAITING');
+    assert.equal(await s.page.locator('#updateBanner').count(),0);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 49: PWA instala SW e aplicativo principal abre offline em Chromium',async()=>{
+  const s=await fresh({allowServiceWorkers:true});try{
+    await goto(s,MAIN);
+    await s.page.waitForFunction(()=>navigator.serviceWorker && navigator.serviceWorker.controller,{timeout:10000});
+    await s.context.setOffline(true);
+    await s.page.reload({waitUntil:'load',timeout:12000});
+    assert.equal(await s.page.locator('#list .item').count(),214);
+    await s.context.setOffline(false);
+    await checkNoPageErrors(s);
+  }finally{await s.context.setOffline(false).catch(()=>{});await s.close();}
 });
