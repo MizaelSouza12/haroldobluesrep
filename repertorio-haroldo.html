@@ -7806,7 +7806,7 @@ $('actDelete').onclick = () => {
     REMOVED.add(s.id);
     if (!saveRemoved()){
       if (!existed) REMOVED.delete(s.id);
-      alert('Não foi possível remover esta música. Nada foi alterado.');
+      alert('Não foi possível salvar a remoção desta música no armazenamento. Nada foi alterado.');
       return;
     }
   }
