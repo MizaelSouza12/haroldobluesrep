@@ -1151,3 +1151,26 @@ test('Browser 65: backup inclui notas atualizadas em outra aba após abrir o apl
     await checkNoPageErrors(s);
   }finally{await s.close();}
 });
+
+
+test('Browser 66: importar backup com item malformado recupera registros válidos',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
+    await goto(s,MAIN);
+    await s.page.locator('#setBtnHome').click();
+    const payload={type:'repHaroldoBackup',version:1,data:{
+      custom:[
+        {id:'Cvalido',title:'Música válida importada',artist:'Teste',text:'Letra que precisa sobreviver',cats:'A'},
+        {id:'Cinvalido',title:42,artist:'Incorreto',text:'Não importar',cats:'J'}
+      ]
+    }};
+    await s.page.locator('#importFile').setInputFiles({
+      name:'backup-misto.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload))
+    });
+    await s.page.waitForTimeout(150);
+    const saved=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_custom_v1')||'[]'));
+    assert.equal(saved.filter(x=>x.title==='Música válida importada').length,1);
+    assert.equal(saved.some(x=>x.title===42),false);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
