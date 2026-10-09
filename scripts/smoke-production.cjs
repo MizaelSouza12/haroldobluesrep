@@ -41,8 +41,15 @@ async function main(){
   assert.ok(data['/setlists/editor.js'].includes('localStorage'));
   const localWorker=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
   const expectedVersion=(localWorker.match(/const CACHE_VERSION\s*=\s*'(v\d+)'/)||[])[1];
-  const publishedVersion=(data['/sw.js'].match(/const CACHE_VERSION\s*=\s*'(v\d+)'/)||[])[1];
   assert.ok(expectedVersion,'Versão local de SW inválida');
+  let publishedVersion=(data['/sw.js'].match(/const CACHE_VERSION\s*=\s*'(v\d+)'/)||[])[1];
+  // Após deploy, CDNs podem propagar a nova versão em alguns segundos.
+  // Aguarde até 32 s antes de denunciar regressão de publicação.
+  for(let attempt=0;attempt<8 && publishedVersion!==expectedVersion;attempt++){
+    await new Promise(resolve=>setTimeout(resolve,4000));
+    const actual=await fetchText('/sw.js');
+    publishedVersion=(actual.match(/const CACHE_VERSION\s*=\s*'(v\d+)'/)||[])[1];
+  }
   assert.equal(publishedVersion,expectedVersion,'A versão publicada está defasada em relação à main');
   const manifest=JSON.parse(data['/manifest.json']);
   assert.ok(manifest.start_url);
