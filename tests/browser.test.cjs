@@ -1357,3 +1357,20 @@ test('Browser 76: acessibilidade WCAG no preparo para os músicos',async()=>{
     await checkNoPageErrors(s);
   }finally{await s.close();}
 });
+
+
+test('Browser 77: playlist A funciona offline mesmo antes da primeira visita à página',async()=>{
+  const s=await fresh({allowServiceWorkers:true});
+  try{
+    await goto(s,MAIN);
+    await s.page.waitForFunction(()=>navigator.serviceWorker && navigator.serviceWorker.controller,{timeout:15000});
+    await s.context.setOffline(true);
+    await goto(s,A);
+    await s.page.locator('.song').first().waitFor({timeout:10000});
+    assert.equal(await s.page.locator('.song').count(),204);
+    await checkNoPageErrors(s);
+  }finally{
+    await s.context.setOffline(false).catch(()=>{});
+    await s.close();
+  }
+});
