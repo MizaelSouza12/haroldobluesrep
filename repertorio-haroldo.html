@@ -7470,6 +7470,14 @@ function savePlaylistKeys(){
   try { localStorage.setItem(PLAYLIST_KEYS_KEY, JSON.stringify(PLAYLIST_KEYS)); return true; }
   catch(e){ return false; }
 }
+function refreshPlaylistKeys(){
+  try{
+    const latest = JSON.parse(localStorage.getItem(PLAYLIST_KEYS_KEY) || '{}');
+    if (latest && typeof latest === 'object' && !Array.isArray(latest))
+      PLAYLIST_KEYS = latest;
+  }catch(e){} // manter dados carregados se armazenamento estiver indisponível
+}
+
 
 function playlistSongs(catKey){
   return ALL.filter(s => s && typeof s.cats === 'string' && s.cats.includes(catKey));
@@ -7503,6 +7511,7 @@ function sharePlaylistSource(p){
     normalizeSetlist(p.source);
     return p.source;
   }
+  refreshPlaylistKeys();
   if (!PLAYLIST_KEYS[p.key] || typeof PLAYLIST_KEYS[p.key] !== 'object') PLAYLIST_KEYS[p.key] = {};
   return {
     id:p.id || ('CAT_' + p.key),
@@ -8742,6 +8751,8 @@ function importMusicianFields(source, idMap){
 /* Backup completo: letras próprias, setlists, categorias/abas renomeadas,
    categorias personalizadas, ocultas/excluídas/editadas e velocidades por música. */
 $('exportBtn').onclick = () => {
+  // Inclui alterações feitas por músicos em outra aba do MESMO navegador.
+  refreshPlaylistKeys();
   const backup = {
     type: 'repHaroldoBackup', version: 1, exportedAt: new Date().toISOString(),
     data: {
