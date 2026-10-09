@@ -1101,7 +1101,7 @@ test('Browser 60: 1000 edições alternadas e 12 recargas sem perda',async()=>{
           k.value='C'+cycle+'-'+i;
           k.dispatchEvent(new Event('input',{bubbles:true}));
           const note=notes[idx];
-          note.value='Ciclo '+cycle+' / edição '+i+' '\uD83C\uDFBC';
+          note.value='Ciclo '+cycle+' / edição '+i+' 🎼';
           note.dispatchEvent(new Event('input',{bubbles:true}));
         }
       },cycle);
