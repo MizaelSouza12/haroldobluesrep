@@ -49,7 +49,7 @@ before(async()=>{
 after(async()=>{
   const html=fs.readFileSync(path.join(ROOT,'repertorio-haroldo.html'),'utf8');
   const editor=fs.readFileSync(path.join(ROOT,'setlists/editor.js'),'utf8');
-  const declared=(src)=>[...new Set([...src.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)].map(m=>m[1]))].sort();
+  const declared=(src)=>[...new Set([...src.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m=>m[1]))].sort();
   const summary={};
   for(const [kind,src] of [['main',html],['editor',editor]]){
     const names=declared(src);
