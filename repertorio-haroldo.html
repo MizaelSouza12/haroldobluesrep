@@ -7399,10 +7399,12 @@ const SETLISTS_KEY = 'repHaroldo_setlists_v1';
 const OLD_SETLIST_KEY = 'repHaroldo_setlist_v1';
 let SETLISTS = [], activeSetlistId = null;
 function normalizeSetlist(st){
-  if (!st || typeof st !== 'object') return null;
+  if (!st || typeof st !== 'object' || Array.isArray(st)) return null;
+  if (typeof st.id !== 'string' || !st.id) st.id = 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+  if (typeof st.name !== 'string' || !st.name.trim()) st.name = 'Setlist sem nome';
   if (!Array.isArray(st.songIds)) st.songIds = [];
-  st.songIds = st.songIds.map(migrateBuiltinId);
-  if (!st.songKeys || typeof st.songKeys !== 'object') st.songKeys = {};
+  st.songIds = st.songIds.filter(id => typeof id === 'string').map(migrateBuiltinId);
+  if (!st.songKeys || typeof st.songKeys !== 'object' || Array.isArray(st.songKeys)) st.songKeys = {};
   const fixedKeys = {};
   Object.keys(st.songKeys).forEach(id => fixedKeys[migrateBuiltinId(id)] = String(st.songKeys[id] || ''));
   st.songKeys = fixedKeys;
@@ -7421,7 +7423,9 @@ function saveSetlists(){
 }
 function activeSetlist(){ return SETLISTS.find(s => s.id === activeSetlistId) || null; }
 // migração de versão antiga (setlist único, sem nome)
-if (!localStorage.getItem(SETLISTS_KEY)){
+let hasSavedSetlists = true;
+try{ hasSavedSetlists = !!localStorage.getItem(SETLISTS_KEY); }catch(e){}
+if (!hasSavedSetlists){
   try{
     const oldRaw = JSON.parse(localStorage.getItem(OLD_SETLIST_KEY) || '[]');
     if (Array.isArray(oldRaw) && oldRaw.length){
@@ -7437,7 +7441,10 @@ if (!localStorage.getItem(SETLISTS_KEY)){
 const CHIP_NAMES_KEY = 'repHaroldo_chipnames_v1';
 let CHIP_NAMES = { A: 'A Sua Maneira', J: 'Jazz & Blues', C: 'Minhas Letras' };
 try { Object.assign(CHIP_NAMES, JSON.parse(localStorage.getItem(CHIP_NAMES_KEY) || '{}')); } catch(e) {}
-function saveChipNames(){ try{ localStorage.setItem(CHIP_NAMES_KEY, JSON.stringify(CHIP_NAMES)); }catch(e){} }
+function saveChipNames(){
+  try{ localStorage.setItem(CHIP_NAMES_KEY, JSON.stringify(CHIP_NAMES)); return true; }
+  catch(e){ return false; }
+}
 
 /* ================= CATEGORIAS PERSONALIZADAS (criadas pelo usuário) ================= */
 const CUSTOM_CATS_KEY = 'repHaroldo_customcats_v1';
@@ -7450,7 +7457,10 @@ try {
     typeof x.name === 'string' && x.name.trim()
   ).map(x => ({ key:x.key, name:x.name.trim() }));
 } catch(e) { CUSTOM_CATS = []; }
-function saveCustomCats(){ try{ localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(CUSTOM_CATS)); }catch(e){} }
+function saveCustomCats(){
+  try { localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(CUSTOM_CATS)); return true; }
+  catch(e){ return false; }
+}
 
 /* ================= NOTAS DOS REPERTÓRIOS PARA MÚSICOS ================= */
 const PLAYLIST_KEYS_KEY = 'repHaroldo_playlistkeys_v1';
@@ -7459,7 +7469,18 @@ try {
   const pk = JSON.parse(localStorage.getItem(PLAYLIST_KEYS_KEY) || '{}');
   if (pk && typeof pk === 'object' && !Array.isArray(pk)) PLAYLIST_KEYS = pk;
 } catch(e) { PLAYLIST_KEYS = {}; }
-function savePlaylistKeys(){ try{ localStorage.setItem(PLAYLIST_KEYS_KEY, JSON.stringify(PLAYLIST_KEYS)); }catch(e){} }
+function savePlaylistKeys(){
+  try { localStorage.setItem(PLAYLIST_KEYS_KEY, JSON.stringify(PLAYLIST_KEYS)); return true; }
+  catch(e){ return false; }
+}
+function refreshPlaylistKeys(){
+  try{
+    const latest = JSON.parse(localStorage.getItem(PLAYLIST_KEYS_KEY) || '{}');
+    if (latest && typeof latest === 'object' && !Array.isArray(latest))
+      PLAYLIST_KEYS = latest;
+  }catch(e){} // manter dados carregados se armazenamento estiver indisponível
+}
+
 
 function playlistSongs(catKey){
   return ALL.filter(s => s && typeof s.cats === 'string' && s.cats.includes(catKey));
@@ -7493,6 +7514,7 @@ function sharePlaylistSource(p){
     normalizeSetlist(p.source);
     return p.source;
   }
+  refreshPlaylistKeys();
   if (!PLAYLIST_KEYS[p.key] || typeof PLAYLIST_KEYS[p.key] !== 'object') PLAYLIST_KEYS[p.key] = {};
   return {
     id:p.id || ('CAT_' + p.key),
@@ -7508,8 +7530,13 @@ function manageCustomCat(key){
   const name = prompt('Renomear categoria (cancele e confirme para excluir):', cat.name);
   if (name === null){
     if (confirm('Excluir a categoria "' + cat.name + '"? As músicas continuam salvas, só deixam de aparecer nesta aba.')){
+      const previous = CUSTOM_CATS;
       CUSTOM_CATS = CUSTOM_CATS.filter(c => c.key !== key);
-      saveCustomCats();
+      if (!saveCustomCats()){
+        CUSTOM_CATS = previous;
+        alert('Não foi possível excluir a categoria porque o armazenamento falhou.');
+        return;
+      }
       if (filterCat === key) filterCat = 'ALL';
       renderCatSeg(); refresh();
     }
@@ -7517,7 +7544,14 @@ function manageCustomCat(key){
   }
   const t = name.trim();
   if (!t) return;
-  cat.name = t; saveCustomCats(); renderCatSeg(); refresh();
+  const previous = cat.name;
+  cat.name = t;
+  if (!saveCustomCats()){
+    cat.name = previous;
+    alert('Não foi possível renomear a categoria porque o armazenamento falhou.');
+    return;
+  }
+  renderCatSeg(); refresh();
 }
 
 /* ================= OCULTAR / EXCLUIR / EDITAR (qualquer música) ================= */
@@ -7527,10 +7561,28 @@ try { const h = JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'); if (Array.
 try { const r = JSON.parse(localStorage.getItem(REMOVED_KEY) || '[]'); if (Array.isArray(r)) REMOVED = new Set(r.map(migrateBuiltinId)); } catch(e) {}
 try {
   const loaded = JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}') || {};
-  Object.keys(loaded).forEach(id => OVERRIDES[migrateBuiltinId(id)] = loaded[id]);
+  if (typeof loaded === 'object' && !Array.isArray(loaded)){
+    Object.keys(loaded).forEach(id => {
+      const raw = loaded[id];
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+      const ov = {};
+      if (typeof raw.title === 'string' && raw.title.trim()) ov.title = raw.title;
+      if (typeof raw.artist === 'string') ov.artist = raw.artist;
+      if (typeof raw.text === 'string') ov.text = raw.text;
+      if (typeof raw.cats === 'string' && raw.cats) ov.cats = raw.cats;
+      if (typeof raw.color === 'string' || raw.color === null) ov.color = raw.color;
+      if (Object.keys(ov).length) OVERRIDES[migrateBuiltinId(id)] = ov;
+    });
+  }
 } catch(e) { OVERRIDES = {}; }
-function saveHidden(){ try{ localStorage.setItem(HIDDEN_KEY, JSON.stringify([...HIDDEN])); }catch(e){} }
-function saveRemoved(){ try{ localStorage.setItem(REMOVED_KEY, JSON.stringify([...REMOVED])); }catch(e){} }
+function saveHidden(){
+  try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...HIDDEN])); return true; }
+  catch(e){ return false; }
+}
+function saveRemoved(){
+  try { localStorage.setItem(REMOVED_KEY, JSON.stringify([...REMOVED])); return true; }
+  catch(e){ return false; }
+}
 function saveOverrides(){
   try{ localStorage.setItem(OVERRIDES_KEY, JSON.stringify(OVERRIDES)); return true; }
   catch(e){ return false; }
@@ -7573,8 +7625,18 @@ try {
   const loaded = JSON.parse(localStorage.getItem(LSS) || '{}') || {};
   Object.keys(loaded).forEach(id => speeds[migrateBuiltinId(id)] = loaded[id]);
 } catch(e) {}
-function savePrefs(){ try{ localStorage.setItem(LSK, JSON.stringify(prefs)); }catch(e){} }
-function saveSpeeds(){ try{ localStorage.setItem(LSS, JSON.stringify(speeds)); }catch(e){} }
+let lastSavedPrefs = { ...prefs };
+function savePrefs(){
+  try{
+    localStorage.setItem(LSK, JSON.stringify(prefs));
+    lastSavedPrefs = { ...prefs };
+    return true;
+  }catch(e){ return false; }
+}
+function saveSpeeds(){
+  try{ localStorage.setItem(LSS, JSON.stringify(speeds)); return true; }
+  catch(e){ return false; }
+}
 function applyPrefs(){
   const r = document.documentElement.style;
   r.setProperty('--fg', prefs.fg); r.setProperty('--title', prefs.title);
@@ -7620,7 +7682,14 @@ function renameChip(key){
   if (name === null) return;
   const t = name.trim();
   if (!t) return;
-  CHIP_NAMES[key] = t; saveChipNames(); refresh();
+  const previous = CHIP_NAMES[key];
+  CHIP_NAMES[key] = t;
+  if (!saveChipNames()){
+    CHIP_NAMES[key] = previous;
+    alert('Não foi possível salvar o nome da aba. Alteração desfeita.');
+    return;
+  }
+  refresh();
 }
 function buildChips(){
   chipsEl.innerHTML = '';
@@ -7750,8 +7819,14 @@ $('actShare').onclick = async () => {
 };
 $('actHide').onclick = () => {
   if (!actionSong) return;
-  HIDDEN.add(actionSong.id); saveHidden(); rebuildAll();
-  closeActions(); refresh();
+  const id = actionSong.id, existed = HIDDEN.has(id);
+  HIDDEN.add(id);
+  if (!saveHidden()){
+    if (!existed) HIDDEN.delete(id);
+    alert('Não foi possível salvar a ocultação da música. Nada foi alterado.');
+    return;
+  }
+  rebuildAll(); closeActions(); refresh();
 };
 $('actDelete').onclick = () => {
   if (!actionSong) return;
@@ -7761,10 +7836,24 @@ $('actDelete').onclick = () => {
     ? 'Excluir esta letra definitivamente? Essa ação não pode ser desfeita (a menos que você tenha um backup exportado).'
     : 'Remover esta música da lista? Você pode restaurar depois em Configurações → Letras excluídas.';
   if (!confirm(msg)) { closeActions(); return; }
-  if (isCustom){ CUSTOM = CUSTOM.filter(c => c.id !== s.id); saveCustom(); }
-  else { REMOVED.add(s.id); saveRemoved(); }
-  rebuildAll();
-  closeActions(); refresh();
+  if (isCustom){
+    const previous = CUSTOM;
+    CUSTOM = CUSTOM.filter(c => c.id !== s.id);
+    if (!saveCustom()){
+      CUSTOM = previous;
+      alert('Não foi possível excluir esta letra. O navegador recusou salvar.');
+      return;
+    }
+  } else {
+    const existed = REMOVED.has(s.id);
+    REMOVED.add(s.id);
+    if (!saveRemoved()){
+      if (!existed) REMOVED.delete(s.id);
+      alert('Não foi possível salvar a remoção desta música no armazenamento. Nada foi alterado.');
+      return;
+    }
+  }
+  rebuildAll(); closeActions(); refresh();
 };
 function toggleSelect(id){
   const idx = tempSelection.indexOf(id);
@@ -7893,24 +7982,52 @@ function renderSetlistManager(){
       '<button data-a="del" title="Excluir">🗑</button></div>';
 
     row.querySelector('[data-a="use"]').onclick = () => {
-      activeSetlistId = st.id; saveSetlists(); filterCat = 'SET'; artistMode = false; filterArtist = null;
+      const previous = activeSetlistId;
+      activeSetlistId = st.id;
+      if (!saveSetlists()){
+        activeSetlistId = previous;
+        alert('Não foi possível salvar a seleção do setlist.');
+        return;
+      }
+      filterCat = 'SET'; artistMode = false; filterArtist = null;
       closeSetlistManager(); refresh();
     };
     row.querySelector('[data-a="edit"]').onclick = () => {
-      activeSetlistId = st.id; saveSetlists();
+      const previous = activeSetlistId;
+      activeSetlistId = st.id;
+      if (!saveSetlists()){
+        activeSetlistId = previous;
+        alert('Não foi possível salvar a seleção do setlist.');
+        return;
+      }
       closeSetlistManager(); enterSelect();
     };
     row.querySelector('[data-a="ren"]').onclick = () => {
       const name = prompt('Renomear setlist:', st.name);
       if (name === null) return;
       const t = name.trim(); if (!t) return;
-      st.name = t; saveSetlists(); renderSetlistManager(); refresh();
+      const previous = st.name;
+      st.name = t;
+      if (!saveSetlists()){
+        st.name = previous;
+        alert('Não foi possível salvar o nome do setlist. Alteração desfeita.');
+        return;
+      }
+      renderSetlistManager(); refresh();
     };
     row.querySelector('[data-a="del"]').onclick = () => {
       if (!confirm('Excluir o setlist "' + st.name + '"? As músicas continuam no repertório normalmente, só esta lista específica será removida.')) return;
+      const previousList = SETLISTS;
+      const previousActive = activeSetlistId;
       SETLISTS = SETLISTS.filter(x => x.id !== st.id);
       if (activeSetlistId === st.id) activeSetlistId = (SETLISTS[0] && SETLISTS[0].id) || null;
-      saveSetlists(); renderSetlistManager(); refresh();
+      if (!saveSetlists()){
+        SETLISTS = previousList;
+        activeSetlistId = previousActive;
+        alert('Não foi possível salvar a exclusão do setlist. Nada foi apagado.');
+        return;
+      }
+      renderSetlistManager(); refresh();
     };
     wrap.appendChild(row);
   });
@@ -7944,15 +8061,56 @@ function musicianSetlist(){ return musicianSource; }
 function setlistKey(st, songId){
   return String((st.songKeys && st.songKeys[songId]) || '');
 }
+let musicianKeySaveWarning = false;
 function setSetlistKey(st, songId, value){
   if (!st.songKeys || typeof st.songKeys !== 'object') st.songKeys = {};
-  st.songKeys[songId] = String(value || '').trim();
+  const proposed = String(value || '').trim();
+  const previous = Object.prototype.hasOwnProperty.call(st.songKeys, songId)
+    ? String(st.songKeys[songId] || '') : '';
   if (st.shareCategoryKey){
-    PLAYLIST_KEYS[st.shareCategoryKey] = st.songKeys;
-    savePlaylistKeys();
-  } else {
-    saveSetlists();
+    // Nunca salve o snapshot inteiro de uma aba antiga: isso apagaria
+    // notas diferentes que foram alteradas em outro separador.
+    try{
+      const stored = JSON.parse(localStorage.getItem(PLAYLIST_KEYS_KEY) || '{}');
+      const latest = stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
+      const category = st.shareCategoryKey;
+      const existing = latest[category];
+      const catKeys = existing && typeof existing === 'object' && !Array.isArray(existing) ? existing : {};
+      const newest = Object.prototype.hasOwnProperty.call(catKeys, songId)
+        ? String(catKeys[songId] || '') : '';
+      if (newest !== previous && newest !== proposed){
+        alert('Conflito: esta nota foi alterada em outra aba. Sua edição não foi gravada; copie-a e reabra o repertório para atualizar.');
+        return false;
+      }
+      catKeys[songId] = proposed;
+      latest[category] = catKeys;
+      localStorage.setItem(PLAYLIST_KEYS_KEY, JSON.stringify(latest));
+      PLAYLIST_KEYS = latest;
+      st.songKeys = catKeys;
+      musicianKeySaveWarning = false;
+      return true;
+    }catch(e){
+      if (!musicianKeySaveWarning){
+        musicianKeySaveWarning = true;
+        alert('Não foi possível salvar esta nota no navegador. Verifique o espaço ou as permissões de armazenamento. A nota não foi gravada.');
+      }
+      return false;
+    }
   }
+  const hadOld = Object.prototype.hasOwnProperty.call(st.songKeys, songId);
+  const oldValue = st.songKeys[songId];
+  st.songKeys[songId] = proposed;
+  if (!saveSetlists()){
+    if (hadOld) st.songKeys[songId] = oldValue;
+    else delete st.songKeys[songId];
+    if (!musicianKeySaveWarning){
+      musicianKeySaveWarning = true;
+      alert('Não foi possível salvar esta nota no navegador. Verifique o espaço ou as permissões de armazenamento. A nota não foi gravada.');
+    }
+    return false;
+  }
+  musicianKeySaveWarning = false;
+  return true;
 }
 function openMusicianPrep(st){
   if (!st) return;
@@ -7989,7 +8147,11 @@ function renderMusicianPrep(){
     input.placeholder = 'Nota'; input.value = setlistKey(st, song.id);
     input.autocapitalize = 'characters'; input.autocomplete = 'off';
     input.setAttribute('aria-label', 'Nota de ' + song.title);
-    input.addEventListener('input', () => setSetlistKey(st, song.id, input.value));
+    input.addEventListener('input', () => {
+      const saved = setSetlistKey(st, song.id, input.value);
+      input.style.borderColor = saved ? '' : '#ff453a';
+      input.title = saved ? '' : 'Esta nota NÃO foi salva; verifique o armazenamento';
+    });
     row.appendChild(info); row.appendChild(input); wrap.appendChild(row);
   });
 }
@@ -8505,7 +8667,16 @@ function bumpSpeed(d){
   if (!curSong) return;
   let v = speedOf(curSong) + d;
   v = Math.max(4, Math.min(150, v));
-  speeds[curSong.id] = v; saveSpeeds();
+  const id = curSong.id;
+  const existed = Object.prototype.hasOwnProperty.call(speeds,id);
+  const previous = speeds[id];
+  speeds[id] = v;
+  if (!saveSpeeds()){
+    if (existed) speeds[id] = previous;
+    else delete speeds[id];
+    alert('Não foi possível salvar a velocidade no armazenamento. A alteração foi desfeita.');
+    return;
+  }
   $('spdVal').textContent = v;
 }
 $('spdUp').onclick = () => bumpSpeed(2);
@@ -8575,7 +8746,15 @@ function renderManageLists(){
     const row = document.createElement('div'); row.className = 'manageRow';
     row.innerHTML = '<span>' + esc((ov && ov.title) || s.title) + '</span>';
     const btn = document.createElement('button'); btn.textContent = 'Mostrar';
-    btn.onclick = () => { HIDDEN.delete(id); saveHidden(); rebuildAll(); refresh(); renderManageLists(); };
+    btn.onclick = () => {
+      HIDDEN.delete(id);
+      if (!saveHidden()){
+        HIDDEN.add(id);
+        alert('Não foi possível salvar a restauração desta música. Nada foi alterado.');
+        return;
+      }
+      rebuildAll(); refresh(); renderManageLists();
+    };
     row.appendChild(btn); hEl.appendChild(row);
   });
   if (!hidArr.length){ const p = document.createElement('div'); p.className='manageEmpty'; p.textContent='Nenhuma letra oculta.'; hEl.appendChild(p); }
@@ -8588,7 +8767,15 @@ function renderManageLists(){
     const row = document.createElement('div'); row.className = 'manageRow';
     row.innerHTML = '<span>' + esc((ov && ov.title) || s.title) + '</span>';
     const btn = document.createElement('button'); btn.textContent = 'Restaurar';
-    btn.onclick = () => { REMOVED.delete(id); saveRemoved(); rebuildAll(); refresh(); renderManageLists(); };
+    btn.onclick = () => {
+      REMOVED.delete(id);
+      if (!saveRemoved()){
+        REMOVED.add(id);
+        alert('Não foi possível salvar a restauração desta música. Nada foi alterado.');
+        return;
+      }
+      rebuildAll(); refresh(); renderManageLists();
+    };
     row.appendChild(btn); rEl.appendChild(row);
   });
   if (!remArr.length){ const p = document.createElement('div'); p.className='manageEmpty'; p.textContent='Nenhuma letra excluída.'; rEl.appendChild(p); }
@@ -8615,7 +8802,14 @@ $('alR').onclick = () => { prefs.align = 'right'; done(); };
   });
 });
 $('resetBtn').onclick = () => { if (confirm('Restaurar cores, fonte e velocidade padrão? (não afeta suas letras salvas)')) { prefs = { ...DEF }; done(); } };
-function done(){ applyPrefs(); savePrefs(); syncSet(); if (curSong) $('spdVal').textContent = speedOf(curSong); }
+function done(){
+  if (!savePrefs()){
+    prefs = { ...lastSavedPrefs };
+    alert('Não foi possível salvar as configurações no armazenamento. A alteração foi desfeita.');
+  }
+  applyPrefs(); syncSet();
+  if (curSong) $('spdVal').textContent = speedOf(curSong);
+}
 
 /* ---- campos locais das páginas curtas /setlists/*.html ---- */
 const MUSICIAN_FIELDS_PREFIX = 'repHaroldo_musicianFields_v1:';
@@ -8635,7 +8829,8 @@ function exportMusicianFields(){
   return out;
 }
 function importMusicianFields(source, idMap){
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return;
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return true;
+  let allSaved = true;
   for (const slug of Object.keys(source)){
     if (!/^[a-z0-9-]{1,80}$/.test(slug)) continue;
     const incoming = source[slug];
@@ -8655,14 +8850,17 @@ function importMusicianFields(source, idMap){
         };
       }
       localStorage.setItem(key, JSON.stringify(merged));
-    }catch(e){}
+    }catch(e){ allSaved = false; }
   }
+  return allSaved;
 }
 
 /* ---- backup: exportar / importar minhas letras ---- */
 /* Backup completo: letras próprias, setlists, categorias/abas renomeadas,
    categorias personalizadas, ocultas/excluídas/editadas e velocidades por música. */
 $('exportBtn').onclick = () => {
+  // Inclui alterações feitas por músicos em outra aba do MESMO navegador.
+  refreshPlaylistKeys();
   const backup = {
     type: 'repHaroldoBackup', version: 1, exportedAt: new Date().toISOString(),
     data: {
@@ -8698,21 +8896,38 @@ $('importFile').addEventListener('change', e => {
 
       if (!confirm('Isto vai combinar este backup com os dados já salvos neste aparelho (letras, setlists, categorias, ocultas/excluídas e edições). Nada que já existe aqui será apagado. Continuar?')) return;
 
+      // O localStorage não oferece transação entre várias chaves.
+      // Cada etapa deve confirmar a gravação; NUNCA anuncie sucesso parcial.
+      const checkBackupWrite = ok => {
+        if (!ok) throw new Error('O navegador recusou salvar parte do backup (armazenamento cheio ou bloqueado). Algumas etapas anteriores podem ter sido importadas.');
+      };
+
       // 1) letras próprias — mescla por título+artista, preserva o id original quando possível
       const idMap = {};
+      const priorCustom = CUSTOM.slice();
       let addedCustom = 0;
       d.custom.forEach(item => {
-        if (!item || !item.title || !item.text) return;
-        const local = CUSTOM.find(c => norm(c.title) === norm(item.title) && norm(c.artist||'') === norm(item.artist||''));
+        // Arquivos de terceiros podem conter campos em formatos inesperados:
+        // ignore apenas o registro inválido, sem interromper todo o backup.
+        if (!item || typeof item !== 'object' ||
+            typeof item.title !== 'string' || !item.title.trim() ||
+            typeof item.text !== 'string' || !item.text.trim()) return;
+        const importedArtist = typeof item.artist === 'string' ? item.artist : 'Desconhecido';
+        const local = CUSTOM.find(c => norm(c.title) === norm(item.title) && norm(c.artist||'') === norm(importedArtist));
         if (local){ if (item.id) idMap[item.id] = local.id; return; }
         const idTaken = item.id && CUSTOM.some(c => c.id === item.id);
         const newId = (item.id && !idTaken) ? item.id : ('C' + Date.now().toString(36) + Math.random().toString(36).slice(2,7));
         if (item.id && newId !== item.id) idMap[item.id] = newId;
-        CUSTOM.push({ id: newId, title: String(item.title), artist: String(item.artist || 'Desconhecido'),
-          cats: String(item.cats || 'C'), text: String(item.text), color: item.color || null });
+        CUSTOM.push({ id: newId, title: item.title, artist: importedArtist,
+          cats: typeof item.cats === 'string' && item.cats ? item.cats : 'C',
+          text: item.text,
+          color: typeof item.color === 'string' ? item.color : null });
         addedCustom++;
       });
-      saveCustom();
+      if (!saveCustom()){
+        CUSTOM = priorCustom;
+        throw new Error('Não foi possível salvar as letras do backup. Nenhuma nova letra foi confirmada.');
+      }
 
       // 2) nomes das abas — só preenche o que ainda não foi renomeado localmente
       if (isFull && d.chipNames){
@@ -8722,28 +8937,42 @@ $('importFile').addEventListener('change', e => {
           if (!Object.prototype.hasOwnProperty.call(localChipNames, k) && typeof d.chipNames[k] === 'string')
             CHIP_NAMES[k] = d.chipNames[k];
         });
-        saveChipNames();
+        checkBackupWrite(saveChipNames());
       }
       // 3) categorias personalizadas — mescla por chave
       let addedCats = 0;
       if (isFull && Array.isArray(d.customCats)){
         d.customCats.forEach(c => {
-          if (!c || !c.key || !c.name) return;
+          if (!c || typeof c.key !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(c.key) ||
+              typeof c.name !== 'string' || !c.name.trim()) return;
           if (CUSTOM_CATS.some(x => x.key === c.key)) return;
           CUSTOM_CATS.push({ key: c.key, name: c.name }); addedCats++;
         });
-        saveCustomCats(); renderCatSeg();
+        checkBackupWrite(saveCustomCats()); renderCatSeg();
       }
       // 4) ocultas / excluídas / editadas — une os conjuntos
       if (isFull){
         if (Array.isArray(d.hidden)) d.hidden.forEach(id => HIDDEN.add(idMap[id] || migrateBuiltinId(id)));
         if (Array.isArray(d.removed)) d.removed.forEach(id => REMOVED.add(idMap[id] || migrateBuiltinId(id)));
-        if (d.overrides) Object.keys(d.overrides).forEach(id => { const nid = idMap[id] || migrateBuiltinId(id); if (!OVERRIDES[nid]) OVERRIDES[nid] = d.overrides[id]; });
-        saveHidden(); saveRemoved(); saveOverrides();
+        if (d.overrides && typeof d.overrides === 'object' && !Array.isArray(d.overrides))
+          Object.keys(d.overrides).forEach(id => {
+            const nid = idMap[id] || migrateBuiltinId(id), source = d.overrides[id];
+            if (OVERRIDES[nid] || !source || typeof source !== 'object' || Array.isArray(source)) return;
+            const ov = {};
+            if (typeof source.title === 'string' && source.title.trim()) ov.title = source.title;
+            if (typeof source.artist === 'string') ov.artist = source.artist;
+            if (typeof source.text === 'string') ov.text = source.text;
+            if (typeof source.cats === 'string' && source.cats) ov.cats = source.cats;
+            if (typeof source.color === 'string' || source.color === null) ov.color = source.color;
+            if (Object.keys(ov).length) OVERRIDES[nid] = ov;
+          });
+        checkBackupWrite(saveHidden());
+        checkBackupWrite(saveRemoved());
+        checkBackupWrite(saveOverrides());
       }
       rebuildAll();
       // Importa também as anotações das páginas públicas, sem apagar as locais.
-      if (isFull && d.musicianFields) importMusicianFields(d.musicianFields, idMap);
+      if (isFull && d.musicianFields) checkBackupWrite(importMusicianFields(d.musicianFields, idMap));
 
       // notas dos repertórios A Sua Maneira / Jazz & Blues / categorias personalizadas
       if (isFull && d.playlistKeys && typeof d.playlistKeys === 'object'){
@@ -8756,14 +8985,14 @@ $('importFile').addEventListener('change', e => {
             if (PLAYLIST_KEYS[catKey][nid] === undefined) PLAYLIST_KEYS[catKey][nid] = String(incoming[id] || '');
           });
         });
-        savePlaylistKeys();
+        checkBackupWrite(savePlaylistKeys());
       }
 
       // 5) setlists — mescla por id/nome, corrigindo ids de letras remapeadas
       let addedSetlists = 0;
       if (isFull && Array.isArray(d.setlists)){
         d.setlists.forEach(st => {
-          if (!st || !st.name || !Array.isArray(st.songIds)) return;
+          if (!st || typeof st.name !== 'string' || !st.name.trim() || !Array.isArray(st.songIds)) return;
           const fixedIds = st.songIds.map(id => idMap[id] || migrateBuiltinId(id)).filter(id => SONG_MAP.has(id));
           const already = SETLISTS.some(x => x.id === st.id || x.name === st.name);
           if (already) return;
@@ -8773,21 +9002,23 @@ $('importFile').addEventListener('change', e => {
           addedSetlists++;
         });
         if (!activeSetlistId && SETLISTS.length) activeSetlistId = SETLISTS[0].id;
-        saveSetlists();
+        checkBackupWrite(saveSetlists());
       }
       // 6) velocidades por música — só preenche o que ainda não tem velocidade definida
       if (isFull && d.speeds){
         Object.keys(d.speeds).forEach(id => { const nid = idMap[id] || migrateBuiltinId(id); if (speeds[nid] === undefined) speeds[nid] = d.speeds[id]; });
-        saveSpeeds();
+        checkBackupWrite(saveSpeeds());
       }
       // 7) cores/fonte/velocidade padrão — pergunta antes de sobrescrever a aparência atual
       if (isFull && d.prefs && confirm('O backup também tem cores, fonte e velocidade padrão salvas. Aplicar essas configurações neste aparelho também?')){
-        prefs = { ...prefs, ...d.prefs }; applyPrefs(); savePrefs();
+        prefs = { ...prefs, ...d.prefs }; applyPrefs(); checkBackupWrite(savePrefs());
       }
 
       refresh(); syncSet();
       alert('Backup importado: ' + addedCustom + ' letra(s), ' + addedSetlists + ' setlist(s) e ' + addedCats + ' categoria(s) nova(s).');
-    }catch(err){ alert('Não foi possível ler este arquivo de backup.'); }
+    }catch(err){
+      alert('Importação não concluída: ' + (err && err.message ? err.message : 'arquivo de backup inválido') + ' Preserve o arquivo original para tentar novamente.');
+    }
   };
   reader.readAsText(file);
   e.target.value = '';
@@ -8795,22 +9026,43 @@ $('importFile').addEventListener('change', e => {
 
 /* ================= NOVA / EDITAR LETRA ================= */
 let editingId = null, editCat = 'C', editColor = null;
+let editBaseFingerprint = '';
+const EDIT_DRAFT_PREFIX = 'repHaroldo_editdraft_v1:';
+function editDraftKey(){ return EDIT_DRAFT_PREFIX + (editingId || 'new'); }
+function editSnapshot(){
+  return {title:$('inTitle').value,artist:$('inArtist').value,text:$('inLyrics').value,
+    cat:editCat,color:editColor,base:editBaseFingerprint};
+}
+function saveEditDraft(){
+  if (!$('editView').classList.contains('active')) return;
+  try{ sessionStorage.setItem(editDraftKey(), JSON.stringify(editSnapshot())); }catch(e){}
+}
+function clearEditDraft(){ try{ sessionStorage.removeItem(editDraftKey()); }catch(e){} }
+function loadEditDraft(){
+  try{
+    const d = JSON.parse(sessionStorage.getItem(editDraftKey()) || 'null');
+    return d && typeof d === 'object' && d.base === editBaseFingerprint ? d : null;
+  }catch(e){ return null; }
+}
+['inTitle','inArtist','inLyrics'].forEach(id =>
+  $(id).addEventListener('input', saveEditDraft));
+
 function syncColorState(){
   $('taColorState').textContent = editColor ? 'cor personalizada' : 'cor padrão do app';
 }
-$('taColor').addEventListener('input', e => { editColor = e.target.value; syncColorState(); });
-$('taColorReset').onclick = () => { editColor = null; $('taColor').value = prefs.fg; syncColorState(); };
+$('taColor').addEventListener('input', e => { editColor = e.target.value; syncColorState(); saveEditDraft(); });
+$('taColorReset').onclick = () => { editColor = null; $('taColor').value = prefs.fg; syncColorState(); saveEditDraft(); };
 const FIXED_CATS = [ {v:'C', label:'Só Minhas'}, {v:'A', label:'A Sua Maneira'}, {v:'J', label:'Jazz & Blues'}, {v:'AJ', label:'Ambas'} ];
 function renderCatSeg(){
   const wrap = $('catSeg'); wrap.innerHTML = '';
   FIXED_CATS.forEach(c => {
     const b = document.createElement('button'); b.dataset.v = c.v; b.textContent = c.label;
-    b.onclick = () => { editCat = c.v; syncCatSeg(); };
+    b.onclick = () => { editCat = c.v; syncCatSeg(); saveEditDraft(); };
     wrap.appendChild(b);
   });
   CUSTOM_CATS.forEach(c => {
     const b = document.createElement('button'); b.dataset.v = c.key; b.textContent = c.name;
-    b.onclick = () => { editCat = c.key; syncCatSeg(); };
+    b.onclick = () => { editCat = c.key; syncCatSeg(); saveEditDraft(); };
     wrap.appendChild(b);
   });
   const add = document.createElement('button'); add.className = 'catAddBtn2'; add.textContent = '+ Nova categoria';
@@ -8820,9 +9072,14 @@ function renderCatSeg(){
     const t = name.trim();
     if (!t) return;
     const key = 'X' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
-    CUSTOM_CATS.push({ key, name: t }); saveCustomCats();
+    CUSTOM_CATS.push({ key, name: t });
+    if (!saveCustomCats()){
+      CUSTOM_CATS.pop();
+      alert('Não foi possível salvar a nova categoria no navegador.');
+      return;
+    }
     renderCatSeg();
-    editCat = key; syncCatSeg();
+    editCat = key; syncCatSeg(); saveEditDraft();
   };
   wrap.appendChild(add);
   syncCatSeg();
@@ -8842,6 +9099,16 @@ function openEdit(song){
   editCat = song ? (song.cats || 'C') : 'C';
   renderCatSeg();
   editColor = (song && song.color) ? song.color : null;
+  editBaseFingerprint = JSON.stringify([$('inTitle').value,$('inArtist').value,$('inLyrics').value,editCat,editColor]);
+  const recovered = loadEditDraft();
+  if (recovered){
+    $('inTitle').value = String(recovered.title || '');
+    $('inArtist').value = String(recovered.artist || '');
+    $('inLyrics').value = String(recovered.text || '');
+    editCat = typeof recovered.cat === 'string' ? recovered.cat : editCat;
+    editColor = typeof recovered.color === 'string' ? recovered.color : null;
+    renderCatSeg();
+  }
   $('taColor').value = editColor || prefs.fg;
   syncColorState();
   $('editDelete').style.display = song ? '' : 'none';
@@ -8855,6 +9122,7 @@ function hasUnsavedEdit(){
 function closeEdit(){ show('homeView'); refresh(); }
 $('editBack').onclick = () => {
   if (hasUnsavedEdit() && !confirm('Descartar esta letra sem salvar?')) return;
+  clearEditDraft();
   history.back();
 };
 $('saveSong').onclick = () => {
@@ -8887,6 +9155,7 @@ $('saveSong').onclick = () => {
     alert('Não foi possível salvar esta letra no navegador (espaço insuficiente ou armazenamento bloqueado). A edição continua aberta para você copiar o texto ou liberar espaço.');
     return;
   }
+  clearEditDraft();
   rebuildAll();
   history.back();
 };
@@ -8897,10 +9166,25 @@ $('editDelete').onclick = () => {
     ? 'Excluir esta letra definitivamente? Essa ação não pode ser desfeita.'
     : 'Remover esta música da lista? Você pode restaurar depois em Configurações → Letras excluídas.';
   if (!confirm(msg)) return;
-  if (isCustom){ CUSTOM = CUSTOM.filter(s => s.id !== editingId); saveCustom(); }
-  else { REMOVED.add(editingId); saveRemoved(); }
-  rebuildAll();
-  history.back();
+  if (isCustom){
+    const previous = CUSTOM;
+    CUSTOM = CUSTOM.filter(s => s.id !== editingId);
+    if (!saveCustom()){
+      CUSTOM = previous;
+      alert('Não foi possível excluir a letra; dados preservados.');
+      return;
+    }
+  } else {
+    const existed = REMOVED.has(editingId);
+    REMOVED.add(editingId);
+    if (!saveRemoved()){
+      if (!existed) REMOVED.delete(editingId);
+      alert('Não foi possível remover a música; dados preservados.');
+      return;
+    }
+  }
+  clearEditDraft();
+  rebuildAll(); history.back();
 };
 /* ---- barra de ferramentas: tamanho, copiar, colar ---- */
 let taFont = 16;
@@ -8912,6 +9196,7 @@ $('taPaste').onclick = async () => {
     if (!text){ alert('A área de transferência está vazia.'); return; }
     if ($('inLyrics').value.trim() && !confirm('Substituir o texto atual pelo conteúdo copiado?')) return;
     $('inLyrics').value = text;
+    saveEditDraft();
   }catch(e){
     alert('Não foi possível acessar a área de transferência automaticamente. Toque e segure no campo de texto e escolha "Colar".');
   }

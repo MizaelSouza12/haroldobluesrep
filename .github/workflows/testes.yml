@@ -34,3 +34,25 @@ jobs:
           name: auditoria-browser
           path: artifacts/
           if-no-files-found: ignore
+
+  compatibilidade:
+    name: Navegador ${{ matrix.engine }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [firefox, webkit]
+    env:
+      BROWSER_ENGINE: ${{ matrix.engine }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependências
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Instalar navegador
+        run: npx playwright install --with-deps ${{ matrix.engine }}
+      - name: Executar testes de compatibilidade
+        run: npm run test:compat

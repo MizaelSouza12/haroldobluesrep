@@ -1029,3 +1029,242 @@ test('Browser 57: botão tentar novamente reinicia reconhecimento simulado',asyn
     await checkNoPageErrors(s);
   }finally{await s.close();}
 });
+
+
+test('Browser 58: F5 na criação preserva rascunho local não salvo',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    await s.page.locator('#addBtn').click();
+    await s.page.locator('#inTitle').fill('Rascunho ainda não salvo');
+    await s.page.locator('#inArtist').fill('Artista provisório');
+    await s.page.locator('#inLyrics').fill('Texto importante que não pode desaparecer ao dar F5');
+    await s.page.reload();
+    await s.page.locator('#addBtn').click();
+    assert.equal(await s.page.locator('#inTitle').inputValue(),'Rascunho ainda não salvo');
+    assert.match(await s.page.locator('#inLyrics').inputValue(),/não pode desaparecer/);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 59: ciclo completo cria, exporta e restaura dados em outro perfil limpo',async()=>{
+  const source=await fresh(),destination=await fresh();
+  try{
+    await source.context.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
+    await destination.context.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
+    await goto(source,MAIN);
+    await source.page.locator('#addBtn').click();
+    await source.page.locator('#inTitle').fill('Viagem entre navegadores');
+    await source.page.locator('#inArtist').fill('Produtor Teste');
+    await source.page.locator('#inLyrics').fill('Letra com acentos: coração\nSegunda linha\nTerceira linha');
+    await source.page.locator('#catSeg [data-v="J"]').click();
+    await source.page.locator('#saveSong').click();
+    await source.page.locator('#shareSetlistBtn').click();
+    await source.page.locator('#setlistMgrList .shareChoice').nth(1).click();
+    await source.page.locator('#musicianList .musicianKey').first().fill('F#m7');
+    await source.page.locator('#musicianBack').click();
+    await source.page.waitForTimeout(80);
+    await goto(source,J);
+    await source.page.locator('.noteInput').first().fill('Anotação migrada entre perfis');
+    await goto(source,MAIN);
+    await source.page.locator('#setBtnHome').click();
+    const backup=await downloadAfter(source.page,()=>source.page.locator('#exportBtn').click());
+    const exported=JSON.parse(backup.bytes.toString('utf8'));
+    assert.equal(exported.type,'repHaroldoBackup');
+    await goto(destination,MAIN);
+    await destination.page.locator('#setBtnHome').click();
+    await destination.page.locator('#importFile').setInputFiles({
+      name:'backup-integral.json',mimeType:'application/json',buffer:backup.bytes
+    });
+    await destination.page.waitForFunction(()=>JSON.parse(localStorage.getItem('repHaroldo_custom_v1')||'[]').some(x=>x.title==='Viagem entre navegadores'));
+    const restored=await destination.page.evaluate(()=>({
+      custom:JSON.parse(localStorage.getItem('repHaroldo_custom_v1')||'[]'),
+      keys:JSON.parse(localStorage.getItem('repHaroldo_playlistkeys_v1')||'{}'),
+      fields:JSON.parse(localStorage.getItem('repHaroldo_musicianFields_v1:jazz-blues')||'{}')
+    }));
+    assert.deepEqual(restored.custom.map(x=>({title:x.title,artist:x.artist,text:x.text,cats:x.cats})),
+      [{title:'Viagem entre navegadores',artist:'Produtor Teste',
+        text:'Letra com acentos: coração\nSegunda linha\nTerceira linha',cats:'J'}]);
+    assert.ok(Object.values(restored.keys.J||{}).includes('F#m7'));
+    assert.ok(Object.values(restored.fields).some(x=>x.note==='Anotação migrada entre perfis'));
+    await checkNoPageErrors(source);await checkNoPageErrors(destination);
+  }finally{await source.close();await destination.close();}
+});
+test('Browser 60: 1000 edições alternadas e 12 recargas sem perda',async()=>{
+  const s=await fresh();try{
+    await goto(s,J);
+    await s.page.locator('.keyInput').first().waitFor();
+    for(let cycle=0;cycle<12;cycle++){
+      await s.page.evaluate((cycle)=>{
+        const keys=[...document.querySelectorAll('.keyInput')],notes=[...document.querySelectorAll('.noteInput')];
+        for(let i=0;i<100;i++){
+          const idx=i%keys.length;
+          const k=keys[idx];
+          k.value='C'+cycle+'-'+i;
+          k.dispatchEvent(new Event('input',{bubbles:true}));
+          const note=notes[idx];
+          note.value='Ciclo '+cycle+' / edição '+i+' 🎼';
+          note.dispatchEvent(new Event('input',{bubbles:true}));
+        }
+      },cycle);
+      await s.page.reload();
+      await s.page.locator('.keyInput').first().waitFor();
+      const data=await s.page.evaluate(()=>({
+        a:document.querySelector('.keyInput').value,
+        n:document.querySelector('.noteInput').value
+      }));
+      assert.equal(data.a,'C'+cycle+'-95');
+      assert.match(data.n,new RegExp('Ciclo '+cycle));
+    }
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 61: visual mobile sem rolagem horizontal nas duas listas',async()=>{
+  for(const w of [320,360,390,768,1280]){
+    const s=await fresh();try{
+      await s.page.setViewportSize({width:w,height:850});
+      await goto(s,J);
+      await s.page.locator('.noteInput').first().waitFor();
+      const dims=await s.page.evaluate(()=>({
+        scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,
+        input:document.querySelector('.keyInput').getBoundingClientRect().width
+      }));
+      assert.ok(dims.scroll<=dims.client+2,'overflow horizontal '+w+': '+JSON.stringify(dims));
+      assert.ok(dims.input>=45,'campo muito estreito: '+w);
+      await checkNoPageErrors(s);
+    }finally{await s.close();}
+  }
+});
+
+
+test('Browser 65: backup inclui notas atualizadas em outra aba após abrir o aplicativo',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
+    await goto(s,MAIN);
+    const editPage=await s.context.newPage();
+    await editPage.goto(base+J);
+    await editPage.locator('.keyInput').first().waitFor();
+    await editPage.locator('.keyInput').first().fill('Db7');
+    await s.page.locator('#setBtnHome').click();
+    const file=await downloadAfter(s.page,()=>s.page.locator('#exportBtn').click());
+    const exported=JSON.parse(file.bytes.toString('utf8'));
+    assert.ok(Object.values(exported.data.playlistKeys.J||{}).includes('Db7'),
+      'backup completo precisa capturar os dados mais recentes do localStorage');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+
+
+test('Browser 66: importar backup com item malformado recupera registros válidos',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
+    await goto(s,MAIN);
+    await s.page.locator('#setBtnHome').click();
+    const payload={type:'repHaroldoBackup',version:1,data:{
+      custom:[
+        {id:'Cvalido',title:'Música válida importada',artist:'Teste',text:'Letra que precisa sobreviver',cats:'A'},
+        {id:'Cinvalido',title:42,artist:'Incorreto',text:'Não importar',cats:'J'}
+      ]
+    }};
+    await s.page.locator('#importFile').setInputFiles({
+      name:'backup-misto.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload))
+    });
+    await s.page.waitForTimeout(150);
+    const saved=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_custom_v1')||'[]'));
+    assert.equal(saved.filter(x=>x.title==='Música válida importada').length,1);
+    assert.equal(saved.some(x=>x.title===42),false);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+
+
+test('Browser 67: estresse com 500 músicas personalizadas, busca, F5 e 50 setlists',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      const custom=Array.from({length:500},(_,i)=>({
+        id:'Cstress'+i,title:'Musica Stress '+i,artist:'Banda '+(i%20),
+        cats:i%2?'A':'J',text:('Estrofe '+i+'\n').repeat(12)
+      }));
+      const list=Array.from({length:50},(_,i)=>({
+        id:'STstress'+i,name:'Show Stress '+i,
+        songIds:custom.slice(i,i+10).map(x=>x.id),songKeys:{}
+      }));
+      localStorage.setItem('repHaroldo_custom_v1',JSON.stringify(custom));
+      localStorage.setItem('repHaroldo_setlists_v1',JSON.stringify({list,active:'STstress0'}));
+    });
+    const started=Date.now();
+    await goto(s,MAIN);
+    assert.equal(await s.page.locator('#list .item').count(),714);
+    await s.page.locator('#search').fill('Musica Stress 249');
+    assert.equal(await s.page.locator('#list .item').count(),1);
+    await s.page.locator('#search').fill('');
+    await s.page.reload();
+    assert.equal(await s.page.locator('#list .item').count(),714);
+    await s.page.locator('#chips .chip',{hasText:'Setlists'}).click();
+    assert.equal(await s.page.locator('#setlistMgrList .setlistRow').count(),50);
+    console.log('STRESS 500 letras + 50 setlists:',Date.now()-started,'ms');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 68: F5 durante teleprompter não corrompe velocidades nem dados',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    await s.page.locator('#list .item').first().click();
+    await s.page.locator('#spdUp').click();
+    const v=await s.page.locator('#spdVal').innerText();
+    await s.page.locator('#playBtn').click();
+    await s.page.waitForTimeout(120);
+    await s.page.reload();
+    assert.equal(await s.page.locator('#list .item').count(),214);
+    await s.page.locator('#list .item').first().click();
+    assert.equal(await s.page.locator('#spdVal').innerText(),v);
+    assert.equal(await s.page.locator('#songView.active').count(),1);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 69: descarte confirmado não ressuscita rascunho ao voltar',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;});
+    await goto(s,MAIN);
+    await s.page.locator('#addBtn').click();
+    await s.page.locator('#inTitle').fill('Rascunho descartado');
+    await s.page.locator('#inLyrics').fill('Este texto foi descartado');
+    await s.page.locator('#editBack').click();
+    await s.page.locator('#homeView.active').waitFor();
+    await s.page.locator('#addBtn').click();
+    assert.equal(await s.page.locator('#inTitle').inputValue(),'');
+    assert.equal(await s.page.locator('#inLyrics').inputValue(),'');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+
+
+test('Browser 70: importação sem espaço não pode anunciar sucesso ou deixar letra fantasma',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.__alerts=[];
+      window.alert=m=>window.__alerts.push(String(m));
+      window.confirm=()=>true;
+      const native=Storage.prototype.setItem;
+      Storage.prototype.setItem=function(k,v){
+        if(k==='repHaroldo_custom_v1')throw new DOMException('Sem espaço','QuotaExceededError');
+        return native.call(this,k,v);
+      };
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#setBtnHome').click();
+    const backup={type:'repHaroldoBackup',version:1,data:{
+      custom:[{id:'Cbackup123',title:'Backup não persistente',artist:'Falha',cats:'J',text:'Letra de teste'}]
+    }};
+    await s.page.locator('#importFile').setInputFiles({
+      name:'backup-quota.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))
+    });
+    await s.page.waitForTimeout(200);
+    const alerts=await s.page.evaluate(()=>window.__alerts);
+    assert.equal(alerts.some(a=>a.startsWith('Backup importado:')),false,
+      'não pode anunciar importação concluída se a gravação foi recusada');
+    assert.ok(alerts.some(a=>/salvar|armazenamento|espaço/i.test(a)));
+    await s.page.reload();
+    const stored=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_custom_v1')||'[]'));
+    assert.equal(stored.some(x=>x.title==='Backup não persistente'),false);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});

@@ -67,21 +67,35 @@
       const newest = readJSON(storageKey, {});
       const merged = newest && typeof newest === 'object' && !Array.isArray(newest)
         ? newest : {};
+      // Conflito real: outra aba alterou esta MESMA música desde que
+      // esta aba a carregou. Não faça last-write-wins silencioso.
+      const inStorage = Object.prototype.hasOwnProperty.call(merged,id) ? merged[id] : null;
+      const lastSeen = Object.prototype.hasOwnProperty.call(state,id) ? state[id] : null;
+      if (JSON.stringify(inStorage) !== JSON.stringify(lastSeen)){
+        setStatus('Conflito: esta música foi alterada em outra aba. Copie sua alteração e atualize a página antes de editar novamente.', true);
+        return false;
+      }
       merged[id] = { key, note };
       localStorage.setItem(storageKey, JSON.stringify(merged));
       Object.assign(state, merged);
-      // Sincroniza o tom com a tela de preparo quando tudo é aberto
-      // no MESMO navegador/origem. Não publica no GitHub.
+      // Uma segunda gravação (na tela principal) pode falhar sem
+      // invalidar a gravação principal já confirmada.
+      let linkedSaved = true;
       if (category === 'A' || category === 'J') {
-        const current = readJSON(mainKeysStorage, {});
-        if (!current[category] || typeof current[category] !== 'object') current[category] = {};
-        current[category][id] = key;
-        localStorage.setItem(mainKeysStorage, JSON.stringify(current));
+        try {
+          const current = readJSON(mainKeysStorage, {});
+          if (!current[category] || typeof current[category] !== 'object') current[category] = {};
+          current[category][id] = key;
+          localStorage.setItem(mainKeysStorage, JSON.stringify(current));
+        } catch (err){ linkedSaved = false; }
       }
-      setStatus('✓ Salvo neste navegador', false);
+      if (linkedSaved) setStatus('✓ Salvo neste navegador', false);
+      else setStatus('Nota salva nesta página, mas a integração com o aplicativo principal falhou.', true);
+      return true;
     } catch (err) {
       canStore = false;
       setStatus('Não foi possível salvar. Verifique o armazenamento do navegador.', true);
+      return false;
     }
   }
 

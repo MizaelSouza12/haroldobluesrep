@@ -647,3 +647,183 @@ test('67: categorias personalizadas inválidas em storage não derrubam o app',(
   assert.ok(w.eval('CUSTOM_CATS.every(c=>c&&typeof c.key==="string"&&typeof c.name==="string")'));
   w.close();
 });
+
+
+test('68: ativação da PWA preserva caches de outros apps do mesmo domínio',async()=>{
+  const handlers={},deleted=[];
+  const self={addEventListener:(name,fn)=>handlers[name]=fn,clients:{claim:async()=>{}},
+    location:{origin:'https://mizaelsouza12.github.io'}};
+  const current='repertorio-haroldo-'+(sw.match(/CACHE_VERSION = '([^']+)'/)||[])[1];
+  const caches={keys:async()=>['outro-projeto-offline','repertorio-haroldo-v1',current],
+    delete:async key=>{deleted.push(key);return true;}};
+  vm.runInNewContext(sw,{self,caches,fetch:()=>{},URL,Response});
+  let task;handlers.activate({waitUntil:p=>task=p});await task;
+  assert.deepEqual(deleted,['repertorio-haroldo-v1']);
+});
+test('69: ocultar música com storage indisponível não deve alterar lista visual',()=>{
+  const store=createStorage(),old=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_hidden_v1'?(()=>{throw new Error('QuotaExceededError')})():old(k,v);
+  const {w}=bootMain(store);const messages=[];w.alert=t=>messages.push(String(t));
+  w.eval('openActions(ALL[0])');w.document.getElementById('actHide').click();
+  assert.equal(w.eval('ALL.length'),214);
+  assert.ok(messages.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
+test('70: excluir música base sem armazenamento não deve sumir do repertório',()=>{
+  const store=createStorage(),old=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_removed_v1'?(()=>{throw new Error('QuotaExceededError')})():old(k,v);
+  const {w}=bootMain(store);w.confirm=()=>true;
+  const messages=[];w.alert=t=>messages.push(String(t));
+  w.eval('openActions(ALL[0])');w.document.getElementById('actDelete').click();
+  assert.equal(w.eval('ALL.length'),214);
+  assert.ok(messages.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
+test('71: salvar nota no preparo falhando no localStorage sinaliza problema',()=>{
+  const store=createStorage(),old=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_playlistkeys_v1'?(()=>{throw new Error('QuotaExceededError')})():old(k,v);
+  const {w}=bootMain(store);const messages=[];w.alert=t=>messages.push(String(t));
+  const p=w.eval('sharePlaylistSource(shareablePlaylists()[0])');
+  const songId=w.eval('shareablePlaylists()[0].songIds[0]');
+  w.eval("setSetlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(songId)+",'Bm')");
+  assert.ok(messages.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  assert.equal(w.eval("setlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(songId)+")"),'');
+  w.close();
+});
+test('72: falha ao salvar categoria nova não deixa aba fantasma',()=>{
+  const store=createStorage(),old=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_customcats_v1'?(()=>{throw new Error('QuotaExceededError')})():old(k,v);
+  const {w}=bootMain(store),messages=[];w.alert=t=>messages.push(String(t));
+  w.prompt=()=> 'Categoria não gravada';
+  w.eval('openEdit(null)');
+  w.document.querySelector('#catSeg .catAddBtn2').click();
+  assert.equal(w.eval('CUSTOM_CATS.length'),0);
+  assert.ok(messages.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
+
+
+test('73: duas abas editando a mesma música não sobrescrevem sem aviso',async()=>{
+  const store=createStorage();
+  const a=await bootEditor('jazz-blues',store);
+  const b=await bootEditor('jazz-blues',store);
+  input(a.w.document.querySelector('.keyInput'),'C#m',a.w);
+  input(b.w.document.querySelector('.keyInput'),'F',b.w);
+  const fresh=await bootEditor('jazz-blues',store);
+  assert.equal(fresh.w.document.querySelector('.keyInput').value,'C#m');
+  assert.match(b.w.document.getElementById('saveStatus').textContent,/Conflito|alterada em outra aba/i);
+  a.w.close();b.w.close();fresh.w.close();
+});
+
+
+test('74: override local malformado não impede inicializar repertório original',()=>{
+  const store=createStorage();
+  const id=stableSongId('15 Anos','Ira!');
+  store.setItem('repHaroldo_overrides_v1',JSON.stringify({[id]:{title:42,artist:'Teste',text:'txt',cats:'A'}}));
+  const {w}=bootMain(store);
+  assert.equal(w.eval('ALL.length'),214);
+  assert.ok(w.document.querySelectorAll('#list .item').length>0);
+  w.close();
+});
+test('75: setlist local de nome inválido não derruba gerenciador',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_setlists_v1',JSON.stringify({
+    list:[{id:'STtest',name:{x:'não válido'},songIds:[],songKeys:{}}],
+    active:'STtest'
+  }));
+  const {w}=bootMain(store);
+  w.document.querySelector('#chips .chip').click();
+  w.eval("openSetlistManager('manage')");
+  assert.equal(w.document.querySelectorAll('#setlistMgrList .setlistRow').length,1);
+  assert.equal(typeof w.eval('SETLISTS[0].name'),'string');
+  w.close();
+});
+
+
+test('76: duas abas do aplicativo preparam notas distintas sem perda',()=>{
+  const store=createStorage();
+  const a=bootMain(store),b=bootMain(store);
+  const ids=a.w.eval('shareablePlaylists()[0].songIds.slice(0,2)');
+  // Ambos os editores já estão abertos antes da primeira alteração.
+  a.w.eval('window.openedList=sharePlaylistSource(shareablePlaylists()[0])');
+  b.w.eval('window.openedList=sharePlaylistSource(shareablePlaylists()[0])');
+  a.w.eval("setSetlistKey(window.openedList,"+JSON.stringify(ids[0])+",'Ab')");
+  b.w.eval("setSetlistKey(window.openedList,"+JSON.stringify(ids[1])+",'C7')");
+  const persisted=JSON.parse(store.getItem('repHaroldo_playlistkeys_v1'));
+  assert.equal(persisted.A[ids[0]],'Ab');
+  assert.equal(persisted.A[ids[1]],'C7');
+  a.w.close();b.w.close();
+});
+
+
+test('77: falta de espaço ao salvar preferencias nao pode fingir valor persistido',()=>{
+  const store=createStorage(),native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_prefs_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warnings=[];w.alert=t=>warnings.push(String(t));
+  w.document.getElementById('setBtnHome').click();
+  w.document.getElementById('fPlus').click();
+  assert.equal(w.eval('prefs.font'),22);
+  assert.equal(w.document.getElementById('fVal').textContent,'22px');
+  assert.ok(warnings.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
+test('78: falha ao restaurar música oculta mantém item no conjunto original',()=>{
+  const store=createStorage(),native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_hidden_v1' && store.getItem('repHaroldo_hidden_v1')
+    ?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warnings=[];w.alert=t=>warnings.push(String(t));
+  w.eval('HIDDEN.add(ALL[0].id);saveHidden();rebuildAll()');
+  assert.equal(w.eval('ALL.length'),213);
+  w.document.getElementById('setBtnHome').click();
+  w.document.querySelector('#hiddenList .manageRow button').click();
+  assert.equal(w.eval('ALL.length'),213);
+  assert.equal(w.eval('HIDDEN.size'),1);
+  assert.ok(warnings.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
+
+
+test('79: renomear setlist com storage bloqueado preserva nome antigo',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_setlists_v1',JSON.stringify({list:[{id:'STone',name:'Nome antigo',songIds:[],songKeys:{}}],active:'STone'}));
+  const native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_setlists_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warn=[];w.alert=t=>warn.push(String(t));w.prompt=()=> 'Novo nome';
+  w.eval("openSetlistManager('manage')");
+  w.document.querySelector('#setlistMgrList [data-a="ren"]').click();
+  assert.equal(w.eval('SETLISTS[0].name'),'Nome antigo');
+  assert.ok(warn.some(t=>/salvar|armazenamento|espaço/i.test(t)));
+  w.close();
+});
+test('80: excluir setlist sem gravação não exclui lista de memória',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_setlists_v1',JSON.stringify({list:[{id:'STone',name:'Lista imprescindível',songIds:[],songKeys:{}}],active:'STone'}));
+  const native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_setlists_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warn=[];w.alert=t=>warn.push(String(t));w.confirm=()=>true;
+  w.eval("openSetlistManager('manage')");
+  w.document.querySelector('#setlistMgrList [data-a="del"]').click();
+  assert.equal(w.eval('SETLISTS.length'),1);
+  assert.ok(warn.some(t=>/salvar|armazenamento|espaço/i.test(t)));
+  w.close();
+});
+test('81: renomear aba com falha não apresenta nome fantasma',()=>{
+  const store=createStorage(),native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_chipnames_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warn=[];w.alert=t=>warn.push(String(t));w.prompt=()=> 'Fantasma';
+  w.eval("renameChip('A')");
+  assert.equal(w.eval('CHIP_NAMES.A'),'A Sua Maneira');
+  assert.ok(warn.some(t=>/salvar|armazenamento|espaço/i.test(t)));
+  w.close();
+});
+test('82: ajustar velocidade sem salvar deve reverter valor do palco',()=>{
+  const store=createStorage(),native=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_speeds_v1'?(()=>{throw Error('QuotaExceededError')})():native(k,v);
+  const {w}=bootMain(store),warn=[];w.alert=t=>warn.push(String(t));
+  w.document.querySelector('#list .item').click();
+  const before=Number(w.document.getElementById('spdVal').textContent);
+  w.document.getElementById('spdUp').click();
+  assert.equal(Number(w.document.getElementById('spdVal').textContent),before);
+  assert.ok(warn.some(t=>/salvar|armazenamento|espaço/i.test(t)));
+  w.close();
+});
