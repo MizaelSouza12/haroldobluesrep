@@ -563,3 +563,15 @@ test('60: abrir música e ajustar velocidade não alteram repertório',()=>{
   assert.equal(w.eval('ALL.length'),214);assert.equal(w.eval('curSong.id'),original);
   w.close();
 });
+
+
+test('61: chave de anotação corrompida não impede backup das outras playlists',()=>{
+  const storage=createStorage();
+  storage.setItem('repHaroldo_musicianFields_v1:a-sua-maneira','{json-corrompido');
+  storage.setItem('repHaroldo_musicianFields_v1:jazz-blues',JSON.stringify({SBteste:{key:'G',note:'Válida'}}));
+  const {w}=bootMain(storage);
+  const result=w.eval('exportMusicianFields()');
+  assert.equal(result['a-sua-maneira'],undefined);
+  assert.equal(result['jazz-blues'].SBteste.note,'Válida');
+  w.close();
+});
