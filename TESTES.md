@@ -3,8 +3,8 @@ Data: 2026-10-09
 
 ## Execução
 - Workflow: [Testes do Repertório](../actions/workflows/testes.yml)
-- Execução validada: [37882997139](../actions/runs/37882997139)
-- Resultado: **60 testes executados, 60 aprovados**, Node.js 22 / JSDOM 26.1.0.
+- Execução validada: [37883128803](../actions/runs/37883128803)
+- Resultado: **61 testes executados, 61 aprovados**, Node.js 22 / JSDOM 26.1.0.
 - Arquivo da suíte: [tests/repertorio.test.cjs](tests/repertorio.test.cjs)
 - Executar novamente: `npm install && npm test`
 
@@ -30,7 +30,8 @@ Data: 2026-10-09
 ## Correções realizadas durante a auditoria
 1. **Salvamento concorrente** — o editor relê o estado antes de atualizar uma música, evitando apagar a edição mais recente de outra aba na mesma origem/navegador.
 2. **Backup das anotações** — o backup completo do app agora inclui `repHaroldo_musicianFields_v1:*`, restaurando observações e notas sem apagar campos locais existentes.
-3. **Importação robusta dos nomes das abas** — dados de `CHIP_NAMES_KEY` inválidos não provocam falha geral na importação.
+3. **Exportação tolerante a JSON corrompido** — uma chave de anotações local danificada não impede que outras playlists sejam incluídas no backup.
+4. **Importação robusta dos nomes das abas** — dados de `CHIP_NAMES_KEY` inválidos não provocam falha geral na importação.
 
 ## Limitações NÃO resolvidas pelos testes
 - **Sem sincronização entre aparelhos:** GitHub Pages é estático; `localStorage` persiste apenas no navegador/origem. As notas digitadas por um músico não ficam disponíveis automaticamente para Haroldo em outro aparelho.
