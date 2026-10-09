@@ -7380,7 +7380,10 @@ try {
   const raw2 = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
   if (Array.isArray(raw2)) CUSTOM = raw2.filter(s => s && s.title && s.text);
 } catch(e) { CUSTOM = []; }
-function saveCustom(){ try{ localStorage.setItem(CUSTOM_KEY, JSON.stringify(CUSTOM)); }catch(e){} }
+function saveCustom(){
+  try{ localStorage.setItem(CUSTOM_KEY, JSON.stringify(CUSTOM)); return true; }
+  catch(e){ return false; }
+}
 
 /* ================= SETLISTS (múltiplos "momentos" salvos) ================= */
 const SETLISTS_KEY = 'repHaroldo_setlists_v1';
@@ -7506,7 +7509,10 @@ try {
 } catch(e) { OVERRIDES = {}; }
 function saveHidden(){ try{ localStorage.setItem(HIDDEN_KEY, JSON.stringify([...HIDDEN])); }catch(e){} }
 function saveRemoved(){ try{ localStorage.setItem(REMOVED_KEY, JSON.stringify([...REMOVED])); }catch(e){} }
-function saveOverrides(){ try{ localStorage.setItem(OVERRIDES_KEY, JSON.stringify(OVERRIDES)); }catch(e){} }
+function saveOverrides(){
+  try{ localStorage.setItem(OVERRIDES_KEY, JSON.stringify(OVERRIDES)); return true; }
+  catch(e){ return false; }
+}
 function rawById(id){ return SONGS.find(s => s.id === id) || CUSTOM.find(s => s.id === id) || null; }
 
 let ALL = [];
@@ -7529,13 +7535,9 @@ function rebuildAll(){
   base.sort((a, b) => a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0);
   ALL = base;
   SONG_MAP = new Map(ALL.map(s => [s.id, s]));
-  let changed = false;
-  SETLISTS.forEach(st => {
-    const before = st.songIds.length;
-    st.songIds = st.songIds.filter(id => SONG_MAP.has(id));
-    if (st.songIds.length !== before) changed = true;
-  });
-  if (changed) saveSetlists();
+  // Nunca remova IDs de um setlist salvo durante a reconstrução:
+  // uma música oculta/removida pode ser restaurada posteriormente.
+  // Os filtros visuais usam SONG_MAP para mostrar apenas as disponíveis.
 }
 rebuildAll();
 
@@ -7927,7 +7929,7 @@ function renderMusicianPrep(){
   const st = musicianSetlist(); if (!st) return;
   $('musicianTitle').textContent = st.name;
   const songs = st.songIds.map(id => SONG_MAP.get(id)).filter(Boolean);
-  $('musicianSub').textContent = songs.length + ' música(s) · compartilha somente música - artista - nota';
+  $('musicianSub').textContent = songs.length + ' música(s) · compartilha apenas os títulos, artistas e notas. Nas páginas curtas, edições ficam neste navegador e não passam automaticamente para outros aparelhos.';
   const actionIds = ['musicianShare','musicianCopyLink','musicianPdf','musicianWord','musicianText'];
   actionIds.forEach(id => { $(id).disabled = !songs.length; });
   const wrap = $('musicianList'); wrap.innerHTML = '';
@@ -7971,7 +7973,17 @@ function payloadToBase64Url(payload){
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
   return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
-function musicianLink(st){ return MUSICIANS_BASE_URL + '#d=' + payloadToBase64Url(musicianPayload(st)); }
+const PUBLISHED_PLAYLIST_LINKS = {
+  A:'https://mizaelsouza12.github.io/haroldobluesrep/setlists/a-sua-maneira.html',
+  J:'https://mizaelsouza12.github.io/haroldobluesrep/setlists/jazz-blues.html'
+};
+function musicianLink(st){
+  // Repertórios já publicados têm link curto e permanente.
+  // Atenção: tom e anotação locais não sincronizam entre navegadores.
+  if (st && st.shareCategoryKey && PUBLISHED_PLAYLIST_LINKS[st.shareCategoryKey])
+    return PUBLISHED_PLAYLIST_LINKS[st.shareCategoryKey];
+  return MUSICIANS_BASE_URL + '#d=' + payloadToBase64Url(musicianPayload(st));
+}
 async function copyTextSafe(text, okMsg){
   try{ await navigator.clipboard.writeText(text); alert(okMsg); }
   catch(e){ prompt('Copie o conteúdo abaixo:', text); }
@@ -8803,16 +8815,30 @@ $('saveSong').onclick = () => {
   const artist = $('inArtist').value.trim() || 'Desconhecido';
   const text = $('inLyrics').value.replace(/\r\n/g, '\n').trim();
   if (!title || !text){ alert('Preencha ao menos o título e a letra completa.'); return; }
+  // A mudança só é considerada concluída após a gravação no armazenamento.
+  // Se o navegador estiver sem espaço, não feche a edição nem perca o texto.
+  const previousCustom = CUSTOM.map(s => ({ ...s }));
+  const previousOverride = editingId ? OVERRIDES[editingId] : undefined;
+  let persisted = false;
   if (editingId && editingId.charAt(0) === 'C'){
     const idx = CUSTOM.findIndex(s => s.id === editingId);
     if (idx >= 0) CUSTOM[idx] = { id: editingId, title, artist, cats: editCat, text, color: editColor };
-    saveCustom();
+    persisted = saveCustom();
   } else if (editingId){
     OVERRIDES[editingId] = { title, artist, cats: editCat, text, color: editColor };
-    saveOverrides();
+    persisted = saveOverrides();
   } else {
     CUSTOM.push({ id: 'C' + Date.now().toString(36) + Math.random().toString(36).slice(2,7), title, artist, cats: editCat, text, color: editColor });
-    saveCustom();
+    persisted = saveCustom();
+  }
+  if (!persisted){
+    CUSTOM = previousCustom;
+    if (editingId){
+      if (previousOverride === undefined) delete OVERRIDES[editingId];
+      else OVERRIDES[editingId] = previousOverride;
+    }
+    alert('Não foi possível salvar esta letra no navegador (espaço insuficiente ou armazenamento bloqueado). A edição continua aberta para você copiar o texto ou liberar espaço.');
+    return;
   }
   rebuildAll();
   history.back();
