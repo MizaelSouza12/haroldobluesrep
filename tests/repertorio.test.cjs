@@ -647,3 +647,56 @@ test('67: categorias personalizadas inválidas em storage não derrubam o app',(
   assert.ok(w.eval('CUSTOM_CATS.every(c=>c&&typeof c.key==="string"&&typeof c.name==="string")'));
   w.close();
 });
+
+
+test('68: ativação da PWA preserva caches de outros apps do mesmo domínio',async()=>{
+  const handlers={},deleted=[];
+  const self={addEventListener:(name,fn)=>handlers[name]=fn,clients:{claim:async()=>{}},
+    location:{origin:'https://mizaelsouza12.github.io'}};
+  const caches={keys:async()=>['outro-projeto-offline','repertorio-haroldo-v1','repertorio-haroldo-v15'],
+    delete:async key=>{deleted.push(key);return true;}};
+  vm.runInNewContext(sw,{self,caches,fetch:()=>{},URL,Response});
+  let task;handlers.activate({waitUntil:p=>task=p});await task;
+  assert.deepEqual(deleted,['repertorio-haroldo-v1']);
+});
+test('69: ocultar música com storage indisponível não deve alterar lista visual',()=>{
+  const store=createStorage(),old=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_hidden_v1'?(()=>{throw new Error('QuotaExceededError')})():old(k,v);
+  const {w}=bootMain(store);const messages=[];w.alert=t=>messages.push(String(t));
+  w.eval('openActions(ALL[0])');w.document.getElementById('actHide').click();
+  assert.equal(w.eval('ALL.length'),214);
+  assert.ok(messages.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
+test('70: excluir música base sem armazenamento não deve sumir do repertório',()=>{
+  const store=createStorage(),old=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_removed_v1'?(()=>{throw new Error('QuotaExceededError')})():old(k,v);
+  const {w}=bootMain(store);w.confirm=()=>true;
+  const messages=[];w.alert=t=>messages.push(String(t));
+  w.eval('openActions(ALL[0])');w.document.getElementById('actDelete').click();
+  assert.equal(w.eval('ALL.length'),214);
+  assert.ok(messages.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
+test('71: salvar nota no preparo falhando no localStorage sinaliza problema',()=>{
+  const store=createStorage(),old=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_playlistkeys_v1'?(()=>{throw new Error('QuotaExceededError')})():old(k,v);
+  const {w}=bootMain(store);const messages=[];w.alert=t=>messages.push(String(t));
+  const p=w.eval('sharePlaylistSource(shareablePlaylists()[0])');
+  const songId=w.eval('shareablePlaylists()[0].songIds[0]');
+  w.eval("setSetlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(songId)+",'Bm')");
+  assert.ok(messages.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  assert.equal(w.eval("setlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(songId)+")"),'');
+  w.close();
+});
+test('72: falha ao salvar categoria nova não deixa aba fantasma',()=>{
+  const store=createStorage(),old=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_customcats_v1'?(()=>{throw new Error('QuotaExceededError')})():old(k,v);
+  const {w}=bootMain(store),messages=[];w.alert=t=>messages.push(String(t));
+  w.prompt=()=> 'Categoria não gravada';
+  w.eval('openEdit(null)');
+  w.document.querySelector('#catSeg .catAddBtn2').click();
+  assert.equal(w.eval('CUSTOM_CATS.length'),0);
+  assert.ok(messages.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
