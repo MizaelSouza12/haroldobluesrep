@@ -7421,7 +7421,9 @@ function saveSetlists(){
 }
 function activeSetlist(){ return SETLISTS.find(s => s.id === activeSetlistId) || null; }
 // migração de versão antiga (setlist único, sem nome)
-if (!localStorage.getItem(SETLISTS_KEY)){
+let hasSavedSetlists = true;
+try{ hasSavedSetlists = !!localStorage.getItem(SETLISTS_KEY); }catch(e){}
+if (!hasSavedSetlists){
   try{
     const oldRaw = JSON.parse(localStorage.getItem(OLD_SETLIST_KEY) || '[]');
     if (Array.isArray(oldRaw) && oldRaw.length){
@@ -7450,7 +7452,10 @@ try {
     typeof x.name === 'string' && x.name.trim()
   ).map(x => ({ key:x.key, name:x.name.trim() }));
 } catch(e) { CUSTOM_CATS = []; }
-function saveCustomCats(){ try{ localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(CUSTOM_CATS)); }catch(e){} }
+function saveCustomCats(){
+  try { localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(CUSTOM_CATS)); return true; }
+  catch(e){ return false; }
+}
 
 /* ================= NOTAS DOS REPERTÓRIOS PARA MÚSICOS ================= */
 const PLAYLIST_KEYS_KEY = 'repHaroldo_playlistkeys_v1';
@@ -7459,7 +7464,10 @@ try {
   const pk = JSON.parse(localStorage.getItem(PLAYLIST_KEYS_KEY) || '{}');
   if (pk && typeof pk === 'object' && !Array.isArray(pk)) PLAYLIST_KEYS = pk;
 } catch(e) { PLAYLIST_KEYS = {}; }
-function savePlaylistKeys(){ try{ localStorage.setItem(PLAYLIST_KEYS_KEY, JSON.stringify(PLAYLIST_KEYS)); }catch(e){} }
+function savePlaylistKeys(){
+  try { localStorage.setItem(PLAYLIST_KEYS_KEY, JSON.stringify(PLAYLIST_KEYS)); return true; }
+  catch(e){ return false; }
+}
 
 function playlistSongs(catKey){
   return ALL.filter(s => s && typeof s.cats === 'string' && s.cats.includes(catKey));
@@ -7508,8 +7516,13 @@ function manageCustomCat(key){
   const name = prompt('Renomear categoria (cancele e confirme para excluir):', cat.name);
   if (name === null){
     if (confirm('Excluir a categoria "' + cat.name + '"? As músicas continuam salvas, só deixam de aparecer nesta aba.')){
+      const previous = CUSTOM_CATS;
       CUSTOM_CATS = CUSTOM_CATS.filter(c => c.key !== key);
-      saveCustomCats();
+      if (!saveCustomCats()){
+        CUSTOM_CATS = previous;
+        alert('Não foi possível excluir a categoria porque o armazenamento falhou.');
+        return;
+      }
       if (filterCat === key) filterCat = 'ALL';
       renderCatSeg(); refresh();
     }
@@ -7517,7 +7530,14 @@ function manageCustomCat(key){
   }
   const t = name.trim();
   if (!t) return;
-  cat.name = t; saveCustomCats(); renderCatSeg(); refresh();
+  const previous = cat.name;
+  cat.name = t;
+  if (!saveCustomCats()){
+    cat.name = previous;
+    alert('Não foi possível renomear a categoria porque o armazenamento falhou.');
+    return;
+  }
+  renderCatSeg(); refresh();
 }
 
 /* ================= OCULTAR / EXCLUIR / EDITAR (qualquer música) ================= */
@@ -7529,8 +7549,14 @@ try {
   const loaded = JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}') || {};
   Object.keys(loaded).forEach(id => OVERRIDES[migrateBuiltinId(id)] = loaded[id]);
 } catch(e) { OVERRIDES = {}; }
-function saveHidden(){ try{ localStorage.setItem(HIDDEN_KEY, JSON.stringify([...HIDDEN])); }catch(e){} }
-function saveRemoved(){ try{ localStorage.setItem(REMOVED_KEY, JSON.stringify([...REMOVED])); }catch(e){} }
+function saveHidden(){
+  try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...HIDDEN])); return true; }
+  catch(e){ return false; }
+}
+function saveRemoved(){
+  try { localStorage.setItem(REMOVED_KEY, JSON.stringify([...REMOVED])); return true; }
+  catch(e){ return false; }
+}
 function saveOverrides(){
   try{ localStorage.setItem(OVERRIDES_KEY, JSON.stringify(OVERRIDES)); return true; }
   catch(e){ return false; }
@@ -7750,8 +7776,14 @@ $('actShare').onclick = async () => {
 };
 $('actHide').onclick = () => {
   if (!actionSong) return;
-  HIDDEN.add(actionSong.id); saveHidden(); rebuildAll();
-  closeActions(); refresh();
+  const id = actionSong.id, existed = HIDDEN.has(id);
+  HIDDEN.add(id);
+  if (!saveHidden()){
+    if (!existed) HIDDEN.delete(id);
+    alert('Não foi possível salvar a ocultação da música. Nada foi alterado.');
+    return;
+  }
+  rebuildAll(); closeActions(); refresh();
 };
 $('actDelete').onclick = () => {
   if (!actionSong) return;
@@ -7761,10 +7793,24 @@ $('actDelete').onclick = () => {
     ? 'Excluir esta letra definitivamente? Essa ação não pode ser desfeita (a menos que você tenha um backup exportado).'
     : 'Remover esta música da lista? Você pode restaurar depois em Configurações → Letras excluídas.';
   if (!confirm(msg)) { closeActions(); return; }
-  if (isCustom){ CUSTOM = CUSTOM.filter(c => c.id !== s.id); saveCustom(); }
-  else { REMOVED.add(s.id); saveRemoved(); }
-  rebuildAll();
-  closeActions(); refresh();
+  if (isCustom){
+    const previous = CUSTOM;
+    CUSTOM = CUSTOM.filter(c => c.id !== s.id);
+    if (!saveCustom()){
+      CUSTOM = previous;
+      alert('Não foi possível excluir esta letra. O navegador recusou salvar.');
+      return;
+    }
+  } else {
+    const existed = REMOVED.has(s.id);
+    REMOVED.add(s.id);
+    if (!saveRemoved()){
+      if (!existed) REMOVED.delete(s.id);
+      alert('Não foi possível remover esta música. Nada foi alterado.');
+      return;
+    }
+  }
+  rebuildAll(); closeActions(); refresh();
 };
 function toggleSelect(id){
   const idx = tempSelection.indexOf(id);
@@ -7944,15 +7990,30 @@ function musicianSetlist(){ return musicianSource; }
 function setlistKey(st, songId){
   return String((st.songKeys && st.songKeys[songId]) || '');
 }
+let musicianKeySaveWarning = false;
 function setSetlistKey(st, songId, value){
   if (!st.songKeys || typeof st.songKeys !== 'object') st.songKeys = {};
+  const hadOld = Object.prototype.hasOwnProperty.call(st.songKeys, songId);
+  const oldValue = st.songKeys[songId];
   st.songKeys[songId] = String(value || '').trim();
+  let saved;
   if (st.shareCategoryKey){
     PLAYLIST_KEYS[st.shareCategoryKey] = st.songKeys;
-    savePlaylistKeys();
+    saved = savePlaylistKeys();
   } else {
-    saveSetlists();
+    saved = saveSetlists();
   }
+  if (!saved){
+    if (hadOld) st.songKeys[songId] = oldValue;
+    else delete st.songKeys[songId];
+    if (!musicianKeySaveWarning){
+      musicianKeySaveWarning = true;
+      alert('Não foi possível salvar esta nota no navegador. Verifique o espaço ou as permissões de armazenamento. A nota não foi gravada.');
+    }
+    return false;
+  }
+  musicianKeySaveWarning = false;
+  return true;
 }
 function openMusicianPrep(st){
   if (!st) return;
@@ -7989,7 +8050,11 @@ function renderMusicianPrep(){
     input.placeholder = 'Nota'; input.value = setlistKey(st, song.id);
     input.autocapitalize = 'characters'; input.autocomplete = 'off';
     input.setAttribute('aria-label', 'Nota de ' + song.title);
-    input.addEventListener('input', () => setSetlistKey(st, song.id, input.value));
+    input.addEventListener('input', () => {
+      const saved = setSetlistKey(st, song.id, input.value);
+      input.style.borderColor = saved ? '' : '#ff453a';
+      input.title = saved ? '' : 'Esta nota NÃO foi salva; verifique o armazenamento';
+    });
     row.appendChild(info); row.appendChild(input); wrap.appendChild(row);
   });
 }
@@ -8820,7 +8885,12 @@ function renderCatSeg(){
     const t = name.trim();
     if (!t) return;
     const key = 'X' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
-    CUSTOM_CATS.push({ key, name: t }); saveCustomCats();
+    CUSTOM_CATS.push({ key, name: t });
+    if (!saveCustomCats()){
+      CUSTOM_CATS.pop();
+      alert('Não foi possível salvar a nova categoria no navegador.');
+      return;
+    }
     renderCatSeg();
     editCat = key; syncCatSeg();
   };
@@ -8897,10 +8967,24 @@ $('editDelete').onclick = () => {
     ? 'Excluir esta letra definitivamente? Essa ação não pode ser desfeita.'
     : 'Remover esta música da lista? Você pode restaurar depois em Configurações → Letras excluídas.';
   if (!confirm(msg)) return;
-  if (isCustom){ CUSTOM = CUSTOM.filter(s => s.id !== editingId); saveCustom(); }
-  else { REMOVED.add(editingId); saveRemoved(); }
-  rebuildAll();
-  history.back();
+  if (isCustom){
+    const previous = CUSTOM;
+    CUSTOM = CUSTOM.filter(s => s.id !== editingId);
+    if (!saveCustom()){
+      CUSTOM = previous;
+      alert('Não foi possível excluir a letra; dados preservados.');
+      return;
+    }
+  } else {
+    const existed = REMOVED.has(editingId);
+    REMOVED.add(editingId);
+    if (!saveRemoved()){
+      if (!existed) REMOVED.delete(editingId);
+      alert('Não foi possível remover a música; dados preservados.');
+      return;
+    }
+  }
+  rebuildAll(); history.back();
 };
 /* ---- barra de ferramentas: tamanho, copiar, colar ---- */
 let taFont = 16;
