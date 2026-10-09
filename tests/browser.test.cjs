@@ -889,3 +889,143 @@ test('Browser 49: PWA instala SW e aplicativo principal abre offline em Chromium
     await checkNoPageErrors(s);
   }finally{await s.context.setOffline(false).catch(()=>{});await s.close();}
 });
+
+
+test('Browser 50: limpar e cancelar seleção sem criar músicas falsas',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.prompt=()=> 'Lista temporária';window.confirm=()=>true;});
+    await goto(s,MAIN);
+    await s.page.locator('#selectBtn').click();
+    await s.page.locator('#list .item').first().click();
+    await s.page.locator('#selClear').click();
+    assert.match(await s.page.locator('#selCount').innerText(),/^0 selecionadas/);
+    await s.page.locator('#selCancel').click();
+    await s.page.locator('#selectBar').waitFor({state:'hidden'});
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 51: ações Cancelar e Compartilhar executam handlers verdadeiros',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.__shared=null;
+      Object.defineProperty(navigator,'share',{configurable:true,value:async p=>{window.__shared=p;}});
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#list .moreBtn').first().click();
+    await s.page.locator('#actCancel').click();
+    assert.equal(await s.page.locator('#actionSheet.active').count(),0);
+    await s.page.locator('#list .moreBtn').first().click();
+    await s.page.locator('#actShare').click();
+    await s.page.waitForFunction(()=>window.__shared!==null);
+    const data=await s.page.evaluate(()=>window.__shared);
+    assert.ok(data.title && data.text.includes(data.title));
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 52: fechar, usar e editar setlist no gerenciador',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      localStorage.setItem('repHaroldo_setlists_v1',JSON.stringify({
+        list:[{id:'STsaved',name:'Show Menu',songIds:[],songKeys:{}}],
+        active:'STsaved'
+      }));
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#chips .chip',{hasText:'Setlists'}).click();
+    await s.page.locator('#closeSetlistMgr').click();
+    assert.equal(await s.page.locator('#setlistSheet.active').count(),0);
+    await s.page.locator('#chips .chip',{hasText:'Setlists'}).click();
+    await s.page.locator('#setlistMgrList [data-a="use"]').click();
+    assert.match(await s.page.locator('#count').innerText(),/^0 músicas/);
+    await s.page.locator('#chips .chip',{hasText:'Setlists'}).click();
+    await s.page.locator('#setlistMgrList [data-a="edit"]').click();
+    await s.page.locator('#selectBar').waitFor({state:'visible'});
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 53: botão Importar abre seletor e aceita backup real',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
+    await goto(s,MAIN);
+    await s.page.locator('#setBtnHome').click();
+    const waiting=s.page.waitForEvent('filechooser');
+    await s.page.locator('#importBtn').click();
+    const chooser=await waiting;
+    await chooser.setFiles({
+      name:'backup-importacao.json',mimeType:'application/json',
+      buffer:Buffer.from(JSON.stringify([{id:'Cfromchooser',title:'Do arquivo',artist:'Teste',cats:'A',text:'Letra'}]))
+    });
+    await s.page.waitForFunction(()=>JSON.parse(localStorage.getItem('repHaroldo_custom_v1')||'[]').some(x=>x.title==='Do arquivo'));
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 54: Compartilhar para músicos usa API nativa e link curto',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.__shared=null;window.confirm=()=>true;
+      Object.defineProperty(navigator,'share',{configurable:true,value:async p=>{window.__shared=p;}});
+    });
+    await goto(s,MAIN);await openPrep(s.page,0);
+    await s.page.locator('#musicianShare').click();
+    await s.page.waitForFunction(()=>window.__shared!==null);
+    assert.equal((await s.page.evaluate(()=>window.__shared)).url,
+      'https://mizaelsouza12.github.io/haroldobluesrep/setlists/a-sua-maneira.html');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 55: excluir letra customizada na tela de edição persiste exclusão',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;});
+    await goto(s,MAIN);
+    await s.page.locator('#addBtn').click();
+    await s.page.locator('#inTitle').fill('Teste de exclusão');
+    await s.page.locator('#inArtist').fill('Teste');
+    await s.page.locator('#inLyrics').fill('Letra que vai ser excluída');
+    await s.page.locator('#saveSong').click();
+    await s.page.locator('#search').fill('Teste de exclusão');
+    await s.page.locator('#list .moreBtn').click();
+    await s.page.locator('#actEdit').click();
+    await s.page.locator('#editDelete').click();
+    await s.page.reload();
+    assert.equal(await s.page.locator('#list .item').count(),214);
+    assert.ok(!(await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_custom_v1')||'[]')))
+      .some(x=>x.title==='Teste de exclusão'));
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 56: configurações do teleprompter e diminuir velocidade',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    await s.page.locator('#list .item').first().click();
+    await s.page.locator('#songView.active').waitFor();
+    const before=Number(await s.page.locator('#spdVal').innerText());
+    await s.page.locator('#spdDown').click();
+    assert.equal(Number(await s.page.locator('#spdVal').innerText()),Math.max(4,before-2));
+    await s.page.locator('#setBtn').click();
+    await s.page.locator('#setView.active').waitFor();
+    await s.page.locator('#closeSet').click();
+    await s.page.locator('#menuBtn').click();
+    await s.page.locator('#homeView.active').waitFor();
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 57: botão tentar novamente reinicia reconhecimento simulado',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.__started=0;
+      window.SpeechRecognition=class{
+        start(){
+          window.__started++;
+          setTimeout(()=>{if(this.onerror)this.onerror({error:'no-speech'});},15);
+        }
+        abort(){}
+      };
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#voiceFab').click({force:true});
+    await s.page.locator('#voiceRetry').waitFor({state:'visible'});
+    await s.page.locator('#voiceRetry').click();
+    await s.page.waitForFunction(()=>window.__started>=2);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
