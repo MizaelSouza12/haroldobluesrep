@@ -1,0 +1,46 @@
+'use strict';
+// Verificação HTTP da produção publicada, independente de cache local,
+// JSDOM e servidor HTTP dos testes. Use: npm run test:production
+const assert=require('node:assert/strict');
+const BASE='https://mizaelsouza12.github.io/haroldobluesrep';
+const paths=[
+  '/repertorio-haroldo.html','/setlist.html',
+  '/setlists/a-sua-maneira.html','/setlists/jazz-blues.html',
+  '/setlists/a-sua-maneira.json','/setlists/jazz-blues.json',
+  '/setlists/editor.js','/sw.js','/manifest.json'
+];
+async function fetchText(path){
+  let last;
+  for(let attempt=0;attempt<3;attempt++){
+    try {
+      const url=BASE+path+(path.includes('?')?'&':'?')+'smoke='+Date.now();
+      const response=await fetch(url,{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(12000)});
+      assert.equal(response.status,200,'HTTP '+response.status+' em '+path);
+      const content=await response.text();
+      assert.ok(content.length>20,'Resposta vazia em '+path);
+      return content;
+    }catch(err){last=err;if(attempt<2)await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)));}
+  }
+  throw new Error('Falha real de publicação em '+path+': '+last.message);
+}
+async function main(){
+  const resources=await Promise.all(paths.map(fetchText));
+  const data=Object.fromEntries(paths.map((p,i)=>[p,resources[i]]));
+  assert.match(data['/repertorio-haroldo.html'],/id=["']songdata["']/i);
+  for(const slug of ['a-sua-maneira','jazz-blues']){
+    const html=data['/setlists/'+slug+'.html'];
+    assert.ok(html.includes('editor.js'),'Editor não carregado no HTML de '+slug);
+    assert.ok(html.includes('data-source="'+slug+'.json"'),'JSON incorreto na página '+slug);
+  }
+  const playlistA=JSON.parse(data['/setlists/a-sua-maneira.json']);
+  const playlistJ=JSON.parse(data['/setlists/jazz-blues.json']);
+  assert.equal(playlistA.songs.length,204);
+  assert.equal(playlistJ.songs.length,19);
+  assert.ok(data['/setlists/editor.js'].includes('localStorage'));
+  assert.match(data['/sw.js'],/const CACHE_VERSION\s*=\s*'v\d+'/);
+  const manifest=JSON.parse(data['/manifest.json']);
+  assert.ok(manifest.start_url);
+  console.log('PRODUÇÃO CONFIRMADA:',BASE);
+  console.log('HTTP 200:',paths.length,'recursos, A:',playlistA.songs.length,'J:',playlistJ.songs.length);
+}
+main().catch(err=>{console.error('PRODUÇÃO REPROVADA:',err.stack||err);process.exitCode=1;});
