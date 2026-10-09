@@ -6,6 +6,7 @@ const path = require('node:path');
 const http = require('node:http');
 const { chromium } = require('playwright');
 const { PDFDocument } = require('pdf-lib');
+const AxeBuilder=require('@axe-core/playwright').default;
 
 const ROOT=path.resolve(__dirname,'..');
 const MIME={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8',
@@ -1267,4 +1268,109 @@ test('Browser 70: importação sem espaço não pode anunciar sucesso ou deixar 
     assert.equal(stored.some(x=>x.title==='Backup não persistente'),false);
     await checkNoPageErrors(s);
   }finally{await s.close();}
+});
+
+
+test('Browser 71: playlist J aberta online permanece legível offline após F5',async()=>{
+  const s=await fresh({allowServiceWorkers:true});
+  try {
+    await goto(s,MAIN);
+    await s.page.waitForFunction(()=>navigator.serviceWorker && navigator.serviceWorker.controller,{timeout:10000});
+    await goto(s,J);
+    await s.page.locator('.song').first().waitFor();
+    assert.equal(await s.page.locator('.song').count(),19);
+    await s.page.locator('.keyInput').first().fill('Am7');
+    await s.context.setOffline(true);
+    await s.page.reload({waitUntil:'load',timeout:15000});
+    await s.page.locator('.song').first().waitFor({timeout:7000});
+    assert.equal(await s.page.locator('.song').count(),19);
+    assert.equal(await s.page.locator('.keyInput').first().inputValue(),'Am7');
+    await checkNoPageErrors(s);
+  } finally {
+    await s.context.setOffline(false).catch(()=>{});
+    await s.close();
+  }
+});
+test('Browser 72: uma playlist não perde os dados ao alternar entre online e offline',async()=>{
+  const s=await fresh({allowServiceWorkers:true});
+  try{
+    await goto(s,MAIN);
+    await s.page.waitForFunction(()=>navigator.serviceWorker && navigator.serviceWorker.controller,{timeout:10000});
+    await goto(s,A);
+    await s.page.locator('.song').first().waitFor();
+    await s.page.locator('.noteInput').first().fill('Anotação offline preservada');
+    await s.context.setOffline(true);
+    await s.page.reload({waitUntil:'load',timeout:15000});
+    await s.page.locator('.song').first().waitFor({timeout:7000});
+    assert.equal(await s.page.locator('.song').count(),204);
+    assert.equal(await s.page.locator('.noteInput').first().inputValue(),'Anotação offline preservada');
+    await s.context.setOffline(false);
+    await s.page.reload();
+    assert.equal(await s.page.locator('.noteInput').first().inputValue(),'Anotação offline preservada');
+    await checkNoPageErrors(s);
+  }finally{
+    await s.context.setOffline(false).catch(()=>{});
+    await s.close();
+  }
+});
+
+
+async function assertAccessiblePage(page,label){
+  const audit=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+  const meaningful=audit.violations.filter(v=>v.impact==='critical'||v.impact==='serious');
+  assert.deepEqual(meaningful.map(v=>({
+    rule:v.id,impact:v.impact,affected:v.nodes.slice(0,6).map(n=>n.target)
+  })),[],'Falhas WCAG relevantes em '+label);
+}
+test('Browser 73: acessibilidade WCAG da página de músicos (leitura e edição)',async()=>{
+  const s=await fresh();
+  try{
+    await goto(s,J);
+    await s.page.locator('.song').first().waitFor();
+    await assertAccessiblePage(s.page,'Jazz & Blues');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 74: acessibilidade WCAG do aplicativo principal',async()=>{
+  const s=await fresh();
+  try{
+    await goto(s,MAIN);
+    await assertAccessiblePage(s.page,'Tela principal');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 75: acessibilidade WCAG no editor de letras',async()=>{
+  const s=await fresh();
+  try{
+    await goto(s,MAIN);
+    await s.page.locator('#addBtn').click();
+    await assertAccessiblePage(s.page,'Nova letra');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 76: acessibilidade WCAG no preparo para os músicos',async()=>{
+  const s=await fresh();
+  try{
+    await goto(s,MAIN);
+    await openPrep(s.page,1);
+    await assertAccessiblePage(s.page,'Preparar playlist');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+
+
+test('Browser 77: playlist A funciona offline mesmo antes da primeira visita à página',async()=>{
+  const s=await fresh({allowServiceWorkers:true});
+  try{
+    await goto(s,MAIN);
+    await s.page.waitForFunction(()=>navigator.serviceWorker && navigator.serviceWorker.controller,{timeout:15000});
+    await s.context.setOffline(true);
+    await goto(s,A);
+    await s.page.locator('.song').first().waitFor({timeout:10000});
+    assert.equal(await s.page.locator('.song').count(),204);
+    await checkNoPageErrors(s);
+  }finally{
+    await s.context.setOffline(false).catch(()=>{});
+    await s.close();
+  }
 });

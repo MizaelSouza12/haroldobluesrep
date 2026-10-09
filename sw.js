@@ -2,14 +2,19 @@
    IMPORTANTE: sempre que o repertorio-haroldo.html for atualizado,
    troque o número da CACHE_VERSION abaixo para forçar a atualização
    nos celulares que já têm o app instalado. */
-const CACHE_VERSION = 'v16';
+const CACHE_VERSION = 'v17';
 const CACHE_NAME = 'repertorio-haroldo-' + CACHE_VERSION;
 const ASSETS = [
   './repertorio-haroldo.html',
   './manifest.json',
   './icon.svg',
   './setlist.html',
-  './musicos.html'
+  './musicos.html',
+  './setlists/a-sua-maneira.html',
+  './setlists/a-sua-maneira.json',
+  './setlists/jazz-blues.html',
+  './setlists/jazz-blues.json',
+  './setlists/editor.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -38,15 +43,27 @@ self.addEventListener('fetch', (event) => {
   // NÃO reutilizar a página antiga do cache depois de um deploy.
   const url = new URL(event.request.url);
   if (url.origin === self.location.origin && url.pathname.includes('/setlists/')) {
-    event.respondWith(
-      fetch(event.request, { cache: 'no-store' }).catch(async () => {
+    // Network-first para receber deploys sem servir uma versão antiga.
+    // Salva no Cache Storage cada recurso baixado com sucesso (HTML/JS/JSON)
+    // para permitir F5 offline depois de uma visita online.
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(event.request, { cache: 'no-store' });
+        if (response && response.ok){
+          try {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(event.request, response.clone());
+          } catch(e){} // quota/cache bloqueado: ainda mostra o conteúdo da rede
+        }
+        return response;
+      } catch(e) {
         const cached = await caches.match(event.request);
         if (cached) return cached;
         return new Response('Esta playlist precisa de conexão para carregar.', {
           status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
         });
-      })
-    );
+      }
+    })());
     return;
   }
 
