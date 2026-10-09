@@ -9264,6 +9264,10 @@ openEdit = function(song){ if (!$('editView').classList.contains('active')) hist
 $('menuBtn').onclick = () => history.back();
 
 /* ================= PWA: instalação e cache offline ================= */
+// A primeira instalação não é uma atualização solicitada pelo usuário.
+// Recarregar em controllerchange nesta hora pode interromper navegações e
+// apagar rascunhos abertos. Só recarregue após clicar em "Atualizar".
+let serviceWorkerUpdateRequested = false;
 if ('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(reg => {
@@ -9280,7 +9284,7 @@ if ('serviceWorker' in navigator){
   });
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return;
+    if (!serviceWorkerUpdateRequested || refreshing) return;
     refreshing = true;
     window.location.reload();
   });
@@ -9291,7 +9295,10 @@ function showUpdateBanner(reg){
   bar.id = 'updateBanner';
   bar.innerHTML = '<span>Nova versão do app disponível.</span><button>Atualizar</button>';
   bar.querySelector('button').onclick = () => {
-    if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+    if (reg.waiting){
+      serviceWorkerUpdateRequested = true;
+      reg.waiting.postMessage('SKIP_WAITING');
+    }
     bar.remove();
   };
   document.body.appendChild(bar);
