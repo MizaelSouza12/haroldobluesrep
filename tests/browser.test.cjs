@@ -178,6 +178,8 @@ test('Browser 10: duas abas do mesmo contexto preservam edições em músicas di
 test('Browser 11: teste de estresse edita 204 tons e 100 anotações de uma vez',async()=>{
   const s=await fresh();try{
     await goto(s,A);
+    await s.page.locator('#list .song').first().waitFor();
+    assert.equal(await s.page.locator('#list .song').count(),204);
     const started=Date.now();
     const filled=await s.page.evaluate(()=>{
       const rows=[...document.querySelectorAll('#list .song')];
