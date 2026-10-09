@@ -713,3 +713,27 @@ test('73: duas abas editando a mesma música não sobrescrevem sem aviso',async(
   assert.match(b.w.document.getElementById('saveStatus').textContent,/Conflito|alterada em outra aba/i);
   a.w.close();b.w.close();fresh.w.close();
 });
+
+
+test('74: override local malformado não impede inicializar repertório original',()=>{
+  const store=createStorage();
+  const id=stableSongId('15 Anos','Ira!');
+  store.setItem('repHaroldo_overrides_v1',JSON.stringify({[id]:{title:42,artist:'Teste',text:'txt',cats:'A'}}));
+  const {w}=bootMain(store);
+  assert.equal(w.eval('ALL.length'),214);
+  assert.ok(w.document.querySelectorAll('#list .item').length>0);
+  w.close();
+});
+test('75: setlist local de nome inválido não derruba gerenciador',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_setlists_v1',JSON.stringify({
+    list:[{id:'STtest',name:{x:'não válido'},songIds:[],songKeys:{}}],
+    active:'STtest'
+  }));
+  const {w}=bootMain(store);
+  w.document.querySelector('#chips .chip').click();
+  w.eval("openSetlistManager('manage')");
+  assert.equal(w.document.querySelectorAll('#setlistMgrList .setlistRow').length,1);
+  assert.equal(typeof w.eval('SETLISTS[0].name'),'string');
+  w.close();
+});
