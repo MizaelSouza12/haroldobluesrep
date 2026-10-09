@@ -575,3 +575,40 @@ test('61: chave de anotação corrompida não impede backup das outras playlists
   assert.equal(result['jazz-blues'].SBteste.note,'Válida');
   w.close();
 });
+
+
+test('62: ocultar e restaurar música não deve apagar associação do setlist',()=>{
+  const storage=createStorage(),{w}=bootMain(storage);
+  w.eval("SETLISTS=[{id:'SThide',name:'Show',songIds:[ALL[0].id],songKeys:{}}];activeSetlistId='SThide';saveSetlists()");
+  const id=w.eval('ALL[0].id');
+  w.eval("HIDDEN.add("+JSON.stringify(id)+");saveHidden();rebuildAll()");
+  w.eval("HIDDEN.delete("+JSON.stringify(id)+");saveHidden();rebuildAll()");
+  assert.equal(w.eval("SETLISTS[0].songIds.includes("+JSON.stringify(id)+")"),true,
+    'repor música temporariamente oculta deve preservar ordem e vínculo do setlist');
+  w.close();
+});
+test('63: erro de gravação de letra deve permanecer na edição e mostrar aviso',()=>{
+  const store=createStorage();
+  const original=store.setItem.bind(store);
+  store.setItem=(k,v)=>{
+    if(k==='repHaroldo_custom_v1')throw new Error('QuotaExceededError');
+    return original(k,v);
+  };
+  const {w}=bootMain(store);
+  const warnings=[];w.alert=msg=>warnings.push(String(msg));
+  w.eval('openEdit(null)');
+  w.document.getElementById('inTitle').value='Letra de quota';
+  w.document.getElementById('inLyrics').value='Não pode ser perdido';
+  w.document.getElementById('saveSong').click();
+  assert.equal(w.document.getElementById('editView').classList.contains('active'),true,
+    'falha de gravação não pode fechar a tela com dados não salvos');
+  assert.ok(warnings.some(x=>/salvar|armazenamento|espaço/i.test(x)));
+  w.close();
+});
+test('64: repertórios publicados usam os links curtos verdadeiros',()=>{
+  const {w}=bootMain();
+  const links=w.eval("shareablePlaylists().slice(0,2).map(p=>musicianLink(sharePlaylistSource(p)))");
+  assert.equal(links[0],'https://mizaelsouza12.github.io/haroldobluesrep/setlists/a-sua-maneira.html');
+  assert.equal(links[1],'https://mizaelsouza12.github.io/haroldobluesrep/setlists/jazz-blues.html');
+  w.close();
+});
