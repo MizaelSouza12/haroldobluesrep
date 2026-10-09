@@ -171,6 +171,10 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 .slActions button{padding:7px 10px;border-radius:8px;background:#2c2c2e;color:var(--fg);font-size:13px;font-weight:700}
 .slActions button[data-a="mus"]{background:#4a1e1b;color:#ff9b93}
 .setlistHelp{font-size:12px;color:var(--muted);line-height:1.4;margin:-4px 0 10px}
+.setlistRow.shareChoice{cursor:pointer;padding:14px 8px;border-radius:10px}
+.setlistRow.shareChoice:active{background:#232325}
+.setlistRow.shareChoice .slName{color:var(--fg)}
+.shareArrow{font-size:26px;color:var(--accent);font-weight:300;padding-left:10px}
 #newSetlistBtn{margin-top:14px;width:100%;padding:13px;border-radius:12px;background:var(--accent);
   color:#fff;font-size:15px;font-weight:700}
 #closeSetlistMgr{margin-top:10px;width:100%;padding:12px;border-radius:12px;background:#2c2c2e;
@@ -370,8 +374,8 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
 <!-- ============ GERENCIAR SETLISTS ============ -->
 <div id="setlistSheet">
   <div id="setlistPanel">
-    <h2>Meus Setlists</h2>
-    <div class="setlistHelp">Escolha qualquer setlist abaixo. Toque em <b>Enviar</b> para definir as notas e compartilhar somente música, artista e nota.</div>
+    <h2 id="setlistPanelTitle">Meus Setlists</h2>
+    <div id="setlistHelp" class="setlistHelp">Gerencie suas playlists.</div>
     <div id="setlistMgrList"></div>
     <button id="newSetlistBtn">+ Novo setlist</button>
     <button id="closeSetlistMgr">Fechar</button>
@@ -7553,19 +7557,10 @@ function buildChips(){
     return b;
   };
   mk('Todas', filterCat==='ALL' && !artistMode && !filterArtist, () => { filterCat='ALL'; filterArtist=null; artistMode=false; refresh(); });
-  mk(activeSetlistLabel(), filterCat==='SET' && !artistMode, () => { filterCat='SET'; filterArtist=null; artistMode=false; refresh(); }, openSetlistManager);
-  const shareSet = document.createElement('button');
-  shareSet.className = 'chip shareSetlistChip';
-  shareSet.textContent = '📤 Enviar setlist';
-  shareSet.title = 'Definir notas e compartilhar o setlist ativo com os músicos';
-  shareSet.onclick = (e) => {
-    e.stopPropagation();
-    openSetlistManager();
-  };
-  chipsEl.appendChild(shareSet);
+  mk(activeSetlistLabel(), filterCat==='SET' && !artistMode, () => { filterCat='SET'; filterArtist=null; artistMode=false; refresh(); }, () => openSetlistManager('manage'));
   const addSet = document.createElement('button');
   addSet.className = 'chip'; addSet.textContent = '☰ Setlists'; addSet.title = 'Gerenciar e criar setlists';
-  addSet.onclick = (e) => { e.stopPropagation(); openSetlistManager(); };
+  addSet.onclick = (e) => { e.stopPropagation(); openSetlistManager('manage'); };
   chipsEl.appendChild(addSet);
   mk(CHIP_NAMES.A, filterCat==='A' && !artistMode, () => { filterCat='A'; filterArtist=null; artistMode=false; refresh(); }, () => renameChip('A'));
   mk(CHIP_NAMES.J, filterCat==='J' && !artistMode, () => { filterCat='J'; filterArtist=null; artistMode=false; refresh(); }, () => renameChip('J'));
@@ -7711,7 +7706,7 @@ function enterSelect(){
 }
 function exitSelect(){ selecting = false; refresh(); }
 $('shareSetlistBtn').onclick = () => {
-  openSetlistManager();
+  openSetlistManager('share');
 };
 $('selectBtn').onclick = () => {
   if (selecting){ history.back(); return; }
@@ -7745,29 +7740,62 @@ $('selConfirm').onclick = () => {
   history.back();
 };
 
-/* ---- gerenciador de setlists (long-press na aba Setlist) ---- */
-function openSetlistManager(){
+/* ---- gerenciador / seletor de playlists ---- */
+let setlistManagerMode = 'manage';
+
+function openSetlistManager(mode){
+  setlistManagerMode = mode === 'share' ? 'share' : 'manage';
   renderSetlistManager();
   $('setlistSheet').classList.add('active');
 }
-function closeSetlistManager(){ $('setlistSheet').classList.remove('active'); }
+function closeSetlistManager(){
+  $('setlistSheet').classList.remove('active');
+  setlistManagerMode = 'manage';
+}
 function renderSetlistManager(){
+  const sharing = setlistManagerMode === 'share';
+  $('setlistPanelTitle').textContent = sharing ? 'Escolha a playlist' : 'Meus Setlists';
+  $('setlistHelp').textContent = sharing
+    ? 'Selecione a playlist que você quer mandar para os músicos.'
+    : 'Gerencie suas playlists.';
+  $('newSetlistBtn').style.display = sharing ? 'none' : 'block';
+
   const wrap = $('setlistMgrList'); wrap.innerHTML = '';
   if (!SETLISTS.length){
     const p = document.createElement('div'); p.className = 'manageEmpty';
-    p.textContent = 'Nenhum setlist criado ainda. Toque em "+ Novo setlist" para começar.';
+    p.textContent = sharing
+      ? 'Não há nenhuma playlist criada para enviar.'
+      : 'Nenhum setlist criado ainda. Toque em "+ Novo setlist" para começar.';
     wrap.appendChild(p);
+    return;
   }
+
   SETLISTS.forEach(st => {
-    const row = document.createElement('div'); row.className = 'setlistRow' + (st.id === activeSetlistId ? ' active' : '');
+    const row = document.createElement('div');
+    row.className = 'setlistRow' + (sharing ? ' shareChoice' : (st.id === activeSetlistId ? ' active' : ''));
+
+    if (sharing){
+      row.innerHTML = '<div class="slInfo"><div class="slName">' + esc(st.name) + '</div>' +
+        '<div class="slCount">' + st.songIds.length + ' música(s)</div></div>' +
+        '<div class="shareArrow">›</div>';
+      row.onclick = () => {
+        activeSetlistId = st.id;
+        saveSetlists();
+        closeSetlistManager();
+        openMusicianPrep(st);
+      };
+      wrap.appendChild(row);
+      return;
+    }
+
     row.innerHTML = '<div class="slInfo"><div class="slName">' + esc(st.name) + '</div>' +
       '<div class="slCount">' + st.songIds.length + ' música(s)</div></div>' +
       '<div class="slActions">' +
       '<button data-a="use" title="Usar este setlist">Usar</button>' +
       '<button data-a="edit" title="Editar músicas">Editar</button>' +
-      '<button data-a="mus" title="Enviar para músicos">Enviar</button>' +
       '<button data-a="ren" title="Renomear">✎</button>' +
       '<button data-a="del" title="Excluir">🗑</button></div>';
+
     row.querySelector('[data-a="use"]').onclick = () => {
       activeSetlistId = st.id; saveSetlists(); filterCat = 'SET'; artistMode = false; filterArtist = null;
       closeSetlistManager(); refresh();
@@ -7775,10 +7803,6 @@ function renderSetlistManager(){
     row.querySelector('[data-a="edit"]').onclick = () => {
       activeSetlistId = st.id; saveSetlists();
       closeSetlistManager(); enterSelect();
-    };
-    row.querySelector('[data-a="mus"]').onclick = () => {
-      activeSetlistId = st.id; saveSetlists();
-      closeSetlistManager(); openMusicianPrep(st);
     };
     row.querySelector('[data-a="ren"]').onclick = () => {
       const name = prompt('Renomear setlist:', st.name);
