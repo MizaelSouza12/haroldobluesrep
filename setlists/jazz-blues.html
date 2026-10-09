@@ -9,54 +9,71 @@
 <title>Jazz & Blues — Repertório</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0b0d;--line:#29292d;--fg:#f5f5f7;--muted:#98989f;--accent:#ff453a;--artist:#ffd60a}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
 main{width:min(860px,100%);margin:0 auto;padding:26px 18px 48px}
-header{padding-bottom:20px;border-bottom:1px solid var(--line)}
+header{padding-bottom:17px;border-bottom:1px solid var(--line)}
 .eyebrow{margin:0 0 7px;color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-h1{margin:0;font-size:clamp(25px,6vw,39px);line-height:1.08}.meta{margin-top:9px;color:var(--muted);font-size:14px}
-.song{display:grid;grid-template-columns:44px minmax(0,1fr) 68px;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line)}
-.num{color:var(--muted);font-size:13px;font-weight:700;text-align:right}.title{font-size:17px;font-weight:750}.artist{margin-top:4px;color:var(--artist);font-size:13px}
-.key{padding:8px 7px;border-radius:10px;background:#222226;border:1px solid #38383d;text-align:center;font-size:17px;font-weight:850;min-height:39px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}button{border:0;border-radius:11px;padding:12px 15px;background:#26262a;color:var(--fg);font:inherit;font-size:14px;font-weight:750;cursor:pointer}
-button.primary{background:var(--accent);color:#fff}#error{display:none;margin:26px 0;padding:16px;border:1px solid #4a2727;border-radius:14px;background:#1c1112;color:#ffb4ae}
-footer{margin-top:28px;color:#666;font-size:11px;text-align:center}
-@media(max-width:520px){main{padding-left:12px;padding-right:12px}.song{grid-template-columns:32px minmax(0,1fr) 54px;gap:8px}.title{font-size:16px}.key{font-size:15px}}
-@media print{body{background:#fff;color:#111}main{width:100%;padding:0}.eyebrow,.artist{color:#111}.meta,.num{color:#555}.key{background:#fff;border-color:#aaa}.actions,footer{display:none}.song{break-inside:avoid;border-color:#ddd}}
+h1{margin:0;font-size:clamp(25px,6vw,39px);line-height:1.08}
+.meta{margin-top:9px;color:var(--muted);font-size:14px}
+.notice{margin-top:14px;padding:11px 13px;background:#19191d;border:1px solid #35353a;border-radius:11px;color:#b5b5bd;font-size:12px;line-height:1.5}
+#saveStatus{margin:13px 0 4px;min-height:18px;color:#8fd5a3;font-size:12px;font-weight:700}
+#saveStatus.error{color:#ff8a83}
+.song{display:grid;grid-template-columns:40px minmax(0,1fr) 142px;align-items:start;column-gap:12px;row-gap:10px;padding:16px 4px;border-bottom:1px solid var(--line)}
+.num{color:var(--muted);font-size:13px;font-weight:700;text-align:right;padding-top:3px}
+.songInfo{min-width:0}
+.title{font-size:17px;font-weight:750;overflow-wrap:anywhere}
+.artist{margin-top:4px;color:var(--artist);font-size:13px}
+.keyWrap,.noteWrap{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fieldLabel{color:#aaaab3;font-size:11px;font-weight:700}
+.keyInput,.noteInput{box-sizing:border-box;width:100%;border:1px solid #48484f;border-radius:10px;background:#202024;color:#fff;font:inherit;outline:none;transition:border-color .15s}
+.keyInput:focus,.noteInput:focus{border-color:var(--accent)}
+.keyInput{min-height:44px;padding:10px 12px;font-size:17px;font-weight:800}
+.noteWrap{grid-column:2/4}
+.noteInput{min-height:58px;padding:11px 12px;font-size:14px;line-height:1.4;resize:vertical}
+.keyInput::placeholder,.noteInput::placeholder{color:#75757e;font-weight:400}
+.printKey,.printNote{display:none}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+button{border:0;border-radius:11px;padding:12px 15px;background:#26262a;color:var(--fg);font:inherit;font-size:14px;font-weight:750;cursor:pointer}
+button.primary{background:var(--accent);color:#fff}
+#error{display:none;margin:26px 0;padding:16px;border:1px solid #4a2727;border-radius:14px;background:#1c1112;color:#ffb4ae}
+footer{margin-top:28px;color:#777;font-size:11px;text-align:center}
+@media(max-width:520px){
+  main{padding:18px 12px 38px}
+  .song{grid-template-columns:28px minmax(0,1fr) 105px;column-gap:8px;padding:14px 0}
+  .title{font-size:16px}
+  .keyInput{font-size:15px;padding:9px}
+  .noteInput{font-size:14px}
+}
+@media print{
+  :root{color-scheme:light}
+  html,body{background:#fff;color:#111}
+  main{width:100%;padding:0}
+  .eyebrow,.artist{color:#111}
+  .meta,.num,.fieldLabel{color:#555}
+  .notice,#saveStatus,.actions,footer{display:none}
+  .song{grid-template-columns:32px minmax(0,1fr) 88px;break-inside:avoid;border-color:#ddd;padding:10px 0}
+  .keyInput,.noteInput{display:none}
+  .printKey{display:block;color:#111;font-size:15px;font-weight:700}
+  .printNote{display:block;white-space:pre-wrap;overflow-wrap:anywhere;color:#333;font-size:12px}
+  .printNote:empty{display:none}
+}
 </style>
 </head>
-<body>
+<body data-source="jazz-blues.json" data-category="J" data-slug="jazz-blues">
 <main>
-<header><p class="eyebrow">Repertório para músicos</p><h1 id="title">Jazz & Blues</h1><div class="meta" id="meta">Carregando…</div></header>
-<div id="error"></div><section id="list"></section>
-<div class="actions"><button class="primary" id="copyBtn">Copiar lista</button><button id="printBtn">Imprimir / PDF</button></div>
-<footer>Somente música, artista e nota.</footer>
+<header>
+  <p class="eyebrow">Repertório para músicos</p>
+  <h1 id="title">Jazz & Blues</h1>
+  <div class="meta" id="meta">Carregando…</div>
+  <div class="notice"><strong>Edição sem conta:</strong> tom e anotação ficam salvos neste navegador, mesmo após atualizar a página. <strong>Não sincronizam entre aparelhos.</strong></div>
+  <div id="saveStatus" role="status" aria-live="polite">Carregando campos…</div>
+</header>
+<div id="error"></div>
+<section id="list" aria-label="Músicas do repertório"></section>
+<div class="actions"><button class="primary" id="copyBtn">Copiar lista com notas</button><button id="printBtn">Imprimir / PDF</button></div>
+<footer>Esta página mostra apenas música, artista, tom e anotação. Sem letras nem arranjos privados.</footer>
 </main>
-<script>
-'use strict';
-function add(parent,cls,text){const e=document.createElement('div');e.className=cls;e.textContent=text;parent.appendChild(e);return e;}
-async function load(){
-  const res=await fetch('./jazz-blues.json',{cache:'no-store'});
-  if(!res.ok) throw new Error('Não foi possível carregar este repertório.');
-  const data=await res.json();
-  if(!data||!Array.isArray(data.songs)) throw new Error('Formato de repertório inválido.');
-  document.getElementById('title').textContent=data.name||'Repertório';
-  document.getElementById('meta').textContent=data.songs.length+(data.songs.length===1?' música':' músicas');
-  document.title=(data.name||'Repertório')+' — Repertório';
-  const list=document.getElementById('list'); list.textContent='';
-  data.songs.forEach((s,i)=>{
-    const row=document.createElement('article');row.className='song';
-    add(row,'num',String(i+1).padStart(2,'0'));
-    const info=document.createElement('div');add(info,'title',s.title||'Sem título');add(info,'artist',s.artist||'');row.appendChild(info);
-    add(row,'key',String(s.key||'—'));list.appendChild(row);
-  });
-  document.getElementById('copyBtn').onclick=async()=>{
-    const lines=['REPERTÓRIO - '+(data.name||'Repertório'),''];
-    data.songs.forEach((s,i)=>lines.push(String(i+1).padStart(2,'0')+'. '+s.title+' - '+s.artist+' - '+(s.key||'___')));
-    const txt=lines.join('\n');
-    try{await navigator.clipboard.writeText(txt);alert('Lista copiada.');}catch(e){prompt('Copie a lista:',txt);}
-  };
-}
-document.getElementById('printBtn').onclick=()=>window.print();
-load().catch(err=>{const e=document.getElementById('error');e.textContent=err.message||'Erro ao carregar.';e.style.display='block';document.getElementById('meta').textContent='Erro';});
-</script>
-</body></html>
+<script src="./editor.js" defer></script>
+</body>
+</html>
