@@ -7399,10 +7399,12 @@ const SETLISTS_KEY = 'repHaroldo_setlists_v1';
 const OLD_SETLIST_KEY = 'repHaroldo_setlist_v1';
 let SETLISTS = [], activeSetlistId = null;
 function normalizeSetlist(st){
-  if (!st || typeof st !== 'object') return null;
+  if (!st || typeof st !== 'object' || Array.isArray(st)) return null;
+  if (typeof st.id !== 'string' || !st.id) st.id = 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+  if (typeof st.name !== 'string' || !st.name.trim()) st.name = 'Setlist sem nome';
   if (!Array.isArray(st.songIds)) st.songIds = [];
-  st.songIds = st.songIds.map(migrateBuiltinId);
-  if (!st.songKeys || typeof st.songKeys !== 'object') st.songKeys = {};
+  st.songIds = st.songIds.filter(id => typeof id === 'string').map(migrateBuiltinId);
+  if (!st.songKeys || typeof st.songKeys !== 'object' || Array.isArray(st.songKeys)) st.songKeys = {};
   const fixedKeys = {};
   Object.keys(st.songKeys).forEach(id => fixedKeys[migrateBuiltinId(id)] = String(st.songKeys[id] || ''));
   st.songKeys = fixedKeys;
@@ -7547,7 +7549,19 @@ try { const h = JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'); if (Array.
 try { const r = JSON.parse(localStorage.getItem(REMOVED_KEY) || '[]'); if (Array.isArray(r)) REMOVED = new Set(r.map(migrateBuiltinId)); } catch(e) {}
 try {
   const loaded = JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}') || {};
-  Object.keys(loaded).forEach(id => OVERRIDES[migrateBuiltinId(id)] = loaded[id]);
+  if (typeof loaded === 'object' && !Array.isArray(loaded)){
+    Object.keys(loaded).forEach(id => {
+      const raw = loaded[id];
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+      const ov = {};
+      if (typeof raw.title === 'string' && raw.title.trim()) ov.title = raw.title;
+      if (typeof raw.artist === 'string') ov.artist = raw.artist;
+      if (typeof raw.text === 'string') ov.text = raw.text;
+      if (typeof raw.cats === 'string' && raw.cats) ov.cats = raw.cats;
+      if (typeof raw.color === 'string' || raw.color === null) ov.color = raw.color;
+      if (Object.keys(ov).length) OVERRIDES[migrateBuiltinId(id)] = ov;
+    });
+  }
 } catch(e) { OVERRIDES = {}; }
 function saveHidden(){
   try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...HIDDEN])); return true; }
