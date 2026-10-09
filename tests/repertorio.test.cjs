@@ -700,3 +700,16 @@ test('72: falha ao salvar categoria nova não deixa aba fantasma',()=>{
   assert.ok(messages.some(x=>/salvar|armazenamento|espaço/i.test(x)));
   w.close();
 });
+
+
+test('73: duas abas editando a mesma música não sobrescrevem sem aviso',async()=>{
+  const store=createStorage();
+  const a=await bootEditor('jazz-blues',store);
+  const b=await bootEditor('jazz-blues',store);
+  input(a.w.document.querySelector('.keyInput'),'C#m',a.w);
+  input(b.w.document.querySelector('.keyInput'),'F',b.w);
+  const fresh=await bootEditor('jazz-blues',store);
+  assert.equal(fresh.w.document.querySelector('.keyInput').value,'C#m');
+  assert.match(b.w.document.getElementById('saveStatus').textContent,/Conflito|alterada em outra aba/i);
+  a.w.close();b.w.close();fresh.w.close();
+});
