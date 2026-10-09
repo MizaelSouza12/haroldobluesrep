@@ -509,7 +509,8 @@ test('52: exportação de setlist vazio desabilita todos os botões',()=>{
 });
 test('53: link codificado conserva 19 músicas e título',()=>{
   const {w}=bootMain();
-  const link=w.eval('musicianLink(sharePlaylistSource(shareablePlaylists()[1]))');
+  // Os repertórios publicados usam links curtos; apenas setlists sem página publicada levam payload no hash.
+  const link=w.eval("musicianLink({id:'STdynamic',name:'Jazz & Blues',songIds:shareablePlaylists()[1].songIds,songKeys:{}})");
   const coded=link.split('#d=')[1];assert.ok(coded);
   const decoded=JSON.parse(Buffer.from(coded,'base64url').toString('utf8'));
   assert.equal(decoded.s.length,19);assert.equal(decoded.n,'Jazz & Blues');
