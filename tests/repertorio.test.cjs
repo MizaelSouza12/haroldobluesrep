@@ -827,3 +827,43 @@ test('82: ajustar velocidade sem salvar deve reverter valor do palco',()=>{
   assert.ok(warn.some(t=>/salvar|armazenamento|espaço/i.test(t)));
   w.close();
 });
+
+
+test('83: preferências corrompidas são normalizadas e aplicação continua utilizável',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_prefs_v1',JSON.stringify({
+    fg:404,title:'<script>',artist:null,bg:'#zzzzzz',font:'gigante',
+    defSpeed:-10000,barPos:'em cima',align:'lado',fabEnabled:'não'
+  }));
+  const {w}=bootMain(store);
+  assert.equal(w.eval('prefs.font'),22);
+  assert.equal(w.eval('prefs.defSpeed'),30);
+  assert.equal(w.eval('prefs.fg'),'#ffffff');
+  assert.equal(w.eval('prefs.bg'),'#000000');
+  assert.equal(w.eval('prefs.align'),'center');
+  assert.equal(w.eval('prefs.fabEnabled'),true);
+  w.close();
+});
+test('84: velocidades individuais corrompidas não quebram teleprompter',()=>{
+  const store=createStorage();
+  const id=stableSongId('Ain\'t No Sunshine','Bill Withers');
+  store.setItem('repHaroldo_speeds_v1',JSON.stringify({[id]:'extremamente rápido'}));
+  const {w}=bootMain(store);
+  const speed=w.eval('speedOf(ALL.find(s=>s.id==='+JSON.stringify(id)+'))');
+  assert.ok(typeof speed==='number' && speed>=4 && speed<=150);
+  w.close();
+});
+test('85: lista de músicas com ID inválido não pode gerar colisão invisível',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_custom_v1',JSON.stringify([
+    {title:'Primeira letra sem ID',artist:'Teste',cats:'C',text:'Primeira letra'},
+    {title:'Segunda letra sem ID',artist:'Teste',cats:'C',text:'Segunda letra'}
+  ]));
+  const {w}=bootMain(store);
+  assert.equal(w.eval('CUSTOM.length'),2);
+  const ids=w.eval('CUSTOM.map(s=>s.id)');
+  assert.equal(new Set(ids).size,2);
+  assert.ok(ids.every(s=>typeof s==='string' && s.startsWith('C')));
+  assert.equal(w.eval('ALL.length'),216);
+  w.close();
+});
