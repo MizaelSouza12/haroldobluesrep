@@ -493,3 +493,73 @@ test('50: notas de repertórios A/J são independentes',()=>{
   assert.equal(w.eval("setlistKey(sharePlaylistSource(shareablePlaylists()[1]),"+JSON.stringify(songId)+")"),'D');
   w.close();
 });
+
+
+test('51: quantidade de músicas sem nota é calculada',()=>{
+  const {w}=bootMain();
+  assert.equal(w.eval('missingMusicianKeys(sharePlaylistSource(shareablePlaylists()[1]))'),19);
+  w.close();
+});
+test('52: exportação de setlist vazio desabilita todos os botões',()=>{
+  const {w}=bootMain();
+  w.eval("openMusicianPrep({id:'vazio',name:'Vazio',songIds:[],songKeys:{}})");
+  for(const id of ['musicianShare','musicianCopyLink','musicianPdf','musicianWord','musicianText'])
+    assert.equal(w.document.getElementById(id).disabled,true);
+  w.close();
+});
+test('53: link codificado conserva 19 músicas e título',()=>{
+  const {w}=bootMain();
+  const link=w.eval('musicianLink(sharePlaylistSource(shareablePlaylists()[1]))');
+  const coded=link.split('#d=')[1];assert.ok(coded);
+  const decoded=JSON.parse(Buffer.from(coded,'base64url').toString('utf8'));
+  assert.equal(decoded.s.length,19);assert.equal(decoded.n,'Jazz & Blues');
+  assert.ok(!('text' in decoded));w.close();
+});
+test('54: nomes de arquivos são normalizados',()=>{
+  const {w}=bootMain();
+  assert.equal(w.eval("safeFileName('Á Sua Maneira & Rock/Jazz')"),'A-Sua-Maneira-Rock-Jazz');
+  w.close();
+});
+test('55: conteúdo HTML é escapado para exportação',()=>{
+  const {w}=bootMain();
+  assert.equal(w.eval("htmlEsc('<script>\"&')"),'&lt;script&gt;&quot;&amp;');
+  w.close();
+});
+test('56: escape e quebra de linhas do PDF',()=>{
+  const {w}=bootMain();
+  assert.equal(w.eval("pdfLatin('Olá – 世界')"),'Olá - ??');
+  assert.ok(w.eval("pdfWrap('uma duas tres quatro cinco',10)").length>1);
+  assert.ok(w.eval("pdfEscape('(x)')").includes('\\('));
+  w.close();
+});
+test('57: PDF de Jazz & Blues tem cabeçalho, xref e rodapé válidos',()=>{
+  const {w}=bootMain();
+  const pdf=Buffer.from(w.eval('buildMusicianPdf(sharePlaylistSource(shareablePlaylists()[1]))')).toString('latin1');
+  assert.ok(pdf.startsWith('%PDF-1.4'));assert.ok(pdf.includes('/Type /Pages'));
+  assert.ok(pdf.includes('xref'));assert.ok(pdf.endsWith('%%EOF'));
+  assert.ok(!pdf.includes('Watching the ships roll'));w.close();
+});
+test('58: PDF com 204 músicas gera mais de uma página',()=>{
+  const {w}=bootMain();
+  const pdf=Buffer.from(w.eval('buildMusicianPdf(sharePlaylistSource(shareablePlaylists()[0]))')).toString('latin1');
+  const count=pdf.match(/\/Type \/Pages \/Count (\d+)/);assert.ok(count);
+  assert.ok(Number(count[1])>=5);w.close();
+});
+test('59: distância textual e fuzzy search priorizam correspondência exata',()=>{
+  const {w}=bootMain();
+  assert.equal(w.eval("levenshtein('gato','pato')"),1);
+  assert.equal(w.eval("scoreMatch('wonderwall','wonderwall')"),100);
+  assert.equal(w.eval("bestMatchesFor('wonderwall')[0].s.title"),'Wonderwall');
+  w.close();
+});
+test('60: abrir música e ajustar velocidade não alteram repertório',()=>{
+  const {w}=bootMain();
+  w.document.querySelector('#list .item').click();
+  assert.ok(w.document.getElementById('songView').classList.contains('active'));
+  const original=w.eval('curSong.id');
+  const before=Number(w.document.getElementById('spdVal').textContent);
+  w.document.getElementById('spdUp').click();
+  assert.equal(Number(w.document.getElementById('spdVal').textContent),Math.min(150,before+2));
+  assert.equal(w.eval('ALL.length'),214);assert.equal(w.eval('curSong.id'),original);
+  w.close();
+});
