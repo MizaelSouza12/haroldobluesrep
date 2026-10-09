@@ -404,3 +404,92 @@ test('40: links publicados de repertório não exigem login',()=>{
     assert.ok(page.includes('data-source='));
   }
 });
+
+
+test('41: normalização de acentos e IDs estáveis',()=>{
+  const {w}=bootMain();
+  assert.equal(w.eval("norm('ÁGUAS DE MARÇO')"),'aguas de marco');
+  assert.equal(w.eval("stableSongId('A Feira','O Rappa')"),stableSongId('A Feira','O Rappa'));
+  w.close();
+});
+test('42: pesquisa encontra música sem diferenciar acentos',()=>{
+  const {w}=bootMain();
+  input(w.document.getElementById('search'),'Aguas de Marco',w);
+  assert.ok([...w.document.querySelectorAll('#list .t')].some(e=>e.textContent==='Águas de Março'));
+  w.close();
+});
+test('43: renomear repertório muda aba e salva no navegador',()=>{
+  const storage=createStorage(),{w}=bootMain(storage);
+  w.prompt=()=> 'Meu Blues';
+  w.eval("renameChip('J')");
+  assert.ok([...w.document.querySelectorAll('#chips .chip')].some(e=>e.textContent==='Meu Blues'));
+  assert.equal(JSON.parse(storage.getItem('repHaroldo_chipnames_v1')).J,'Meu Blues');
+  w.close();
+});
+test('44: cancelar renomeação preserva nome',()=>{
+  const storage=createStorage(),{w}=bootMain(storage);
+  w.prompt=()=>null; w.eval("renameChip('A')");
+  assert.equal(w.eval('CHIP_NAMES.A'),'A Sua Maneira');
+  assert.equal(storage.getItem('repHaroldo_chipnames_v1'),null);
+  w.close();
+});
+test('45: categoria personalizada é persistida',()=>{
+  const storage=createStorage(),{w}=bootMain(storage);
+  w.prompt=()=> 'Rock Nacional';
+  w.document.querySelector('#catSeg .catAddBtn2').click();
+  const categories=JSON.parse(storage.getItem('repHaroldo_customcats_v1'));
+  assert.equal(categories.length,1);assert.equal(categories[0].name,'Rock Nacional');
+  w.close();
+});
+test('46: criar letra personalizada preserva música base',()=>{
+  const storage=createStorage(),{w}=bootMain(storage);
+  w.eval('openEdit(null)');
+  w.document.getElementById('inTitle').value='Teste de música nova';
+  w.document.getElementById('inArtist').value='Artista de teste';
+  w.document.getElementById('inLyrics').value='Letra de teste\nSegunda linha';
+  w.document.querySelector('#catSeg [data-v="J"]').click();
+  w.document.getElementById('saveSong').click();
+  const records=JSON.parse(storage.getItem('repHaroldo_custom_v1'));
+  assert.ok(records.some(s=>s.title==='Teste de música nova' && s.cats==='J'));
+  assert.equal(w.eval('SONGS.length'),214);assert.equal(w.eval('ALL.length'),215);
+  w.close();
+});
+test('47: edição da música base usa OVERRIDES sem alterar dados originais',()=>{
+  const storage=createStorage(),{w}=bootMain(storage);
+  w.eval('openEdit(ALL[0])');
+  w.document.getElementById('inTitle').value='Título editado';
+  w.document.getElementById('inLyrics').value='Nova letra de teste';
+  w.document.getElementById('saveSong').click();
+  const changes=JSON.parse(storage.getItem('repHaroldo_overrides_v1'));
+  assert.ok(Object.values(changes).some(s=>s.title==='Título editado'));
+  assert.equal(w.eval('SONGS.length'),214);
+  w.close();
+});
+test('48: ocultar música remove da lista, não dos originais',()=>{
+  const storage=createStorage(),{w}=bootMain(storage);
+  w.eval('openActions(ALL[0])');
+  w.document.getElementById('actHide').click();
+  assert.equal(w.eval('ALL.length'),213);assert.equal(w.eval('SONGS.length'),214);
+  assert.equal(JSON.parse(storage.getItem('repHaroldo_hidden_v1')).length,1);
+  w.close();
+});
+test('49: confirmar seleção salva um setlist manual',()=>{
+  const storage=createStorage(),{w}=bootMain(storage);
+  w.prompt=()=> 'Show de sábado';
+  w.document.getElementById('selectBtn').click();
+  w.document.querySelector('#list .item').click();
+  w.document.getElementById('selConfirm').click();
+  const d=JSON.parse(storage.getItem('repHaroldo_setlists_v1'));
+  assert.equal(d.list.length,1);assert.equal(d.list[0].name,'Show de sábado');
+  assert.equal(d.list[0].songIds.length,1);
+  w.close();
+});
+test('50: notas de repertórios A/J são independentes',()=>{
+  const {w}=bootMain(createStorage());
+  const songId=w.eval('SONGS.find(s=>s.title.includes("Sunshine")).id');
+  w.eval("setSetlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(songId)+",'C')");
+  w.eval("setSetlistKey(sharePlaylistSource(shareablePlaylists()[1]),"+JSON.stringify(songId)+",'D')");
+  assert.equal(w.eval("setlistKey(sharePlaylistSource(shareablePlaylists()[0]),"+JSON.stringify(songId)+")"),'C');
+  assert.equal(w.eval("setlistKey(sharePlaylistSource(shareablePlaylists()[1]),"+JSON.stringify(songId)+")"),'D');
+  w.close();
+});
