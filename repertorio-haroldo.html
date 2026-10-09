@@ -8860,22 +8860,43 @@ $('importFile').addEventListener('change', e => {
 
 /* ================= NOVA / EDITAR LETRA ================= */
 let editingId = null, editCat = 'C', editColor = null;
+let editBaseFingerprint = '';
+const EDIT_DRAFT_PREFIX = 'repHaroldo_editdraft_v1:';
+function editDraftKey(){ return EDIT_DRAFT_PREFIX + (editingId || 'new'); }
+function editSnapshot(){
+  return {title:$('inTitle').value,artist:$('inArtist').value,text:$('inLyrics').value,
+    cat:editCat,color:editColor,base:editBaseFingerprint};
+}
+function saveEditDraft(){
+  if (!$('editView').classList.contains('active')) return;
+  try{ sessionStorage.setItem(editDraftKey(), JSON.stringify(editSnapshot())); }catch(e){}
+}
+function clearEditDraft(){ try{ sessionStorage.removeItem(editDraftKey()); }catch(e){} }
+function loadEditDraft(){
+  try{
+    const d = JSON.parse(sessionStorage.getItem(editDraftKey()) || 'null');
+    return d && typeof d === 'object' && d.base === editBaseFingerprint ? d : null;
+  }catch(e){ return null; }
+}
+['inTitle','inArtist','inLyrics'].forEach(id =>
+  $(id).addEventListener('input', saveEditDraft));
+
 function syncColorState(){
   $('taColorState').textContent = editColor ? 'cor personalizada' : 'cor padrão do app';
 }
-$('taColor').addEventListener('input', e => { editColor = e.target.value; syncColorState(); });
-$('taColorReset').onclick = () => { editColor = null; $('taColor').value = prefs.fg; syncColorState(); };
+$('taColor').addEventListener('input', e => { editColor = e.target.value; syncColorState(); saveEditDraft(); });
+$('taColorReset').onclick = () => { editColor = null; $('taColor').value = prefs.fg; syncColorState(); saveEditDraft(); };
 const FIXED_CATS = [ {v:'C', label:'Só Minhas'}, {v:'A', label:'A Sua Maneira'}, {v:'J', label:'Jazz & Blues'}, {v:'AJ', label:'Ambas'} ];
 function renderCatSeg(){
   const wrap = $('catSeg'); wrap.innerHTML = '';
   FIXED_CATS.forEach(c => {
     const b = document.createElement('button'); b.dataset.v = c.v; b.textContent = c.label;
-    b.onclick = () => { editCat = c.v; syncCatSeg(); };
+    b.onclick = () => { editCat = c.v; syncCatSeg(); saveEditDraft(); };
     wrap.appendChild(b);
   });
   CUSTOM_CATS.forEach(c => {
     const b = document.createElement('button'); b.dataset.v = c.key; b.textContent = c.name;
-    b.onclick = () => { editCat = c.key; syncCatSeg(); };
+    b.onclick = () => { editCat = c.key; syncCatSeg(); saveEditDraft(); };
     wrap.appendChild(b);
   });
   const add = document.createElement('button'); add.className = 'catAddBtn2'; add.textContent = '+ Nova categoria';
@@ -8892,7 +8913,7 @@ function renderCatSeg(){
       return;
     }
     renderCatSeg();
-    editCat = key; syncCatSeg();
+    editCat = key; syncCatSeg(); saveEditDraft();
   };
   wrap.appendChild(add);
   syncCatSeg();
@@ -8912,6 +8933,16 @@ function openEdit(song){
   editCat = song ? (song.cats || 'C') : 'C';
   renderCatSeg();
   editColor = (song && song.color) ? song.color : null;
+  editBaseFingerprint = JSON.stringify([$('inTitle').value,$('inArtist').value,$('inLyrics').value,editCat,editColor]);
+  const recovered = loadEditDraft();
+  if (recovered){
+    $('inTitle').value = String(recovered.title || '');
+    $('inArtist').value = String(recovered.artist || '');
+    $('inLyrics').value = String(recovered.text || '');
+    editCat = typeof recovered.cat === 'string' ? recovered.cat : editCat;
+    editColor = typeof recovered.color === 'string' ? recovered.color : null;
+    renderCatSeg();
+  }
   $('taColor').value = editColor || prefs.fg;
   syncColorState();
   $('editDelete').style.display = song ? '' : 'none';
@@ -8925,6 +8956,7 @@ function hasUnsavedEdit(){
 function closeEdit(){ show('homeView'); refresh(); }
 $('editBack').onclick = () => {
   if (hasUnsavedEdit() && !confirm('Descartar esta letra sem salvar?')) return;
+  clearEditDraft();
   history.back();
 };
 $('saveSong').onclick = () => {
@@ -8957,6 +8989,7 @@ $('saveSong').onclick = () => {
     alert('Não foi possível salvar esta letra no navegador (espaço insuficiente ou armazenamento bloqueado). A edição continua aberta para você copiar o texto ou liberar espaço.');
     return;
   }
+  clearEditDraft();
   rebuildAll();
   history.back();
 };
@@ -8984,6 +9017,7 @@ $('editDelete').onclick = () => {
       return;
     }
   }
+  clearEditDraft();
   rebuildAll(); history.back();
 };
 /* ---- barra de ferramentas: tamanho, copiar, colar ---- */
@@ -8996,6 +9030,7 @@ $('taPaste').onclick = async () => {
     if (!text){ alert('A área de transferência está vazia.'); return; }
     if ($('inLyrics').value.trim() && !confirm('Substituir o texto atual pelo conteúdo copiado?')) return;
     $('inLyrics').value = text;
+    saveEditDraft();
   }catch(e){
     alert('Não foi possível acessar a área de transferência automaticamente. Toque e segure no campo de texto e escolha "Colar".');
   }
