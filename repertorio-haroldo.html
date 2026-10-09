@@ -7440,20 +7440,37 @@ function playlistSongs(catKey){
   return ALL.filter(s => s && typeof s.cats === 'string' && s.cats.includes(catKey));
 }
 function shareablePlaylists(){
-  const defs = [
+  const categoryDefs = [
     { key:'A', name:CHIP_NAMES.A || 'A Sua Maneira' },
     { key:'J', name:CHIP_NAMES.J || 'Jazz & Blues' }
   ].concat(CUSTOM_CATS.map(cat => ({ key:cat.key, name:cat.name })));
-  return defs.map(def => ({
+
+  const categories = categoryDefs.map(def => ({
+    kind:'category',
     key:def.key,
+    id:'CAT_' + def.key,
     name:def.name,
     songIds:playlistSongs(def.key).map(s => s.id)
   })).filter(p => p.songIds.length);
+
+  const savedSetlists = SETLISTS.map(st => ({
+    kind:'setlist',
+    id:st.id,
+    name:st.name,
+    songIds:st.songIds.filter(id => SONG_MAP.has(id)),
+    source:st
+  })).filter(p => p.songIds.length);
+
+  return categories.concat(savedSetlists);
 }
 function sharePlaylistSource(p){
+  if (p.kind === 'setlist' && p.source){
+    normalizeSetlist(p.source);
+    return p.source;
+  }
   if (!PLAYLIST_KEYS[p.key] || typeof PLAYLIST_KEYS[p.key] !== 'object') PLAYLIST_KEYS[p.key] = {};
   return {
-    id:'CAT_' + p.key,
+    id:p.id || ('CAT_' + p.key),
     shareCategoryKey:p.key,
     name:p.name,
     songIds:p.songIds.slice(),
@@ -7807,8 +7824,9 @@ function renderSetlistManager(){
     playlists.forEach(pl => {
       const row = document.createElement('div');
       row.className = 'setlistRow shareChoice';
+      const typeLabel = pl.kind === 'setlist' ? 'Setlist salvo' : 'Repertório';
       row.innerHTML = '<div class="slInfo"><div class="slName">' + esc(pl.name) + '</div>' +
-        '<div class="slCount">' + pl.songIds.length + ' música(s)</div></div>' +
+        '<div class="slCount">' + typeLabel + ' · ' + pl.songIds.length + ' música(s)</div></div>' +
         '<div class="shareArrow">›</div>';
       row.onclick = () => {
         closeSetlistManager();
