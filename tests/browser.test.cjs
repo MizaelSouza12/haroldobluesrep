@@ -1133,3 +1133,21 @@ test('Browser 61: visual mobile sem rolagem horizontal nas duas listas',async()=
     }finally{await s.close();}
   }
 });
+
+
+test('Browser 65: backup inclui notas atualizadas em outra aba após abrir o aplicativo',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
+    await goto(s,MAIN);
+    const editPage=await s.context.newPage();
+    await editPage.goto(base+J);
+    await editPage.locator('.keyInput').first().waitFor();
+    await editPage.locator('.keyInput').first().fill('Db7');
+    await s.page.locator('#setBtnHome').click();
+    const file=await downloadAfter(s.page,()=>s.page.locator('#exportBtn').click());
+    const exported=JSON.parse(file.bytes.toString('utf8'));
+    assert.ok(Object.values(exported.data.playlistKeys.J||{}).includes('Db7'),
+      'backup completo precisa capturar os dados mais recentes do localStorage');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
