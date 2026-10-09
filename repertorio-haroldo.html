@@ -8025,17 +8025,43 @@ function setlistKey(st, songId){
 let musicianKeySaveWarning = false;
 function setSetlistKey(st, songId, value){
   if (!st.songKeys || typeof st.songKeys !== 'object') st.songKeys = {};
+  const proposed = String(value || '').trim();
+  const previous = Object.prototype.hasOwnProperty.call(st.songKeys, songId)
+    ? String(st.songKeys[songId] || '') : '';
+  if (st.shareCategoryKey){
+    // Nunca salve o snapshot inteiro de uma aba antiga: isso apagaria
+    // notas diferentes que foram alteradas em outro separador.
+    try{
+      const stored = JSON.parse(localStorage.getItem(PLAYLIST_KEYS_KEY) || '{}');
+      const latest = stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
+      const category = st.shareCategoryKey;
+      const existing = latest[category];
+      const catKeys = existing && typeof existing === 'object' && !Array.isArray(existing) ? existing : {};
+      const newest = Object.prototype.hasOwnProperty.call(catKeys, songId)
+        ? String(catKeys[songId] || '') : '';
+      if (newest !== previous && newest !== proposed){
+        alert('Conflito: esta nota foi alterada em outra aba. Sua edição não foi gravada; copie-a e reabra o repertório para atualizar.');
+        return false;
+      }
+      catKeys[songId] = proposed;
+      latest[category] = catKeys;
+      localStorage.setItem(PLAYLIST_KEYS_KEY, JSON.stringify(latest));
+      PLAYLIST_KEYS = latest;
+      st.songKeys = catKeys;
+      musicianKeySaveWarning = false;
+      return true;
+    }catch(e){
+      if (!musicianKeySaveWarning){
+        musicianKeySaveWarning = true;
+        alert('Não foi possível salvar esta nota no navegador. Verifique o espaço ou as permissões de armazenamento. A nota não foi gravada.');
+      }
+      return false;
+    }
+  }
   const hadOld = Object.prototype.hasOwnProperty.call(st.songKeys, songId);
   const oldValue = st.songKeys[songId];
-  st.songKeys[songId] = String(value || '').trim();
-  let saved;
-  if (st.shareCategoryKey){
-    PLAYLIST_KEYS[st.shareCategoryKey] = st.songKeys;
-    saved = savePlaylistKeys();
-  } else {
-    saved = saveSetlists();
-  }
-  if (!saved){
+  st.songKeys[songId] = proposed;
+  if (!saveSetlists()){
     if (hadOld) st.songKeys[songId] = oldValue;
     else delete st.songKeys[songId];
     if (!musicianKeySaveWarning){
