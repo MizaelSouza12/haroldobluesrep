@@ -2,7 +2,7 @@
    IMPORTANTE: sempre que o repertorio-haroldo.html for atualizado,
    troque o número da CACHE_VERSION abaixo para forçar a atualização
    nos celulares que já têm o app instalado. */
-const CACHE_VERSION = 'v13';
+const CACHE_VERSION = 'v14';
 const CACHE_NAME = 'repertorio-haroldo-' + CACHE_VERSION;
 const ASSETS = [
   './repertorio-haroldo.html',
@@ -32,6 +32,24 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // As páginas/JSON/JS de setlists precisam sempre buscar a versão
+  // atual, pois o músico edita as informações no próprio navegador.
+  // NÃO reutilizar a página antiga do cache depois de um deploy.
+  const url = new URL(event.request.url);
+  if (url.origin === self.location.origin && url.pathname.includes('/setlists/')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        return new Response('Esta playlist precisa de conexão para carregar.', {
+          status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        });
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const network = fetch(event.request).then((res) => {
