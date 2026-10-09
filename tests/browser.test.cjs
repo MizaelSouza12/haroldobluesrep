@@ -17,6 +17,17 @@ const A='/setlists/a-sua-maneira.html';
 const J='/setlists/jazz-blues.html';
 const output=path.join(ROOT,'artifacts');
 fs.mkdirSync(output,{recursive:true});
+const observedCoverage={ main:new Set(), editor:new Set(), clicked:new Set(), paths:new Set() };
+function coverageCollector(entries){
+  for(const entry of entries){
+    const kind=entry.url.includes('/repertorio-haroldo.html')?'main':entry.url.includes('/setlists/editor.js')?'editor':null;
+    if(!kind)continue;
+    for(const fn of entry.functions){
+      if(!fn.functionName)continue;
+      if(fn.ranges.some(r=>r.count>0))observedCoverage[kind].add(fn.functionName);
+    }
+  }
+}
 
 before(async()=>{
   server=http.createServer((req,res)=>{
@@ -36,6 +47,24 @@ before(async()=>{
   browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 });
 after(async()=>{
+  const html=fs.readFileSync(path.join(ROOT,'repertorio-haroldo.html'),'utf8');
+  const editor=fs.readFileSync(path.join(ROOT,'setlists/editor.js'),'utf8');
+  const declared=(src)=>[...new Set([...src.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)].map(m=>m[1]))].sort();
+  const summary={};
+  for(const [kind,src] of [['main',html],['editor',editor]]){
+    const names=declared(src);
+    summary[kind]={
+      declared:names.length,
+      exercised:names.filter(n=>observedCoverage[kind].has(n)).length,
+      namesExercised:names.filter(n=>observedCoverage[kind].has(n)),
+      namesNotExercised:names.filter(n=>!observedCoverage[kind].has(n))
+    };
+  }
+  summary.clickedElements=[...observedCoverage.clicked].sort();
+  fs.writeFileSync(path.join(output,'coverage-all-browser-tests.json'),JSON.stringify(summary,null,2));
+  console.log('V8 ACUMULADO:',summary.main.exercised+'/'+summary.main.declared,
+    'funções principais;',summary.editor.exercised+'/'+summary.editor.declared,'funções do editor;',
+    summary.clickedElements.length,'identificadores de botão clicados.');
   if(browser) await browser.close();
   if(server) await new Promise(resolve=>server.close(resolve));
 });
@@ -48,10 +77,30 @@ async function fresh({mobile=false,locale='pt-BR'}={}){
     permissions:['clipboard-read','clipboard-write'],
     serviceWorkers:'block'
   });
+  await context.addInitScript(()=>{
+    window.__auditClicks=[];
+    document.addEventListener('click',ev=>{
+      const button=ev.target.closest && ev.target.closest('button');
+      if(button)window.__auditClicks.push(button.id||button.getAttribute('data-a')||button.className||'sem-identificador');
+    },true);
+  });
   const page=await context.newPage();
   const failures=[];
   page.on('pageerror',e=>failures.push(e.message));
-  return {context,page,failures,close:()=>context.close()};
+  const session=await context.newCDPSession(page);
+  await session.send('Profiler.enable');
+  await session.send('Profiler.startPreciseCoverage',{callCount:true,detailed:true});
+  const close=async()=>{
+    try{
+      const result=await session.send('Profiler.takePreciseCoverage');
+      coverageCollector(result.result||[]);
+      const clicks=await page.evaluate(()=>window.__auditClicks||[]).catch(()=>[]);
+      for(const id of clicks)observedCoverage.clicked.add(id);
+    }catch(err){console.warn('AVISO: sem medição V8 neste caso:',err.message);}
+    await session.detach().catch(()=>{});
+    await context.close();
+  };
+  return {context,page,failures,close};
 }
 async function goto(s,url){await s.page.goto(base+url,{waitUntil:'load'});}
 async function openPrep(page,which=0){
