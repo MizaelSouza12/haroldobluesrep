@@ -52,7 +52,7 @@ function setup(html, url, sharedStorage) {
 }
 function bootMain(sharedStorage) {
   const env=setup(mainHtml,'https://mizaelsouza12.github.io/haroldobluesrep/repertorio-haroldo.html',sharedStorage);
-  env.w.eval(mainScript);
+  vm.runInContext(mainScript, env.dom.getInternalVMContext());
   return env;
 }
 async function bootEditor(slug,sharedStorage,fixture) {
@@ -136,7 +136,7 @@ test('11: páginas públicas não incorporam o texto das letras',()=>{
     assert.ok(!html.includes('id="songdata"'));
     assert.ok(!html.includes('cur.lines'));
     assert.ok(html.includes('Tom / Nota'));
-    assert.ok(html.includes('Anotação'));
+    assert.ok(editorJS.includes('Anotação da música'));
   }
 });
 test('12: manifest tem JSON válido e start_url',()=>{
