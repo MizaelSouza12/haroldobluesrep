@@ -613,3 +613,37 @@ test('64: repertórios publicados usam os links curtos verdadeiros',()=>{
   assert.equal(links[1],'https://mizaelsouza12.github.io/haroldobluesrep/setlists/jazz-blues.html');
   w.close();
 });
+
+
+test('65: customização local corrompida não impede as 214 músicas originais de abrirem',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_custom_v1',JSON.stringify([
+    {id:42,title:123,artist:null,text:777,cats:'A'}
+  ]));
+  const {w}=bootMain(store);
+  assert.equal(w.eval('SONGS.length'),214);
+  assert.equal(w.eval('ALL.length'),214);
+  w.close();
+});
+test('66: sem permissão de gravação, app não deve fingir que criou um setlist',()=>{
+  const store=createStorage(),write=store.setItem.bind(store);
+  store.setItem=(k,v)=>k==='repHaroldo_setlists_v1'
+    ? (()=>{throw new Error('QuotaExceededError');})() : write(k,v);
+  const {w}=bootMain(store);
+  const alerts=[];w.alert=v=>alerts.push(String(v));w.prompt=()=> 'Show não salvo';
+  w.document.getElementById('selectBtn').click();
+  assert.equal(w.eval('selecting'),false,'não deve entrar na seleção sem gravar o setlist');
+  assert.equal(w.eval('SETLISTS.length'),0);
+  assert.ok(alerts.some(a=>/salvar|espaço|armazenamento/i.test(a)));
+  w.close();
+});
+test('67: categorias personalizadas inválidas em storage não derrubam o app',()=>{
+  const store=createStorage();
+  store.setItem('repHaroldo_customcats_v1',JSON.stringify([
+    null,{key:null,name:20},{key:'Xvalida',name:'Boa Categoria'}
+  ]));
+  const {w}=bootMain(store);
+  w.document.getElementById('shareSetlistBtn').click();
+  assert.ok(w.eval('CUSTOM_CATS.every(c=>c&&typeof c.key==="string"&&typeof c.name==="string")'));
+  w.close();
+});
