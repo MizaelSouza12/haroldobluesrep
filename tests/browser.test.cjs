@@ -1268,3 +1268,46 @@ test('Browser 70: importação sem espaço não pode anunciar sucesso ou deixar 
     await checkNoPageErrors(s);
   }finally{await s.close();}
 });
+
+
+test('Browser 71: playlist J aberta online permanece legível offline após F5',async()=>{
+  const s=await fresh({allowServiceWorkers:true});
+  try {
+    await goto(s,MAIN);
+    await s.page.waitForFunction(()=>navigator.serviceWorker && navigator.serviceWorker.controller,{timeout:10000});
+    await goto(s,J);
+    await s.page.locator('.song').first().waitFor();
+    assert.equal(await s.page.locator('.song').count(),19);
+    await s.page.locator('.keyInput').first().fill('Am7');
+    await s.context.setOffline(true);
+    await s.page.reload({waitUntil:'load',timeout:15000});
+    await s.page.locator('.song').first().waitFor({timeout:7000});
+    assert.equal(await s.page.locator('.song').count(),19);
+    assert.equal(await s.page.locator('.keyInput').first().inputValue(),'Am7');
+    await checkNoPageErrors(s);
+  } finally {
+    await s.context.setOffline(false).catch(()=>{});
+    await s.close();
+  }
+});
+test('Browser 72: uma playlist não perde os dados ao alternar entre online e offline',async()=>{
+  const s=await fresh({allowServiceWorkers:true});
+  try{
+    await goto(s,MAIN);
+    await s.page.waitForFunction(()=>navigator.serviceWorker && navigator.serviceWorker.controller,{timeout:10000});
+    await goto(s,A);
+    await s.page.locator('.song').first().waitFor();
+    await s.page.locator('.noteInput').first().fill('Anotação offline preservada');
+    await s.context.setOffline(true);
+    await s.page.reload({waitUntil:'load',timeout:15000});
+    assert.equal(await s.page.locator('.song').count(),204);
+    assert.equal(await s.page.locator('.noteInput').first().inputValue(),'Anotação offline preservada');
+    await s.context.setOffline(false);
+    await s.page.reload();
+    assert.equal(await s.page.locator('.noteInput').first().inputValue(),'Anotação offline preservada');
+    await checkNoPageErrors(s);
+  }finally{
+    await s.context.setOffline(false).catch(()=>{});
+    await s.close();
+  }
+});
