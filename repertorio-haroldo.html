@@ -36,6 +36,9 @@ button{font-family:inherit;border:none;background:none;color:var(--fg);cursor:po
   width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-weight:700}
 .iconBtn:active{background:#262626}
 .iconBtn.on{background:var(--accent);color:#fff}
+#shareSetlistBtn{margin:6px 16px 4px;width:calc(100% - 32px);padding:12px 14px;border-radius:12px;
+  background:#4a1e1b;color:#ff9b93;border:1px solid #6d2b27;font-size:15px;font-weight:800;text-align:center}
+#shareSetlistBtn:active{background:#5a2420}
 #searchWrap{padding:8px 16px}
 #search{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #2c2c2e;
   background:#1c1c1e;color:var(--fg);font-size:16px;outline:none}
@@ -277,6 +280,7 @@ body.barTop #bar{border-top:none;border-bottom:1px solid #262626;
       </div>
     </div>
   </div>
+  <button id="shareSetlistBtn" type="button">📤 Enviar setlist aos músicos</button>
   <div id="searchWrap">
     <input id="search" type="search" placeholder="Buscar música ou artista..." autocomplete="off">
   </div>
@@ -7706,6 +7710,9 @@ function enterSelect(){
   refresh();
 }
 function exitSelect(){ selecting = false; refresh(); }
+$('shareSetlistBtn').onclick = () => {
+  openSetlistManager();
+};
 $('selectBtn').onclick = () => {
   if (selecting){ history.back(); return; }
   if (!SETLISTS.length){
