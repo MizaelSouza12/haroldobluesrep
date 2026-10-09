@@ -13,7 +13,7 @@ jobs:
   testes:
     name: Node 22 - testes de regressão
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,5 +21,14 @@ jobs:
           node-version: '22'
       - name: Instalar dependências de teste
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Executar testes
+      - name: Instalar Chromium real para Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Executar testes unitários e em navegador real
         run: npm test
+      - name: Publicar evidências de cobertura do navegador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auditoria-browser
+          path: artifacts/
+          if-no-files-found: ignore
