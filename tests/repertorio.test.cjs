@@ -867,3 +867,33 @@ test('85: lista de músicas com ID inválido não pode gerar colisão invisível
   assert.equal(w.eval('ALL.length'),216);
   w.close();
 });
+
+
+test('86: service worker guarda JSON de playlist online e serve offline',async()=>{
+  const handlers={}, saved=new Map();
+  let online=true;
+  const request={method:'GET',url:'https://mizaelsouza12.github.io/haroldobluesrep/setlists/jazz-blues.json'};
+  const caches={
+    open:async()=>({put:async (req,res)=>saved.set(req.url,res)}),
+    match:async req=>saved.get(req.url)?.clone()||null
+  };
+  const fetch=async()=>{if(!online)throw Error('network disconnected');return new Response('JSON válido',{status:200});};
+  const self={addEventListener:(name,fn)=>handlers[name]=fn,location:{origin:'https://mizaelsouza12.github.io'}};
+  vm.runInNewContext(sw,{self,caches,fetch,URL,Response});
+  async function query(){
+    let task;
+    handlers.fetch({request,respondWith:p=>task=p});
+    return (await task).text();
+  }
+  assert.equal(await query(),'JSON válido');
+  assert.equal(saved.has(request.url),true,'versão online deve entrar no Cache Storage');
+  online=false;
+  assert.equal(await query(),'JSON válido','o mesmo JSON deve estar disponível sem rede');
+});
+test('87: cor do texto sobre destaque respeita contraste claro e escuro',()=>{
+  const {w}=bootMain();
+  assert.equal(w.eval("accentTextColor('#ffffff')"),'#101010');
+  assert.equal(w.eval("accentTextColor('#000000')"),'#ffffff');
+  assert.equal(w.eval("accentTextColor('#ff3b30')"),'#101010');
+  w.close();
+});
