@@ -7625,9 +7625,13 @@ try {
   const loaded = JSON.parse(localStorage.getItem(LSS) || '{}') || {};
   Object.keys(loaded).forEach(id => speeds[migrateBuiltinId(id)] = loaded[id]);
 } catch(e) {}
+let lastSavedPrefs = { ...prefs };
 function savePrefs(){
-  try{ localStorage.setItem(LSK, JSON.stringify(prefs)); return true; }
-  catch(e){ return false; }
+  try{
+    localStorage.setItem(LSK, JSON.stringify(prefs));
+    lastSavedPrefs = { ...prefs };
+    return true;
+  }catch(e){ return false; }
 }
 function saveSpeeds(){
   try{ localStorage.setItem(LSS, JSON.stringify(speeds)); return true; }
@@ -8698,7 +8702,15 @@ function renderManageLists(){
     const row = document.createElement('div'); row.className = 'manageRow';
     row.innerHTML = '<span>' + esc((ov && ov.title) || s.title) + '</span>';
     const btn = document.createElement('button'); btn.textContent = 'Mostrar';
-    btn.onclick = () => { HIDDEN.delete(id); saveHidden(); rebuildAll(); refresh(); renderManageLists(); };
+    btn.onclick = () => {
+      HIDDEN.delete(id);
+      if (!saveHidden()){
+        HIDDEN.add(id);
+        alert('Não foi possível salvar a restauração desta música. Nada foi alterado.');
+        return;
+      }
+      rebuildAll(); refresh(); renderManageLists();
+    };
     row.appendChild(btn); hEl.appendChild(row);
   });
   if (!hidArr.length){ const p = document.createElement('div'); p.className='manageEmpty'; p.textContent='Nenhuma letra oculta.'; hEl.appendChild(p); }
@@ -8711,7 +8723,15 @@ function renderManageLists(){
     const row = document.createElement('div'); row.className = 'manageRow';
     row.innerHTML = '<span>' + esc((ov && ov.title) || s.title) + '</span>';
     const btn = document.createElement('button'); btn.textContent = 'Restaurar';
-    btn.onclick = () => { REMOVED.delete(id); saveRemoved(); rebuildAll(); refresh(); renderManageLists(); };
+    btn.onclick = () => {
+      REMOVED.delete(id);
+      if (!saveRemoved()){
+        REMOVED.add(id);
+        alert('Não foi possível salvar a restauração desta música. Nada foi alterado.');
+        return;
+      }
+      rebuildAll(); refresh(); renderManageLists();
+    };
     row.appendChild(btn); rEl.appendChild(row);
   });
   if (!remArr.length){ const p = document.createElement('div'); p.className='manageEmpty'; p.textContent='Nenhuma letra excluída.'; rEl.appendChild(p); }
@@ -8738,7 +8758,14 @@ $('alR').onclick = () => { prefs.align = 'right'; done(); };
   });
 });
 $('resetBtn').onclick = () => { if (confirm('Restaurar cores, fonte e velocidade padrão? (não afeta suas letras salvas)')) { prefs = { ...DEF }; done(); } };
-function done(){ applyPrefs(); savePrefs(); syncSet(); if (curSong) $('spdVal').textContent = speedOf(curSong); }
+function done(){
+  if (!savePrefs()){
+    prefs = { ...lastSavedPrefs };
+    alert('Não foi possível salvar as configurações no armazenamento. A alteração foi desfeita.');
+  }
+  applyPrefs(); syncSet();
+  if (curSong) $('spdVal').textContent = speedOf(curSong);
+}
 
 /* ---- campos locais das páginas curtas /setlists/*.html ---- */
 const MUSICIAN_FIELDS_PREFIX = 'repHaroldo_musicianFields_v1:';
