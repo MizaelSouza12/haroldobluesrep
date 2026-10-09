@@ -7441,7 +7441,10 @@ if (!hasSavedSetlists){
 const CHIP_NAMES_KEY = 'repHaroldo_chipnames_v1';
 let CHIP_NAMES = { A: 'A Sua Maneira', J: 'Jazz & Blues', C: 'Minhas Letras' };
 try { Object.assign(CHIP_NAMES, JSON.parse(localStorage.getItem(CHIP_NAMES_KEY) || '{}')); } catch(e) {}
-function saveChipNames(){ try{ localStorage.setItem(CHIP_NAMES_KEY, JSON.stringify(CHIP_NAMES)); }catch(e){} }
+function saveChipNames(){
+  try{ localStorage.setItem(CHIP_NAMES_KEY, JSON.stringify(CHIP_NAMES)); return true; }
+  catch(e){ return false; }
+}
 
 /* ================= CATEGORIAS PERSONALIZADAS (criadas pelo usuário) ================= */
 const CUSTOM_CATS_KEY = 'repHaroldo_customcats_v1';
@@ -7622,8 +7625,14 @@ try {
   const loaded = JSON.parse(localStorage.getItem(LSS) || '{}') || {};
   Object.keys(loaded).forEach(id => speeds[migrateBuiltinId(id)] = loaded[id]);
 } catch(e) {}
-function savePrefs(){ try{ localStorage.setItem(LSK, JSON.stringify(prefs)); }catch(e){} }
-function saveSpeeds(){ try{ localStorage.setItem(LSS, JSON.stringify(speeds)); }catch(e){} }
+function savePrefs(){
+  try{ localStorage.setItem(LSK, JSON.stringify(prefs)); return true; }
+  catch(e){ return false; }
+}
+function saveSpeeds(){
+  try{ localStorage.setItem(LSS, JSON.stringify(speeds)); return true; }
+  catch(e){ return false; }
+}
 function applyPrefs(){
   const r = document.documentElement.style;
   r.setProperty('--fg', prefs.fg); r.setProperty('--title', prefs.title);
@@ -8723,7 +8732,8 @@ function exportMusicianFields(){
   return out;
 }
 function importMusicianFields(source, idMap){
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return;
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return true;
+  let allSaved = true;
   for (const slug of Object.keys(source)){
     if (!/^[a-z0-9-]{1,80}$/.test(slug)) continue;
     const incoming = source[slug];
@@ -8743,8 +8753,9 @@ function importMusicianFields(source, idMap){
         };
       }
       localStorage.setItem(key, JSON.stringify(merged));
-    }catch(e){}
+    }catch(e){ allSaved = false; }
   }
+  return allSaved;
 }
 
 /* ---- backup: exportar / importar minhas letras ---- */
@@ -8788,8 +8799,15 @@ $('importFile').addEventListener('change', e => {
 
       if (!confirm('Isto vai combinar este backup com os dados já salvos neste aparelho (letras, setlists, categorias, ocultas/excluídas e edições). Nada que já existe aqui será apagado. Continuar?')) return;
 
+      // O localStorage não oferece transação entre várias chaves.
+      // Cada etapa deve confirmar a gravação; NUNCA anuncie sucesso parcial.
+      const checkBackupWrite = ok => {
+        if (!ok) throw new Error('O navegador recusou salvar parte do backup (armazenamento cheio ou bloqueado). Algumas etapas anteriores podem ter sido importadas.');
+      };
+
       // 1) letras próprias — mescla por título+artista, preserva o id original quando possível
       const idMap = {};
+      const priorCustom = CUSTOM.slice();
       let addedCustom = 0;
       d.custom.forEach(item => {
         // Arquivos de terceiros podem conter campos em formatos inesperados:
@@ -8809,7 +8827,10 @@ $('importFile').addEventListener('change', e => {
           color: typeof item.color === 'string' ? item.color : null });
         addedCustom++;
       });
-      saveCustom();
+      if (!saveCustom()){
+        CUSTOM = priorCustom;
+        throw new Error('Não foi possível salvar as letras do backup. Nenhuma nova letra foi confirmada.');
+      }
 
       // 2) nomes das abas — só preenche o que ainda não foi renomeado localmente
       if (isFull && d.chipNames){
@@ -8819,7 +8840,7 @@ $('importFile').addEventListener('change', e => {
           if (!Object.prototype.hasOwnProperty.call(localChipNames, k) && typeof d.chipNames[k] === 'string')
             CHIP_NAMES[k] = d.chipNames[k];
         });
-        saveChipNames();
+        checkBackupWrite(saveChipNames());
       }
       // 3) categorias personalizadas — mescla por chave
       let addedCats = 0;
@@ -8830,7 +8851,7 @@ $('importFile').addEventListener('change', e => {
           if (CUSTOM_CATS.some(x => x.key === c.key)) return;
           CUSTOM_CATS.push({ key: c.key, name: c.name }); addedCats++;
         });
-        saveCustomCats(); renderCatSeg();
+        checkBackupWrite(saveCustomCats()); renderCatSeg();
       }
       // 4) ocultas / excluídas / editadas — une os conjuntos
       if (isFull){
@@ -8848,11 +8869,13 @@ $('importFile').addEventListener('change', e => {
             if (typeof source.color === 'string' || source.color === null) ov.color = source.color;
             if (Object.keys(ov).length) OVERRIDES[nid] = ov;
           });
-        saveHidden(); saveRemoved(); saveOverrides();
+        checkBackupWrite(saveHidden());
+        checkBackupWrite(saveRemoved());
+        checkBackupWrite(saveOverrides());
       }
       rebuildAll();
       // Importa também as anotações das páginas públicas, sem apagar as locais.
-      if (isFull && d.musicianFields) importMusicianFields(d.musicianFields, idMap);
+      if (isFull && d.musicianFields) checkBackupWrite(importMusicianFields(d.musicianFields, idMap));
 
       // notas dos repertórios A Sua Maneira / Jazz & Blues / categorias personalizadas
       if (isFull && d.playlistKeys && typeof d.playlistKeys === 'object'){
@@ -8865,7 +8888,7 @@ $('importFile').addEventListener('change', e => {
             if (PLAYLIST_KEYS[catKey][nid] === undefined) PLAYLIST_KEYS[catKey][nid] = String(incoming[id] || '');
           });
         });
-        savePlaylistKeys();
+        checkBackupWrite(savePlaylistKeys());
       }
 
       // 5) setlists — mescla por id/nome, corrigindo ids de letras remapeadas
@@ -8882,21 +8905,23 @@ $('importFile').addEventListener('change', e => {
           addedSetlists++;
         });
         if (!activeSetlistId && SETLISTS.length) activeSetlistId = SETLISTS[0].id;
-        saveSetlists();
+        checkBackupWrite(saveSetlists());
       }
       // 6) velocidades por música — só preenche o que ainda não tem velocidade definida
       if (isFull && d.speeds){
         Object.keys(d.speeds).forEach(id => { const nid = idMap[id] || migrateBuiltinId(id); if (speeds[nid] === undefined) speeds[nid] = d.speeds[id]; });
-        saveSpeeds();
+        checkBackupWrite(saveSpeeds());
       }
       // 7) cores/fonte/velocidade padrão — pergunta antes de sobrescrever a aparência atual
       if (isFull && d.prefs && confirm('O backup também tem cores, fonte e velocidade padrão salvas. Aplicar essas configurações neste aparelho também?')){
-        prefs = { ...prefs, ...d.prefs }; applyPrefs(); savePrefs();
+        prefs = { ...prefs, ...d.prefs }; applyPrefs(); checkBackupWrite(savePrefs());
       }
 
       refresh(); syncSet();
       alert('Backup importado: ' + addedCustom + ' letra(s), ' + addedSetlists + ' setlist(s) e ' + addedCats + ' categoria(s) nova(s).');
-    }catch(err){ alert('Não foi possível ler este arquivo de backup.'); }
+    }catch(err){
+      alert('Importação não concluída: ' + (err && err.message ? err.message : 'arquivo de backup inválido') + ' Preserve o arquivo original para tentar novamente.');
+    }
   };
   reader.readAsText(file);
   e.target.value = '';
