@@ -65,6 +65,11 @@ after(async()=>{
   console.log('V8 ACUMULADO:',summary.main.exercised+'/'+summary.main.declared,
     'funções principais;',summary.editor.exercised+'/'+summary.editor.declared,'funções do editor;',
     summary.clickedElements.length,'identificadores de botão clicados.');
+  const declaredButtons=[...html.matchAll(/<button\b([^>]*)>/gi)].map(m=>m[1].match(/\bid=["']([^"']+)/)?.[1]).filter(Boolean);
+  const neverClicked=declaredButtons.filter(id=>!observedCoverage.clicked.has(id));
+  summary.staticButtons={count:declaredButtons.length,clicked:declaredButtons.length-neverClicked.length,notClicked:neverClicked};
+  fs.writeFileSync(path.join(output,'coverage-all-browser-tests.json'),JSON.stringify(summary,null,2));
+  console.log('BOTÕES ESTÁTICOS CLICADOS:',summary.staticButtons.clicked+'/'+summary.staticButtons.count,'ausentes:',neverClicked.join(', '));
   console.log('V8 FUNÇÕES AINDA NÃO EXERCITADAS:',summary.main.namesNotExercised.join(', '));
   if(browser) await browser.close();
   if(server) await new Promise(resolve=>server.close(resolve));
@@ -78,11 +83,18 @@ async function fresh({mobile=false,locale='pt-BR',allowServiceWorkers=false}={})
     permissions:['clipboard-read','clipboard-write'],
     serviceWorkers:allowServiceWorkers?'allow':'block'
   });
+  await context.exposeBinding('__auditRecordClick',(_source,id)=>{
+    observedCoverage.clicked.add(id);
+  });
   await context.addInitScript(()=>{
     window.__auditClicks=[];
     document.addEventListener('click',ev=>{
       const button=ev.target.closest && ev.target.closest('button');
-      if(button)window.__auditClicks.push(button.id||button.getAttribute('data-a')||button.className||'sem-identificador');
+      if(button){
+        const id=button.id||button.getAttribute('data-a')||button.className||'sem-identificador';
+        window.__auditClicks.push(id);
+        if(window.__auditRecordClick) window.__auditRecordClick(id).catch(()=>{});
+      }
     },true);
   });
   const page=await context.newPage();
