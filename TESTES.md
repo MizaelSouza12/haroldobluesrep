@@ -74,3 +74,35 @@ npm run audit:source
 A execução GitHub Actions armazena os relatórios `artifacts/function-coverage.json`, `coverage-all-browser-tests.json` e `code-review-inventory.json` no artefato `auditoria-browser`.
 
 **Dados reais do Haroldo não foram acessados nem modificados.** Todos os testes utilizaram perfis isolados e dados artificiais; atualizar os arquivos públicos não altera diretamente o localStorage dos usuários.
+
+
+## Rodada 2 — PWA offline, dados inválidos e acessibilidade
+
+**Data:** 9/10/2026. **Branch:** `audit/round2-reliability-20261009`.
+
+### Evidência automatizada
+
+- **162/162 verificações** Node/JSDOM + Chromium real aprovadas na [execução de referência](https://github.com/MizaelSouza12/haroldobluesrep/actions/runs/37889098668).
+- **5/5 Firefox e 5/5 WebKit** na mesma execução: 172/172 verificações totais.
+- **115/115 funções nomeadas** do aplicativo principal executadas pelo profiler V8, **7/7 funções** do editor de músicos e **53/53 botões estáticos com ID** clicados; não equivale a 100% de linhas ou ramos.
+- Auditoria automática `axe-core` em quatro estados (principal, editor de letras, preparo para músicos, lista pública), exigindo zero violações **critical/serious** com tags WCAG 2 A/AA, WCAG 2.1 AA.
+- Testes reais de F5 sem conexão após visitar playlists, pré-cache da A Sua Maneira/Jazz & Blues sem visita prévia, dados de nota persistidos após voltar online, preferência/velocidade local malformada e zoom no celular.
+
+### Defeitos reproduzidos e corrigidos
+
+1. **Playlist offline não carregava após atualização:** service worker v17 agora usa network-first para buscar conteúdo atualizado, armazena cópias válidas de HTML, JSON e JavaScript e permite fallback offline. Faz pré-cache dos dois repertórios e recursos associados.
+2. **Preferências locais inválidas quebravam fonte/velocidade:** valida tipos e limites (cores hexadecimais, tamanho 14–44, velocidade 4–150, alinhamento e visibilidade) antes de utilizar.
+3. **Acessibilidade com falhas reais:** contraste insuficiente de botões, seletor de cor sem rótulo acessível e meta viewport bloqueando zoom. Corrigidos; cor do texto dos botões de destaque agora acompanha luminosidade do destaque configurado.
+4. **Recarga inesperada na primeira instalação PWA:** `controllerchange` não deve forçar reload durante navegação. Agora só recarrega após o próprio usuário clicar na atualização disponível.
+5. **Rastreabilidade de produção:** `scripts/smoke-production.cjs` verifica por HTTP(S) nove recursos do GitHub Pages, JSONs 204/19, links do editor, service worker e manifest. Novo workflow `.github/workflows/producao.yml` executa diariamente às 09:15 UTC ou manualmente; a verificação de servidor publicado é diferente dos testes locais.
+
+### Escopo que continua fora de verificação completa
+
+- Não existe backend de gravação nem sincronização entre aparelhos: persistência das edições permanece em `localStorage`.
+- Navegação e comportamento em celulares físicos iOS/Android, microfone real, persistência do sistema após gerenciamento de energia, testes de vários dias e validação visual integral de PDF/Word não foram comprovados apenas pelo CI.
+- Exportação `.doc` não é `.docx` genuíno. PDF ainda pode perder símbolos Unicode por limitação da fonte.
+- A suíte mede **funções alcançadas**, não 100% de cobertura de branches, testes de mutação ou totalidade matemática de combinações.
+- O repositório principal com letras continua público, pois GitHub Pages hospeda arquivos públicos.
+- A publicação automática do GitHub Pages não está bloqueada por required checks do CI; recomenda-se configurar branch protection no GitHub ou migrar o deploy para um workflow dependente da suíte.
+
+A avaliação final depende de o commit de merge e o deploy de produção concluírem suas próprias execuções sem falhas. Não declarar sucesso apenas com um commit anterior.
