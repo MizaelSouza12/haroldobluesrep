@@ -135,7 +135,8 @@ test('11: páginas públicas não incorporam o texto das letras',()=>{
   for(const html of [aHTML,jHTML]){
     assert.ok(!html.includes('id="songdata"'));
     assert.ok(!html.includes('cur.lines'));
-    assert.ok(html.includes('Tom / Nota'));
+    assert.ok(editorJS.includes('Tom / Nota'));
+    assert.ok(html.includes('src="./editor.js"'));
     assert.ok(editorJS.includes('Anotação da música'));
   }
 });
