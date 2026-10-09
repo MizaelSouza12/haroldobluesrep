@@ -1301,6 +1301,7 @@ test('Browser 72: uma playlist não perde os dados ao alternar entre online e of
     await s.page.locator('.noteInput').first().fill('Anotação offline preservada');
     await s.context.setOffline(true);
     await s.page.reload({waitUntil:'load',timeout:15000});
+    await s.page.locator('.song').first().waitFor({timeout:7000});
     assert.equal(await s.page.locator('.song').count(),204);
     assert.equal(await s.page.locator('.noteInput').first().inputValue(),'Anotação offline preservada');
     await s.context.setOffline(false);
