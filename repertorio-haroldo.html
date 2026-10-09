@@ -7378,7 +7378,16 @@ const CUSTOM_KEY = 'repHaroldo_custom_v1';
 let CUSTOM = [];
 try {
   const raw2 = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
-  if (Array.isArray(raw2)) CUSTOM = raw2.filter(s => s && s.title && s.text);
+  if (Array.isArray(raw2)) CUSTOM = raw2.filter(s =>
+    s && typeof s === 'object' &&
+    typeof s.title === 'string' && s.title.trim() &&
+    typeof s.text === 'string' && s.text.trim()
+  ).map(s => ({
+    ...s,
+    id: typeof s.id === 'string' ? s.id : undefined,
+    artist: typeof s.artist === 'string' ? s.artist : 'Desconhecido',
+    cats: typeof s.cats === 'string' && s.cats ? s.cats : 'C'
+  }));
 } catch(e) { CUSTOM = []; }
 function saveCustom(){
   try{ localStorage.setItem(CUSTOM_KEY, JSON.stringify(CUSTOM)); return true; }
@@ -7403,7 +7412,13 @@ try {
   const raw = JSON.parse(localStorage.getItem(SETLISTS_KEY) || 'null');
   if (raw && Array.isArray(raw.list)) { SETLISTS = raw.list.map(normalizeSetlist).filter(Boolean); activeSetlistId = raw.active || null; }
 } catch(e) { SETLISTS = []; }
-function saveSetlists(){ try{ SETLISTS.forEach(normalizeSetlist); localStorage.setItem(SETLISTS_KEY, JSON.stringify({ list: SETLISTS, active: activeSetlistId })); }catch(e){} }
+function saveSetlists(){
+  try{
+    SETLISTS.forEach(normalizeSetlist);
+    localStorage.setItem(SETLISTS_KEY, JSON.stringify({ list: SETLISTS, active: activeSetlistId }));
+    return true;
+  }catch(e){ return false; }
+}
 function activeSetlist(){ return SETLISTS.find(s => s.id === activeSetlistId) || null; }
 // migração de versão antiga (setlist único, sem nome)
 if (!localStorage.getItem(SETLISTS_KEY)){
@@ -7427,7 +7442,14 @@ function saveChipNames(){ try{ localStorage.setItem(CHIP_NAMES_KEY, JSON.stringi
 /* ================= CATEGORIAS PERSONALIZADAS (criadas pelo usuário) ================= */
 const CUSTOM_CATS_KEY = 'repHaroldo_customcats_v1';
 let CUSTOM_CATS = [];
-try { const cc = JSON.parse(localStorage.getItem(CUSTOM_CATS_KEY) || '[]'); if (Array.isArray(cc)) CUSTOM_CATS = cc; } catch(e) { CUSTOM_CATS = []; }
+try {
+  const cc = JSON.parse(localStorage.getItem(CUSTOM_CATS_KEY) || '[]');
+  if (Array.isArray(cc)) CUSTOM_CATS = cc.filter(x =>
+    x && typeof x === 'object' &&
+    typeof x.key === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(x.key) &&
+    typeof x.name === 'string' && x.name.trim()
+  ).map(x => ({ key:x.key, name:x.name.trim() }));
+} catch(e) { CUSTOM_CATS = []; }
 function saveCustomCats(){ try{ localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(CUSTOM_CATS)); }catch(e){} }
 
 /* ================= NOTAS DOS REPERTÓRIOS PARA MÚSICOS ================= */
@@ -7768,8 +7790,14 @@ $('selectBtn').onclick = () => {
     if (name === null) return;
     const t = name.trim() || 'Setlist 1';
     const id = 'ST' + Date.now().toString(36);
+    const previousActive = activeSetlistId;
     SETLISTS.push({ id, name: t, songIds: [], songKeys: {} });
-    activeSetlistId = id; saveSetlists();
+    activeSetlistId = id;
+    if (!saveSetlists()){
+      SETLISTS.pop(); activeSetlistId = previousActive;
+      alert('Não foi possível salvar o setlist. Verifique o espaço ou as permissões de armazenamento do navegador.');
+      return;
+    }
   }
   enterSelect();
 };
@@ -7782,13 +7810,20 @@ $('selClear').onclick = () => {
 };
 $('selConfirm').onclick = () => {
   const st = activeSetlist();
+  const previousIds = st ? st.songIds.slice() : null;
+  const previousActive = activeSetlistId;
   if (st){ st.songIds = tempSelection.slice(); }
   else {
     const id = 'ST' + Date.now().toString(36);
     SETLISTS.push({ id, name: 'Setlist 1', songIds: tempSelection.slice(), songKeys: {} });
     activeSetlistId = id;
   }
-  saveSetlists();
+  if (!saveSetlists()){
+    if (st) st.songIds = previousIds;
+    else { SETLISTS.pop(); activeSetlistId = previousActive; }
+    alert('Não foi possível salvar as músicas selecionadas. Sua seleção permanece aberta.');
+    return;
+  }
   filterCat = tempSelection.length ? 'SET' : 'ALL';
   history.back();
 };
@@ -7885,8 +7920,14 @@ $('newSetlistBtn').onclick = () => {
   if (name === null) return;
   const t = name.trim(); if (!t) return;
   const id = 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const previousActive = activeSetlistId;
   SETLISTS.push({ id, name: t, songIds: [], songKeys: {} });
-  activeSetlistId = id; saveSetlists();
+  activeSetlistId = id;
+  if (!saveSetlists()){
+    SETLISTS.pop(); activeSetlistId = previousActive;
+    alert('Não foi possível salvar o novo setlist. Verifique o armazenamento.');
+    return;
+  }
   closeSetlistManager();
   enterSelect();
 };
@@ -8385,8 +8426,14 @@ function finalizeVoiceList(){
   if (name === null) return;
   const t = name.trim() || 'Lista por voz';
   const id = 'ST' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const previousActive = activeSetlistId;
   SETLISTS.push({ id, name: t, songIds: chosen, songKeys: {} });
-  activeSetlistId = id; saveSetlists();
+  activeSetlistId = id;
+  if (!saveSetlists()){
+    SETLISTS.pop(); activeSetlistId = previousActive;
+    alert('Não foi possível salvar o setlist criado por voz. Verifique o armazenamento.');
+    return;
+  }
   closeVoiceSheet();
   filterCat = 'SET'; artistMode = false; filterArtist = null;
   refresh();
