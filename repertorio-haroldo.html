@@ -7682,7 +7682,14 @@ function renameChip(key){
   if (name === null) return;
   const t = name.trim();
   if (!t) return;
-  CHIP_NAMES[key] = t; saveChipNames(); refresh();
+  const previous = CHIP_NAMES[key];
+  CHIP_NAMES[key] = t;
+  if (!saveChipNames()){
+    CHIP_NAMES[key] = previous;
+    alert('Não foi possível salvar o nome da aba. Alteração desfeita.');
+    return;
+  }
+  refresh();
 }
 function buildChips(){
   chipsEl.innerHTML = '';
@@ -7975,24 +7982,52 @@ function renderSetlistManager(){
       '<button data-a="del" title="Excluir">🗑</button></div>';
 
     row.querySelector('[data-a="use"]').onclick = () => {
-      activeSetlistId = st.id; saveSetlists(); filterCat = 'SET'; artistMode = false; filterArtist = null;
+      const previous = activeSetlistId;
+      activeSetlistId = st.id;
+      if (!saveSetlists()){
+        activeSetlistId = previous;
+        alert('Não foi possível salvar a seleção do setlist.');
+        return;
+      }
+      filterCat = 'SET'; artistMode = false; filterArtist = null;
       closeSetlistManager(); refresh();
     };
     row.querySelector('[data-a="edit"]').onclick = () => {
-      activeSetlistId = st.id; saveSetlists();
+      const previous = activeSetlistId;
+      activeSetlistId = st.id;
+      if (!saveSetlists()){
+        activeSetlistId = previous;
+        alert('Não foi possível salvar a seleção do setlist.');
+        return;
+      }
       closeSetlistManager(); enterSelect();
     };
     row.querySelector('[data-a="ren"]').onclick = () => {
       const name = prompt('Renomear setlist:', st.name);
       if (name === null) return;
       const t = name.trim(); if (!t) return;
-      st.name = t; saveSetlists(); renderSetlistManager(); refresh();
+      const previous = st.name;
+      st.name = t;
+      if (!saveSetlists()){
+        st.name = previous;
+        alert('Não foi possível salvar o nome do setlist. Alteração desfeita.');
+        return;
+      }
+      renderSetlistManager(); refresh();
     };
     row.querySelector('[data-a="del"]').onclick = () => {
       if (!confirm('Excluir o setlist "' + st.name + '"? As músicas continuam no repertório normalmente, só esta lista específica será removida.')) return;
+      const previousList = SETLISTS;
+      const previousActive = activeSetlistId;
       SETLISTS = SETLISTS.filter(x => x.id !== st.id);
       if (activeSetlistId === st.id) activeSetlistId = (SETLISTS[0] && SETLISTS[0].id) || null;
-      saveSetlists(); renderSetlistManager(); refresh();
+      if (!saveSetlists()){
+        SETLISTS = previousList;
+        activeSetlistId = previousActive;
+        alert('Não foi possível salvar a exclusão do setlist. Nada foi apagado.');
+        return;
+      }
+      renderSetlistManager(); refresh();
     };
     wrap.appendChild(row);
   });
@@ -8632,7 +8667,16 @@ function bumpSpeed(d){
   if (!curSong) return;
   let v = speedOf(curSong) + d;
   v = Math.max(4, Math.min(150, v));
-  speeds[curSong.id] = v; saveSpeeds();
+  const id = curSong.id;
+  const existed = Object.prototype.hasOwnProperty.call(speeds,id);
+  const previous = speeds[id];
+  speeds[id] = v;
+  if (!saveSpeeds()){
+    if (existed) speeds[id] = previous;
+    else delete speeds[id];
+    alert('Não foi possível salvar a velocidade no armazenamento. A alteração foi desfeita.');
+    return;
+  }
   $('spdVal').textContent = v;
 }
 $('spdUp').onclick = () => bumpSpeed(2);
