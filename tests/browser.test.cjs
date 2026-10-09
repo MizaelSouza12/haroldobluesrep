@@ -1174,3 +1174,64 @@ test('Browser 66: importar backup com item malformado recupera registros válido
     await checkNoPageErrors(s);
   }finally{await s.close();}
 });
+
+
+test('Browser 67: estresse com 500 músicas personalizadas, busca, F5 e 50 setlists',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      const custom=Array.from({length:500},(_,i)=>({
+        id:'Cstress'+i,title:'Musica Stress '+i,artist:'Banda '+(i%20),
+        cats:i%2?'A':'J',text:('Estrofe '+i+'\n').repeat(12)
+      }));
+      const list=Array.from({length:50},(_,i)=>({
+        id:'STstress'+i,name:'Show Stress '+i,
+        songIds:custom.slice(i,i+10).map(x=>x.id),songKeys:{}
+      }));
+      localStorage.setItem('repHaroldo_custom_v1',JSON.stringify(custom));
+      localStorage.setItem('repHaroldo_setlists_v1',JSON.stringify({list,active:'STstress0'}));
+    });
+    const started=Date.now();
+    await goto(s,MAIN);
+    assert.equal(await s.page.locator('#list .item').count(),714);
+    await s.page.locator('#search').fill('Musica Stress 249');
+    assert.equal(await s.page.locator('#list .item').count(),1);
+    await s.page.locator('#search').fill('');
+    await s.page.reload();
+    assert.equal(await s.page.locator('#list .item').count(),714);
+    await s.page.locator('#chips .chip',{hasText:'Setlists'}).click();
+    assert.equal(await s.page.locator('#setlistMgrList .setlistRow').count(),50);
+    console.log('STRESS 500 letras + 50 setlists:',Date.now()-started,'ms');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 68: F5 durante teleprompter não corrompe velocidades nem dados',async()=>{
+  const s=await fresh();try{
+    await goto(s,MAIN);
+    await s.page.locator('#list .item').first().click();
+    await s.page.locator('#spdUp').click();
+    const v=await s.page.locator('#spdVal').innerText();
+    await s.page.locator('#playBtn').click();
+    await s.page.waitForTimeout(120);
+    await s.page.reload();
+    assert.equal(await s.page.locator('#list .item').count(),214);
+    await s.page.locator('#list .item').first().click();
+    assert.equal(await s.page.locator('#spdVal').innerText(),v);
+    assert.equal(await s.page.locator('#songView.active').count(),1);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
+test('Browser 69: descarte confirmado não ressuscita rascunho ao voltar',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{window.confirm=()=>true;});
+    await goto(s,MAIN);
+    await s.page.locator('#addBtn').click();
+    await s.page.locator('#inTitle').fill('Rascunho descartado');
+    await s.page.locator('#inLyrics').fill('Este texto foi descartado');
+    await s.page.locator('#editBack').click();
+    await s.page.locator('#homeView.active').waitFor();
+    await s.page.locator('#addBtn').click();
+    assert.equal(await s.page.locator('#inTitle').inputValue(),'');
+    assert.equal(await s.page.locator('#inLyrics').inputValue(),'');
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
