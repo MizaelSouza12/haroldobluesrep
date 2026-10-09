@@ -1235,3 +1235,36 @@ test('Browser 69: descarte confirmado não ressuscita rascunho ao voltar',async(
     await checkNoPageErrors(s);
   }finally{await s.close();}
 });
+
+
+test('Browser 70: importação sem espaço não pode anunciar sucesso ou deixar letra fantasma',async()=>{
+  const s=await fresh();try{
+    await s.context.addInitScript(()=>{
+      window.__alerts=[];
+      window.alert=m=>window.__alerts.push(String(m));
+      window.confirm=()=>true;
+      const native=Storage.prototype.setItem;
+      Storage.prototype.setItem=function(k,v){
+        if(k==='repHaroldo_custom_v1')throw new DOMException('Sem espaço','QuotaExceededError');
+        return native.call(this,k,v);
+      };
+    });
+    await goto(s,MAIN);
+    await s.page.locator('#setBtnHome').click();
+    const backup={type:'repHaroldoBackup',version:1,data:{
+      custom:[{id:'Cbackup123',title:'Backup não persistente',artist:'Falha',cats:'J',text:'Letra de teste'}]
+    }};
+    await s.page.locator('#importFile').setInputFiles({
+      name:'backup-quota.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))
+    });
+    await s.page.waitForTimeout(200);
+    const alerts=await s.page.evaluate(()=>window.__alerts);
+    assert.equal(alerts.some(a=>a.startsWith('Backup importado:')),false,
+      'não pode anunciar importação concluída se a gravação foi recusada');
+    assert.ok(alerts.some(a=>/salvar|armazenamento|espaço/i.test(a)));
+    await s.page.reload();
+    const stored=await s.page.evaluate(()=>JSON.parse(localStorage.getItem('repHaroldo_custom_v1')||'[]'));
+    assert.equal(stored.some(x=>x.title==='Backup não persistente'),false);
+    await checkNoPageErrors(s);
+  }finally{await s.close();}
+});
